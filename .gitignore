@@ -1,0 +1,17 @@
+*.o
+*cscop*
+utils_lib.a
+database_*
+test_avl_object
+test_chunk_integrity
+test_chunk_object
+test_db
+test_db_speed
+test_dynamic_array
+test_index_object
+test_malloc
+test_queue_object
+test_sll_object
+test_stack_object
+
+
