@@ -125,6 +125,9 @@ chunk_manager_destroy (chunk_manager_t *cmgr);
 extern uint64
 chunk_manager_memory_usage (chunk_manager_t *cmgr, double *mega_bytes);
 
+extern void
+chunk_manager_destroy (chunk_manager_t *cmgr);
+
 #endif // __CHUNK_MANAGER_OBJECT_H__
 
 

@@ -148,6 +148,11 @@ chunk_manager_memory_usage (chunk_manager_t *cmgr, double *mega_bytes)
     return size;
 }
 
+PUBLIC void
+chunk_manager_destroy (chunk_manager_t *cmgr)
+{
+}
+
 
 
 
