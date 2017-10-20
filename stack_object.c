@@ -85,7 +85,7 @@ stack_obj_init (stack_obj_t *stk,
     if (expansion_size < 0) {
 	return EINVAL;
     }
-    CREATE_AND_WRITE_LOCK(stk);
+    OBJECT_LOCK_SETUP(stk);
     stk->maximum_size = maximum_size;
     stk->expansion_size = expansion_size;
     stk->expansion_count = 0;
@@ -94,7 +94,7 @@ stack_obj_init (stack_obj_t *stk,
     if (NULL == stk->elements) {
 	rv = ENOMEM;
     }
-    WRITE_UNLOCK_CONDITIONAL(stk);
+    WRITE_UNLOCK(stk);
     return rv;
 }
 
@@ -104,9 +104,9 @@ stack_obj_push (stack_obj_t *stk,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(stk, NULL);
+    WRITE_LOCK(stk, NULL);
     rv = thread_unsafe_stack_obj_push(stk, data);
-    WRITE_UNLOCK_CONDITIONAL(stk);
+    WRITE_UNLOCK(stk);
     return rv;
 }
 
@@ -116,9 +116,9 @@ stack_obj_pop (stack_obj_t *stk,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(stk, NULL);
+    WRITE_LOCK(stk, NULL);
     rv = thread_unsafe_stack_obj_pop(stk, returned_data);
-    WRITE_UNLOCK_CONDITIONAL(stk);
+    WRITE_UNLOCK(stk);
     return rv;
 }
 

@@ -214,7 +214,7 @@ index_obj_init (index_obj_t *idx,
 	return EINVAL;
     }
 
-    CREATE_AND_WRITE_LOCK(idx);
+    OBJECT_LOCK_SETUP(idx);
     idx->initial_size = idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
     idx->expansion_count = 0;
@@ -226,7 +226,7 @@ index_obj_init (index_obj_t *idx,
     if (NULL == idx->elements) {
 	rv = EINVAL;
     }
-    WRITE_UNLOCK_CONDITIONAL(idx);
+    WRITE_UNLOCK(idx);
     return rv;
 }
 
@@ -237,9 +237,9 @@ index_obj_insert (index_obj_t *idx,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(idx, NULL);
+    WRITE_LOCK(idx, NULL);
     rv = thread_unsafe_index_obj_insert(idx, data, exists);
-    WRITE_UNLOCK_CONDITIONAL(idx);
+    WRITE_UNLOCK(idx);
     return rv;
 }
 
@@ -250,9 +250,9 @@ index_obj_search (index_obj_t *idx,
 {
     error_t rv;
 
-    READ_LOCK_CONDITIONAL(idx);
+    READ_LOCK(idx);
     rv = thread_unsafe_index_obj_search(idx, search_key, found);
-    READ_UNLOCK_CONDITIONAL(idx);
+    READ_UNLOCK(idx);
     return rv;
 }
 
@@ -263,10 +263,10 @@ index_obj_remove (index_obj_t *idx,
 {
     error_t rv;
     
-    WRITE_LOCK_CONDITIONAL(idx, NULL);
+    WRITE_LOCK(idx, NULL);
     rv = thread_unsafe_index_obj_remove(idx,
 		data_to_be_removed, actual_data_removed);
-    WRITE_UNLOCK_CONDITIONAL(idx);
+    WRITE_UNLOCK(idx);
     return rv;
 }
 
@@ -277,7 +277,7 @@ index_obj_traverse (index_obj_t *idx, traverse_function_t tfn,
     int i;
     error_t rv = 0;
 
-    READ_LOCK_CONDITIONAL(idx);
+    READ_LOCK(idx);
     for (i = 0; i < idx->n; i++) {
 	if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
 	    p0, p1, p2, p3) != ok) {
@@ -285,7 +285,7 @@ index_obj_traverse (index_obj_t *idx, traverse_function_t tfn,
 		break;
 	}
     }
-    READ_UNLOCK_CONDITIONAL(idx);
+    READ_UNLOCK(idx);
     return rv;
 }
 
@@ -295,16 +295,16 @@ index_obj_get_all (index_obj_t *idx, int *returned_count)
     int i;
     datum_t *storage_area;
 
-    READ_LOCK_CONDITIONAL(idx);
+    READ_LOCK(idx);
     storage_area = MEM_ALLOC(idx, (idx->n + 1) * sizeof(datum_t));
     if (NULL == storage_area) {
 	*returned_count = 0;
-	READ_UNLOCK_CONDITIONAL(idx);
+	READ_UNLOCK(idx);
 	return NULL;
     }
     for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i];
     *returned_count = i;
-    READ_UNLOCK_CONDITIONAL(idx);
+    READ_UNLOCK(idx);
     return storage_area;
 }
 

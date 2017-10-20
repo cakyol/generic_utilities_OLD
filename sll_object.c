@@ -84,7 +84,7 @@ sll_object_init (sll_object_t *sll,
     pointer_to_one = NULL;
     pointer_to_one++;
         
-    CREATE_AND_WRITE_LOCK(sll);
+    OBJECT_LOCK_SETUP(sll);
     MEM_MONITOR_SETUP(sll);
 
     /* create the permanent "end" node */
@@ -98,7 +98,7 @@ sll_object_init (sll_object_t *sll,
     } else {
         rv = ENOMEM;
     }
-    WRITE_UNLOCK_CONDITIONAL(sll);
+    WRITE_UNLOCK(sll);
 
     return rv;
 }
@@ -234,9 +234,9 @@ sll_object_add (sll_object_t *sll, datum_t user_datum)
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(sll, NULL);
+    WRITE_LOCK(sll, NULL);
     rv = thread_unsafe_sll_object_add(sll, user_datum);
-    WRITE_UNLOCK_CONDITIONAL(sll);
+    WRITE_UNLOCK(sll);
     return rv;
 }
 
@@ -245,9 +245,9 @@ sll_object_add_once (sll_object_t *sll, datum_t user_datum)
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(sll, NULL);
+    WRITE_LOCK(sll, NULL);
     rv = thread_unsafe_sll_object_add_once(sll, user_datum);
-    WRITE_UNLOCK_CONDITIONAL(sll);
+    WRITE_UNLOCK(sll);
     return rv;
 }
 
@@ -259,10 +259,10 @@ sll_object_search (sll_object_t *sll,
     error_t rv;
     sll_node_t *node_found;
 
-    WRITE_LOCK_CONDITIONAL(sll, NULL);
+    WRITE_LOCK(sll, NULL);
     rv = thread_unsafe_sll_object_search(sll, searched_datum, 
             datum_found, &node_found);
-    WRITE_UNLOCK_CONDITIONAL(sll);
+    WRITE_UNLOCK(sll);
     return rv;
 }
 
@@ -273,9 +273,9 @@ sll_object_delete (sll_object_t *sll,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(sll, NULL);
+    WRITE_LOCK(sll, NULL);
     rv = thread_unsafe_sll_object_delete(sll, to_be_deleted, actual_data_deleted);
-    WRITE_UNLOCK_CONDITIONAL(sll);
+    WRITE_UNLOCK(sll);
     return rv;
 }
 
@@ -299,7 +299,7 @@ sll_object_destroy (sll_object_t *sll)
 {
     sll_node_t *next, *iter;
 
-    WRITE_LOCK_CONDITIONAL(sll, NULL);
+    WRITE_LOCK(sll, NULL);
     iter = sll->head;
     while (not_sll_end_node(iter)) {
         next = iter->next;
@@ -311,7 +311,7 @@ sll_object_destroy (sll_object_t *sll)
     sll->head = NULL;
     sll->mem_mon_p = NULL;
     sll->cmpf = NULL;
-    WRITE_UNLOCK_CONDITIONAL(sll);
+    WRITE_UNLOCK(sll);
     LOCK_OBJ_DESTROY(sll);
 }
 

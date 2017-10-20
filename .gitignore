@@ -1,5 +1,6 @@
 *.o
 *cscop*
+tags
 utils_lib.a
 database_*
 test_avl_object

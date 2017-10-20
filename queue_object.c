@@ -66,7 +66,7 @@ queue_obj_init (queue_obj_t *qobj,
 	return EINVAL;
     }
 
-    CREATE_AND_WRITE_LOCK(qobj);
+    OBJECT_LOCK_SETUP(qobj);
     qobj->maximum_size = maximum_size;
     qobj->n = 0;
     qobj->read_idx = qobj->write_idx = 0;
@@ -76,7 +76,7 @@ queue_obj_init (queue_obj_t *qobj,
     if (NULL == qobj->elements) {
 	rv = ENOMEM;
     }
-    WRITE_UNLOCK_CONDITIONAL(qobj);
+    WRITE_UNLOCK(qobj);
     return rv;
 }
 
@@ -86,9 +86,9 @@ queue_obj_queue (queue_obj_t *qobj,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(qobj, NULL);
+    WRITE_LOCK(qobj, NULL);
     rv = thread_unsafe_queue_obj_queue(qobj, data);
-    WRITE_UNLOCK_CONDITIONAL(qobj);
+    WRITE_UNLOCK(qobj);
     return rv;
 }
 
@@ -98,9 +98,9 @@ queue_obj_dequeue (queue_obj_t *qobj,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(qobj, NULL);
+    WRITE_LOCK(qobj, NULL);
     rv = thread_unsafe_queue_obj_dequeue(qobj, returned_data);
-    WRITE_UNLOCK_CONDITIONAL(qobj);
+    WRITE_UNLOCK(qobj);
     return rv;
 }
 

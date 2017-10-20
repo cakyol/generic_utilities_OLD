@@ -91,7 +91,7 @@ lock_obj_destroy (lock_obj_t *lck);
         lock_obj_t lock; \
         boolean locking_required;
 
-    #define CREATE_AND_WRITE_LOCK(obj) \
+    #define OBJECT_LOCK_SETUP(obj) \
         do { \
             obj->locking_required = make_it_thread_safe; \
             if (make_it_thread_safe) { \
@@ -102,16 +102,16 @@ lock_obj_destroy (lock_obj_t *lck);
             } \
         } while (0)
 
-    #define READ_LOCK_CONDITIONAL(obj) \
+    #define READ_LOCK(obj) \
         if (obj->locking_required) grab_read_lock(&obj->lock)
 
-    #define WRITE_LOCK_CONDITIONAL(obj, thread_id_pointer) \
+    #define WRITE_LOCK(obj, thread_id_pointer) \
         if (obj->locking_required) grab_write_lock(&obj->lock, thread_id_pointer)
 
-    #define READ_UNLOCK_CONDITIONAL(obj) \
+    #define READ_UNLOCK(obj) \
         if (obj->locking_required) release_read_lock(&obj->lock)
 
-    #define WRITE_UNLOCK_CONDITIONAL(obj) \
+    #define WRITE_UNLOCK(obj) \
         if (obj->locking_required) release_write_lock(&obj->lock)
 
     #define LOCK_OBJ_DESTROY(obj) \
@@ -121,15 +121,15 @@ lock_obj_destroy (lock_obj_t *lck);
 
     #define LOCK_VARIABLES
 
-    #define CREATE_AND_WRITE_LOCK(obj)
+    #define OBJECT_LOCK_SETUP(obj)
 
-    #define READ_LOCK_CONDITIONAL(obj) 
+    #define READ_LOCK(obj) 
 
-    #define WRITE_LOCK_CONDITIONAL(obj, thread_id_pointer)
+    #define WRITE_LOCK(obj, thread_id_pointer)
 
-    #define READ_UNLOCK_CONDITIONAL(obj)
+    #define READ_UNLOCK(obj)
 
-    #define WRITE_UNLOCK_CONDITIONAL(obj)
+    #define WRITE_UNLOCK(obj)
 
     #define LOCK_OBJ_DESTROY(obj)           do { } while (0)
 

@@ -176,7 +176,7 @@ dynamic_array_init (dynamic_array_t *datp,
     if (initial_size < 3) {
 	return EINVAL;
     }
-    CREATE_AND_WRITE_LOCK(datp);
+    OBJECT_LOCK_SETUP(datp);
     MEM_MONITOR_SETUP(datp);
     datp->elements = 
 	MEM_ALLOC(datp, (initial_size * sizeof(datum_t*)));
@@ -186,7 +186,7 @@ dynamic_array_init (dynamic_array_t *datp,
     datp->size = initial_size;
     datp->n = 0;
     datp->inserts = datp->deletes = 0;
-    WRITE_UNLOCK_CONDITIONAL(datp);
+    WRITE_UNLOCK(datp);
 
     return 0;
 }
@@ -231,9 +231,9 @@ dynamic_array_insert (dynamic_array_t *datp,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(datp, NULL);
+    WRITE_LOCK(datp, NULL);
     rv = thread_unsafe_dynamic_array_insert(datp, index, data);
-    WRITE_UNLOCK_CONDITIONAL(datp);
+    WRITE_UNLOCK(datp);
     return rv;
 }
 
@@ -266,9 +266,9 @@ dynamic_array_get (dynamic_array_t *datp,
 {
     error_t rv;
 
-    READ_LOCK_CONDITIONAL(datp);
+    READ_LOCK(datp);
     rv = thread_unsafe_dynamic_array_get(datp, index, returned);
-    READ_UNLOCK_CONDITIONAL(datp);
+    READ_UNLOCK(datp);
     return rv;
 }
 
@@ -305,9 +305,9 @@ dynamic_array_remove (dynamic_array_t *datp,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(datp, NULL);
+    WRITE_LOCK(datp, NULL);
     rv = thread_unsafe_dynamic_array_remove(datp, index, removed);
-    WRITE_UNLOCK_CONDITIONAL(datp);
+    WRITE_UNLOCK(datp);
     return rv;
 }
 

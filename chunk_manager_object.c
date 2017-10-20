@@ -104,11 +104,11 @@ chunk_manager_init (chunk_manager_t *cmgr,
 {
     error_t rv;
 
-    CREATE_AND_WRITE_LOCK(cmgr);
+    OBJECT_LOCK_SETUP(cmgr);
     rv = thread_unsafe_chunk_manager_init(cmgr,
 	    chunk_size, initial_number_of_chunks,
 	    expansion_size, parent_mem_monitor);
-    WRITE_UNLOCK_CONDITIONAL(cmgr);
+    WRITE_UNLOCK(cmgr);
     return rv;
 }
 
@@ -117,18 +117,18 @@ chunk_manager_alloc (chunk_manager_t *cmgr)
 {
     void *rv;
 
-    WRITE_LOCK_CONDITIONAL(cmgr, NULL);
+    WRITE_LOCK(cmgr, NULL);
     rv = thread_unsafe_chunk_manager_alloc(cmgr);
-    WRITE_UNLOCK_CONDITIONAL(cmgr);
+    WRITE_UNLOCK(cmgr);
     return rv;
 }
 
 PUBLIC void
 chunk_manager_free (chunk_manager_t *cmgr, void *chunk)
 {
-    WRITE_LOCK_CONDITIONAL(cmgr, NULL);
+    WRITE_LOCK(cmgr, NULL);
     cmgr->chunks[++cmgr->index] = chunk;
-    WRITE_UNLOCK_CONDITIONAL(cmgr);
+    WRITE_UNLOCK(cmgr);
 }
 
 PUBLIC int

@@ -602,7 +602,7 @@ avl_tree_init (avl_tree_t *tree,
         mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;
-    CREATE_AND_WRITE_LOCK(tree);
+    OBJECT_LOCK_SETUP(tree);
     MEM_MONITOR_SETUP(tree);
     tree->cmpf = cmpf;
 
@@ -614,7 +614,7 @@ avl_tree_init (avl_tree_t *tree,
 
     tree->n = 0;
     tree->root_node = tree->first_node = tree->last_node = NULL;
-    WRITE_UNLOCK_CONDITIONAL(tree);
+    WRITE_UNLOCK(tree);
 
     return 0;
 }
@@ -626,9 +626,9 @@ avl_tree_insert (avl_tree_t *tree,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(tree, NULL);
+    WRITE_LOCK(tree, NULL);
     rv = thread_unsafe_avl_tree_insert(tree, data, exists);
-    WRITE_UNLOCK_CONDITIONAL(tree);
+    WRITE_UNLOCK(tree);
     return rv;
 }
 
@@ -641,7 +641,7 @@ avl_tree_search (avl_tree_t *tree,
     avl_node_t *parent, *unbalanced, *node;
     boolean is_left;
 
-    READ_LOCK_CONDITIONAL(tree);
+    READ_LOCK(tree);
     node = avl_lookup_engine(tree, searched, &parent, &unbalanced, &is_left);
     if (node) {
         SAFE_DATUMP_SET(found, node->data);
@@ -650,7 +650,7 @@ avl_tree_search (avl_tree_t *tree,
 	SAFE_NULLIFY_DATUMP(found);
 	rv = ENODATA;
     }
-    READ_UNLOCK_CONDITIONAL(tree);
+    READ_UNLOCK(tree);
     return rv;
 }
 
@@ -661,10 +661,10 @@ avl_tree_remove (avl_tree_t *tree,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(tree, NULL);
+    WRITE_LOCK(tree, NULL);
     rv = thread_unsafe_avl_tree_remove(tree,
 		data_to_be_removed, actual_removed_data);
-    WRITE_UNLOCK_CONDITIONAL(tree);
+    WRITE_UNLOCK(tree);
     return rv;
 }
 
@@ -675,10 +675,10 @@ avl_tree_recursive_traverse (avl_tree_t *tree,
 {
     error_t rv;
 
-    READ_LOCK_CONDITIONAL(tree);
+    READ_LOCK(tree);
     rv = thread_unsafe_recursive_traverse(tree, tree->root_node,
 		tfn, p0, p1, p2, p3);
-    READ_UNLOCK_CONDITIONAL(tree);
+    READ_UNLOCK(tree);
     return rv;
 }
 
@@ -689,10 +689,10 @@ avl_tree_traverse (avl_tree_t *tree,
 {
     error_t rv;
 
-    READ_LOCK_CONDITIONAL(tree);
+    READ_LOCK(tree);
     rv = thread_unsafe_morris_traverse(tree, tree->root_node,
 		tfn, p0, p1, p2, p3);
-    READ_UNLOCK_CONDITIONAL(tree);
+    READ_UNLOCK(tree);
     return rv;
 }
 
@@ -702,7 +702,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
     datum_t *storage_area;
     int index = 0;
 
-    READ_LOCK_CONDITIONAL(tree);
+    READ_LOCK(tree);
     storage_area = malloc((tree->n + 1) * sizeof(datum_t));
     if (NULL == storage_area) {
 	*returned_count = 0;
@@ -710,7 +710,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 	avl_node_get_all(tree->root_node, storage_area, &index);
 	*returned_count = index;
     }
-    READ_UNLOCK_CONDITIONAL(tree);
+    READ_UNLOCK(tree);
     return storage_area;
 }
 
@@ -726,12 +726,12 @@ avl_tree_memory_usage (avl_tree_t *tree, double *mega_bytes)
 PUBLIC void
 avl_tree_destroy (avl_tree_t *tree)
 {
-    WRITE_LOCK_CONDITIONAL(tree, NULL);
+    WRITE_LOCK(tree, NULL);
     avl_node_destroy_nodes(tree, tree->root_node, false);
     assert(tree->n == 0);
     tree->root_node = tree->first_node = tree->last_node = NULL;
     tree->cmpf = NULL;
-    WRITE_UNLOCK_CONDITIONAL(tree);
+    WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
 }
 

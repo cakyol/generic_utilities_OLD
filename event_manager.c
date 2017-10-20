@@ -156,7 +156,7 @@ event_manager_init (event_manager_t *evrp,
 {
     error_t rv;
 
-    CREATE_AND_WRITE_LOCK(evrp);
+    OBJECT_LOCK_SETUP(evrp);
     MEM_MONITOR_SETUP(evrp);
 
     rv = sll_object_init(&evrp->all_types_object_processes, 
@@ -189,7 +189,7 @@ event_manager_init (event_manager_t *evrp,
         return rv;
     }
 
-    WRITE_UNLOCK_CONDITIONAL(evrp);
+    WRITE_UNLOCK(evrp);
     return rv;
 }
 
@@ -206,10 +206,10 @@ register_for_object_events (event_manager_t *evrp,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(evrp, NULL);
+    WRITE_LOCK(evrp, NULL);
     rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
             OBJECT_EVENTS, true);
-    WRITE_UNLOCK_CONDITIONAL(evrp);
+    WRITE_UNLOCK(evrp);
     return rv;
 }
 
@@ -217,10 +217,10 @@ PUBLIC void
 un_register_from_object_events (event_manager_t *evrp,
         int object_type, process_address_t *pap)
 {
-    WRITE_LOCK_CONDITIONAL(evrp, NULL);
+    WRITE_LOCK(evrp, NULL);
     (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
             OBJECT_EVENTS, false);
-    WRITE_UNLOCK_CONDITIONAL(evrp);
+    WRITE_UNLOCK(evrp);
 }
 
 /*
@@ -233,10 +233,10 @@ register_for_attribute_events (event_manager_t *evrp,
 {
     error_t rv;
 
-    WRITE_LOCK_CONDITIONAL(evrp, NULL);
+    WRITE_LOCK(evrp, NULL);
     rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
             ATTRIBUTE_EVENTS, true);
-    WRITE_UNLOCK_CONDITIONAL(evrp);
+    WRITE_UNLOCK(evrp);
     return rv;
 }
 
@@ -244,10 +244,10 @@ PUBLIC void
 un_register_from_attribute_events (event_manager_t *evrp,
         int object_type, process_address_t *pap)
 {
-    WRITE_LOCK_CONDITIONAL(evrp, NULL);
+    WRITE_LOCK(evrp, NULL);
     (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
             ATTRIBUTE_EVENTS, true);
-    WRITE_UNLOCK_CONDITIONAL(evrp);
+    WRITE_UNLOCK(evrp);
 }
 
 PUBLIC void
