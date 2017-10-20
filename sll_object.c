@@ -73,7 +73,7 @@ not_sll_end_node (sll_node_t *sln)
 
 PUBLIC error_t
 sll_object_init (sll_object_t *sll,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf,
 	mem_monitor_t *parent_mem_monitor)
 {
@@ -84,11 +84,11 @@ sll_object_init (sll_object_t *sll,
     pointer_to_one = NULL;
     pointer_to_one++;
         
-    OBJECT_LOCK_SETUP(sll);
+    LOCK_SETUP(sll);
     MEM_MONITOR_SETUP(sll);
 
     /* create the permanent "end" node */
-    node = (sll_node_t*) MEM_ALLOC(sll, sizeof(sll_node_t));
+    node = (sll_node_t*) MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
     if (node) {
         node->next = (sll_node_t*) pointer_to_one;
         node->user_datum.pointer = NULL;
@@ -106,7 +106,7 @@ sll_object_init (sll_object_t *sll,
 static inline sll_node_t *
 new_sll_node (sll_object_t *sll, datum_t user_datum)
 {
-    sll_node_t *node = MEM_ALLOC(sll, sizeof(sll_node_t));
+    sll_node_t *node = MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
 
     if (node) {
 	node->next = NULL;
@@ -206,7 +206,7 @@ thread_unsafe_sll_node_delete (sll_object_t *sll,
 
     to_free = node_tobe_deleted->next;
     *node_tobe_deleted = *(node_tobe_deleted->next);
-    MEM_FREE(sll, to_free);
+    MEM_MONITOR_FREE(sll, to_free);
     sll->n--;
 
     return 0;
@@ -303,10 +303,10 @@ sll_object_destroy (sll_object_t *sll)
     iter = sll->head;
     while (not_sll_end_node(iter)) {
         next = iter->next;
-        MEM_FREE(sll, iter);
+        MEM_MONITOR_FREE(sll, iter);
         iter = next;
     }
-    MEM_FREE(sll, sll->head);
+    MEM_MONITOR_FREE(sll, sll->head);
     sll->n = 0;
     sll->head = NULL;
     sll->mem_mon_p = NULL;

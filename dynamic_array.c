@@ -47,7 +47,7 @@ dynamic_array_expand (dynamic_array_t *datp, int index)
     }
 
     new_elements = 
-	(datum_t*) MEM_ALLOC(datp, new_size * sizeof(datum_t));
+	(datum_t*) MEM_MONITOR_ALLOC(datp, new_size * sizeof(datum_t));
     if (NULL == new_elements)
 	return ENOMEM;
     for (i = 0; i < new_size; i++) NULLIFY_DATUM(new_elements[i]);
@@ -63,7 +63,7 @@ dynamic_array_expand (dynamic_array_t *datp, int index)
     
     /* adjust the rest */
     datp->size = new_size;
-    MEM_FREE(datp, datp->elements);
+    MEM_MONITOR_FREE(datp, datp->elements);
     datp->elements = new_elements;
 
     return 0;
@@ -111,7 +111,7 @@ dynamic_array_shrink (dynamic_array_t *datp)
     /* allocate the new smaller array */
     new_size = datp->size - start_unused_entries - end_unused_entries;
     new_elements = (datum_t*)
-	MEM_ALLOC(datp, new_size * sizeof(datum_t));
+	MEM_MONITOR_ALLOC(datp, new_size * sizeof(datum_t));
     if (NULL == new_elements) return;
 
     /* copy the valid data from the old into the new array */
@@ -123,7 +123,7 @@ dynamic_array_shrink (dynamic_array_t *datp)
 
     /* free the old storage, attach new smaller one */
     datp->size = new_size;
-    MEM_FREE(datp, datp->elements);
+    MEM_MONITOR_FREE(datp, datp->elements);
     datp->elements = new_elements;
 
     /* adjust all new boundaries now */
@@ -163,7 +163,7 @@ valid_index (dynamic_array_t *datp, int index)
 
 PUBLIC error_t
 dynamic_array_init (dynamic_array_t *datp,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	int initial_size,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -176,10 +176,10 @@ dynamic_array_init (dynamic_array_t *datp,
     if (initial_size < 3) {
 	return EINVAL;
     }
-    OBJECT_LOCK_SETUP(datp);
+    LOCK_SETUP(datp);
     MEM_MONITOR_SETUP(datp);
     datp->elements = 
-	MEM_ALLOC(datp, (initial_size * sizeof(datum_t*)));
+	MEM_MONITOR_ALLOC(datp, (initial_size * sizeof(datum_t*)));
     if (NULL == datp->elements)
 	return ENOMEM;
     for (i = 0; i < initial_size; i++) NULLIFY_DATUM(datp->elements[i]);
@@ -335,7 +335,7 @@ PUBLIC void
 dynamic_array_destroy (dynamic_array_t *datp)
 {
     if (datp->elements) {
-	MEM_FREE(datp, datp->elements);
+	MEM_MONITOR_FREE(datp, datp->elements);
     }
     LOCK_OBJ_DESTROY(datp);
     memset(datp, 0, sizeof(dynamic_array_t));

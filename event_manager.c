@@ -81,21 +81,21 @@ get_correct_list (event_manager_t *evrp,
 
     if (FAILED(dynamic_array_get(dap, object_type, &list_datum))) {
         
-        list = MEM_ALLOC(evrp, sizeof(sll_object_t));
+        list = MEM_MONITOR_ALLOC(evrp, sizeof(sll_object_t));
         if (NULL == list)
             return NULL;
 
         rv = sll_object_init(list, false,
                 compare_process_ids, evrp->mem_mon_p);
         if (FAILED(rv)) {
-            MEM_FREE(evrp, list);
+            MEM_MONITOR_FREE(evrp, list);
             return NULL;
         }
 
         list_datum.pointer = list;
         rv = dynamic_array_insert(dap, object_type, list_datum);
         if (FAILED(rv)) {
-            MEM_FREE(evrp, list);
+            MEM_MONITOR_FREE(evrp, list);
             return NULL;
         }
 
@@ -151,12 +151,12 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
 
 PUBLIC error_t
 event_manager_init (event_manager_t *evrp,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	mem_monitor_t *parent_mem_monitor)
 {
     error_t rv;
 
-    OBJECT_LOCK_SETUP(evrp);
+    LOCK_SETUP(evrp);
     MEM_MONITOR_SETUP(evrp);
 
     rv = sll_object_init(&evrp->all_types_object_processes, 

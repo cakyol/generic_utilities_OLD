@@ -46,10 +46,10 @@ index_resize (index_obj_t *idx, int new_size)
 {
     datum_t *new_elements;
 
-    new_elements = MEM_ALLOC(idx, new_size * sizeof(datum_t));
+    new_elements = MEM_MONITOR_ALLOC(idx, new_size * sizeof(datum_t));
     if (NULL == new_elements) return ENOMEM;
     copy_index_elements(idx->elements, new_elements, idx->n);
-    MEM_FREE(idx, idx->elements);
+    MEM_MONITOR_FREE(idx, idx->elements);
     idx->elements = new_elements;
     idx->maximum_size = new_size;
     return 0;
@@ -202,7 +202,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
 PUBLIC error_t
 index_obj_init (index_obj_t *idx,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf,
 	int maximum_size,
 	int expansion_size,
@@ -214,7 +214,7 @@ index_obj_init (index_obj_t *idx,
 	return EINVAL;
     }
 
-    OBJECT_LOCK_SETUP(idx);
+    LOCK_SETUP(idx);
     idx->initial_size = idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
     idx->expansion_count = 0;
@@ -222,7 +222,7 @@ index_obj_init (index_obj_t *idx,
     idx->n = 0;
 
     MEM_MONITOR_SETUP(idx);
-    idx->elements = MEM_ALLOC(idx, sizeof(datum_t) * maximum_size);
+    idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(datum_t) * maximum_size);
     if (NULL == idx->elements) {
 	rv = EINVAL;
     }
@@ -296,7 +296,7 @@ index_obj_get_all (index_obj_t *idx, int *returned_count)
     datum_t *storage_area;
 
     READ_LOCK(idx);
-    storage_area = MEM_ALLOC(idx, (idx->n + 1) * sizeof(datum_t));
+    storage_area = MEM_MONITOR_ALLOC(idx, (idx->n + 1) * sizeof(datum_t));
     if (NULL == storage_area) {
 	*returned_count = 0;
 	READ_UNLOCK(idx);

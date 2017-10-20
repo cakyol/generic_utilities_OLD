@@ -53,7 +53,7 @@ typedef struct queue_obj_s {
 
 extern error_t
 queue_obj_init (queue_obj_t *qobj,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	int maximum_size);
 
 extern error_t

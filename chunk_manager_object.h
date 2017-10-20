@@ -106,7 +106,7 @@ typedef struct chunk_manager_s {
 
 extern error_t
 chunk_manager_init (chunk_manager_t *cmgr,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
         int chunk_size, int initial_number_of_chunks, int grow,
         mem_monitor_t *parent_mem_monitor);
 

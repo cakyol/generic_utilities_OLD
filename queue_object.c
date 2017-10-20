@@ -57,7 +57,7 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
 
 PUBLIC error_t
 queue_obj_init (queue_obj_t *qobj,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	int maximum_size)
 {
     error_t rv = 0;
@@ -66,7 +66,7 @@ queue_obj_init (queue_obj_t *qobj,
 	return EINVAL;
     }
 
-    OBJECT_LOCK_SETUP(qobj);
+    LOCK_SETUP(qobj);
     qobj->maximum_size = maximum_size;
     qobj->n = 0;
     qobj->read_idx = qobj->write_idx = 0;

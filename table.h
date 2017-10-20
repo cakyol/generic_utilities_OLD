@@ -57,7 +57,7 @@ typedef struct table_s {
 
 extern error_t 
 table_init (table_t *tablep, 
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf, 
         mem_monitor_t *parent_mem_monitor,
         boolean use_avl_tree);

@@ -91,10 +91,10 @@ lock_obj_destroy (lock_obj_t *lck);
         lock_obj_t lock; \
         boolean locking_required;
 
-    #define OBJECT_LOCK_SETUP(obj) \
+    #define LOCK_SETUP(obj) \
         do { \
-            obj->locking_required = make_it_thread_safe; \
-            if (make_it_thread_safe) { \
+            obj->locking_required = make_it_lockable; \
+            if (make_it_lockable) { \
                 if (FAILED(lock_obj_init(&obj->lock))) { \
                     return EFAULT; \
                 } \
@@ -121,7 +121,7 @@ lock_obj_destroy (lock_obj_t *lck);
 
     #define LOCK_VARIABLES
 
-    #define OBJECT_LOCK_SETUP(obj)
+    #define LOCK_SETUP(obj)
 
     #define READ_LOCK(obj) 
 

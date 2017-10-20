@@ -158,7 +158,7 @@ free_avl_node (avl_tree_t *tree, avl_node_t *node)
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_free(&tree->nodes, node);
 #else
-    MEM_FREE(tree, node);
+    MEM_MONITOR_FREE(tree, node);
 #endif
     tree->n--;
 }
@@ -171,7 +171,7 @@ new_avl_node (avl_tree_t *tree, datum_t data)
 #ifdef USE_CHUNK_MANAGER
     node = chunk_manager_alloc(&tree->nodes);
 #else
-    node = MEM_ALLOC(tree, sizeof(avl_node_t));
+    node = MEM_MONITOR_ALLOC(tree, sizeof(avl_node_t));
 #endif
     if (node) {
         node->parent = node->left = node->right = NULL;
@@ -597,12 +597,12 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 
 PUBLIC error_t
 avl_tree_init (avl_tree_t *tree,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;
-    OBJECT_LOCK_SETUP(tree);
+    LOCK_SETUP(tree);
     MEM_MONITOR_SETUP(tree);
     tree->cmpf = cmpf;
 

@@ -28,7 +28,7 @@
 
 PUBLIC error_t
 table_init (table_t *tablep,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf, 
         mem_monitor_t *parent_mem_monitor,
 	boolean use_avl_tree)
@@ -37,11 +37,11 @@ table_init (table_t *tablep,
     if (use_avl_tree) {
 	return
 	    avl_tree_init(&tablep->u.avl, 
-                make_it_thread_safe, cmpf, parent_mem_monitor);
+                make_it_lockable, cmpf, parent_mem_monitor);
     }
     return
 	index_obj_init(&tablep->u.idx, 
-                make_it_thread_safe, cmpf, 128, 128, parent_mem_monitor);
+                make_it_lockable, cmpf, 128, 128, parent_mem_monitor);
 }
 
 PUBLIC error_t

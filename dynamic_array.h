@@ -74,7 +74,7 @@ typedef struct dynamic_array_s {
 
 extern error_t
 dynamic_array_init (dynamic_array_t *datp,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	int initial_size,
         mem_monitor_t *parent_mem_monitor);
 

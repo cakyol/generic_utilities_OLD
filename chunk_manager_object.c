@@ -47,7 +47,7 @@ chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
     }
 
     for (i = 0; i < expansion_size; i++) {
-        one_chunk = MEM_ALLOC(cmgr, cmgr->chunk_size);
+        one_chunk = MEM_MONITOR_ALLOC(cmgr, cmgr->chunk_size);
         if (NULL == one_chunk) break;
         chunks[++cmgr->index] = one_chunk;
         cmgr->total_chunk_count++;
@@ -98,13 +98,13 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgr)
 
 PUBLIC error_t
 chunk_manager_init (chunk_manager_t *cmgr,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	int chunk_size, int initial_number_of_chunks, int expansion_size,
 	mem_monitor_t *parent_mem_monitor)
 {
     error_t rv;
 
-    OBJECT_LOCK_SETUP(cmgr);
+    LOCK_SETUP(cmgr);
     rv = thread_unsafe_chunk_manager_init(cmgr,
 	    chunk_size, initial_number_of_chunks,
 	    expansion_size, parent_mem_monitor);

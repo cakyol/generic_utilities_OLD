@@ -422,13 +422,13 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
                 parent_mem_monitor : &object_p->mem_mon; \
     } while (0)
 
-#define MEM_ALLOC(object_p, size) \
+#define MEM_MONITOR_ALLOC(object_p, size) \
     mem_monitor_allocate(object_p->mem_mon_p, size)
 
 #define MEM_REALLOC(object_p, oldp, newsize) \
     mem_monitor_reallocate(object_p->mem_mon_p, oldp, newsize)
 
-#define MEM_FREE(object_p, ptr) \
+#define MEM_MONITOR_FREE(object_p, ptr) \
     mem_monitor_free(object_p->mem_mon_p, ptr)
 
 /******************************************************************************

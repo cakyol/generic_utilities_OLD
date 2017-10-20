@@ -77,7 +77,7 @@ typedef struct trie_s {
 
 extern error_t 
 trie_init (trie_t *triep,
-        boolean make_it_thread_safe,
+        boolean make_it_lockable,
         int alphabet_size, 
         trie_index_converter tic,
         mem_monitor_t *parent_mem_monitor);

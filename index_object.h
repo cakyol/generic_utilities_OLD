@@ -65,7 +65,7 @@ typedef struct index_obj_s {
 
 extern error_t 
 index_obj_init (index_obj_t *idx,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf,
 	int maximum_size,
 	int expansion_size,

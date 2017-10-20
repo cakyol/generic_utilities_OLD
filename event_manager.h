@@ -119,7 +119,7 @@ typedef struct event_manager_s {
 
 extern error_t
 event_manager_init (event_manager_t *evrp,
-    boolean make_it_thread_safe,
+    boolean make_it_lockable,
     mem_monitor_t *parent_mem_monitor);
 
 extern error_t

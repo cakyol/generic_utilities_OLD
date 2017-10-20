@@ -65,7 +65,7 @@ typedef struct sll_object_s {
  */
 extern error_t
 sll_object_init (sll_object_t *sll,
-	boolean make_it_thread_safe,
+	boolean make_it_lockable,
 	comparison_function_t cmpf,
 	mem_monitor_t *parent_mem_monitor);
 

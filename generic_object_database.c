@@ -637,7 +637,7 @@ destroy_all_attribute_values_except (attribute_instance_t *aitp,
 	if (keep != curr) {
 	    notify_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
 		NULL, aitp->attribute_id, curr);
-	    MEM_FREE(obj->obj_db, curr);
+	    MEM_MONITOR_FREE(obj->obj_db, curr);
 	}
 	curr = next;
     }
@@ -783,7 +783,7 @@ attribute_instance_delete_simple_value (attribute_instance_t *aitp,
 	remove_attribute_value_from_list(aitp, avtp, prev_avtp);
 	notify_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
 	    NULL, aitp->attribute_id, avtp);
-	MEM_FREE(obj->obj_db, avtp);
+	MEM_MONITOR_FREE(obj->obj_db, avtp);
 	return ok;
     }
     return error;
@@ -854,7 +854,7 @@ attribute_instance_delete_complex_value (attribute_instance_t *aitp,
 	remove_attribute_value_from_list(aitp, avtp, prev_avtp);
 	notify_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
 	    NULL, aitp->attribute_id, avtp);
-	MEM_FREE(obj->obj_db, avtp);
+	MEM_MONITOR_FREE(obj->obj_db, avtp);
 	return ok;
     }
     return error;
@@ -899,7 +899,7 @@ attribute_instance_destroy (attribute_instance_t *aitp)
     /* ok event is processed, now restore back */
     restore_events(obj_db, events);
 
-    MEM_FREE(obj_db, aitp);
+    MEM_MONITOR_FREE(obj_db, aitp);
 }
 
 /******************************************************************************
@@ -1039,7 +1039,7 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
     notify_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
 
     /* and blow it away */
-    MEM_FREE(obj_db, obj);
+    MEM_MONITOR_FREE(obj_db, obj);
 }
 
 /******************************************************************************/
@@ -1056,7 +1056,7 @@ object_create (object_t *parent, int object_type, int object_instance)
     obj_db = parent->obj_db;
 
     /* allocate the object & fill in some basics */
-    obj = MEM_ALLOC(obj_db, sizeof(object_t));
+    obj = MEM_MONITOR_ALLOC(obj_db, sizeof(object_t));
     assert(obj != NULL);
     obj->obj_db = obj_db;
     obj->parent = parent;
@@ -1073,7 +1073,7 @@ object_create (object_t *parent, int object_type, int object_instance)
      */
     assert(0 == table_insert(&obj_db->object_index, obj_datum, &exists_datum));
     if (exists_datum.pointer) {
-        MEM_FREE(obj_db, obj);
+        MEM_MONITOR_FREE(obj_db, obj);
         obj = exists_datum.pointer;
         if (obj->parent == parent) {
             return obj;
@@ -1109,21 +1109,21 @@ object_attribute_instance_add (object_t *obj, int attribute_id)
     }
     
     /* create the new attribute */
-    aitp = MEM_ALLOC(obj->obj_db, sizeof(attribute_instance_t));
+    aitp = MEM_MONITOR_ALLOC(obj->obj_db, sizeof(attribute_instance_t));
     if (NULL == aitp) return NULL;
 
     /* add it to object */
     aitp->attribute_id = attribute_id;
     aitp_datum.pointer = aitp;
     if (dynamic_array_insert(&obj->attributes, attribute_id, aitp_datum) != 0) {
-	MEM_FREE(obj->obj_db, aitp);
+	MEM_MONITOR_FREE(obj->obj_db, aitp);
 	return NULL;
     }
 
 #else
 
     /* create the new attribute  */
-    aitp = MEM_ALLOC(obj->obj_db, sizeof(attribute_instance_t));
+    aitp = MEM_MONITOR_ALLOC(obj->obj_db, sizeof(attribute_instance_t));
     if (NULL == aitp) return NULL;
 
     /* if already there, just free up the new one & return */
@@ -1131,7 +1131,7 @@ object_attribute_instance_add (object_t *obj, int attribute_id)
     aitp_datum.pointer = aitp;
     if (table_insert(&obj->attributes, aitp_datum, &found_datum) == 0) {
 	if (found.pointer) {
-	    MEM_FREE(obj->obj_db, aitp);
+	    MEM_MONITOR_FREE(obj->obj_db, aitp);
 	    return found.pointer;
 	}
     }
