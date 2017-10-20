@@ -39,6 +39,9 @@
 #define ATTRIBUTE_INSTANCE_ADDED		(1 << 5)
 #define ATTRIBUTE_INSTANCE_DELETED		(1 << 6)
 
+#define ATTRIBUTE_VALUE_EVENTS                  (ATTRIBUTE_VALUE_ADDED | \
+                                                 ATTRIBUTE_VALUE_DELETED)
+
 #define ATTRIBUTE_EVENTS                        (ATTRIBUTE_VALUE_ADDED | \
                                                  ATTRIBUTE_VALUE_DELETED | \
                                                  ATTRIBUTE_INSTANCE_ADDED | \
@@ -51,21 +54,15 @@
 
 static inline int
 is_an_object_event (int event)
-{
-    return
-        (OBJECT_CREATED == event) || 
-        (OBJECT_DESTROYED == event);
-}
+{ return (event & OBJECT_EVENTS); }
+
+static inline int
+is_an_attribute_value_event (int event)
+{ return (event & ATTRIBUTE_VALUE_EVENTS); }
 
 static inline int
 is_an_attribute_event (int event)
-{
-    return
-        (ATTRIBUTE_VALUE_ADDED == event) ||
-        (ATTRIBUTE_VALUE_DELETED == event) ||
-        (ATTRIBUTE_INSTANCE_ADDED == event) ||
-        (ATTRIBUTE_INSTANCE_DELETED == event);
-}
+{ return (event & ATTRIBUTE_EVENTS); }
 
 #endif // __EVENT_TYPES_H__
 

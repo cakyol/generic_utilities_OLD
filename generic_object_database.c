@@ -339,14 +339,6 @@ read_event_record (int fd, event_record_t *evrp)
     return error;
 }
 
-static inline boolean
-object_attribute_value_event (int event)
-{
-    return
-	(event == ATTRIBUTE_VALUE_ADDED) ||
-	(event == ATTRIBUTE_VALUE_DELETED);
-}
-
 static event_record_t *
 create_event_record (object_database_t *obj_db,
 	int event,
@@ -362,7 +354,7 @@ create_event_record (object_database_t *obj_db,
     // if a complex attribute event, the size may be extended past
     // the end of the structure to account for a complex attribute
     //
-    if (object_attribute_value_event(event) && related_attribute_value) {
+    if (is_an_attribute_value_event(event) && related_attribute_value) {
 	if (related_attribute_value->attribute_value_length > 0) {
 	    size += related_attribute_value->attribute_value_length;
 
