@@ -66,7 +66,7 @@ void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
     }
     end_timer(&timr);
     report_timer(&timr, MAX_SZ);
-    bytes_used = avl_tree_memory_usage(avlt, &megabytes_used);
+    OBJECT_MEMORY_USAGE(avlt, bytes_used, megabytes_used);
     printf("total memory used by the avl tree of %d nodes: %llu bytes (%lf Mbytes)\n",
 	avlt->n, bytes_used, megabytes_used);
 
@@ -157,7 +157,7 @@ return;
     printf("deleted %d, could NOT delete %d, erroneous search %d\n",
 	fine, not_fine, fail_search);
 
-    bytes_used = avl_tree_memory_usage(avlt, &megabytes_used);
+    OBJECT_MEMORY_USAGE(avlt, bytes_used, megabytes_used);
     printf("total memory used by the avl tree (%d nodes) after deletes: "
 	"%llu bytes (%f Mbytes)\n",
         avlt->n, bytes_used, megabytes_used);

@@ -714,15 +714,6 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
     return storage_area;
 }
 
-PUBLIC uint64
-avl_tree_memory_usage (avl_tree_t *tree, double *mega_bytes)
-{
-    uint64 size = sizeof(avl_tree_t) + tree->mem_mon_p->bytes_used;
-
-    SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
-    return size;
-}
-
 PUBLIC void
 avl_tree_destroy (avl_tree_t *tree)
 {

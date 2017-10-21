@@ -341,13 +341,5 @@ dynamic_array_destroy (dynamic_array_t *datp)
     memset(datp, 0, sizeof(dynamic_array_t));
 }
 
-PUBLIC int64
-dynamic_array_memory_usage (dynamic_array_t *datp, double *mega_bytes)
-{
-    uint64 size = sizeof(dynamic_array_t) + datp->mem_mon_p->bytes_used;
-
-    SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
-    return size;
-}
 
 

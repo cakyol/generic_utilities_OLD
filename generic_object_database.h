@@ -456,9 +456,6 @@ database_load (int database_id, object_database_t *obj_db);
 extern void
 database_destroy (object_database_t *obj_db);
 
-extern uint64
-database_memory_usage (object_database_t *obj_db, double *mega_bytes);
-
 /******************************************************************************
  *
  * events related

@@ -1384,15 +1384,6 @@ database_destroy (object_database_t *obj_db)
 {
 }
 
-PUBLIC uint64
-database_memory_usage (object_database_t *obj_db, double *mega_bytes)
-{
-    uint64 size = sizeof(object_database_t) + obj_db->mem_mon_p->bytes_used;
-
-    SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
-    return size;
-}
-
 /******************************************************************************
  *
  * Reading and writing the database from/to a file for permanency.

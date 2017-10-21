@@ -139,15 +139,6 @@ chunk_manager_trim (chunk_manager_t *cmgr)
     return 0;
 }
 
-PUBLIC uint64
-chunk_manager_memory_usage (chunk_manager_t *cmgr, double *mega_bytes)
-{
-    uint64 size = sizeof(chunk_manager_t) + cmgr->mem_mon_p->bytes_used;
-
-    SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
-    return size;
-}
-
 PUBLIC void
 chunk_manager_destroy (chunk_manager_t *cmgr)
 {

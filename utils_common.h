@@ -431,6 +431,13 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
 #define MEM_MONITOR_FREE(object_p, ptr) \
     mem_monitor_free(object_p->mem_mon_p, ptr)
 
+#define OBJECT_MEMORY_USAGE(objp, size_in_bytes, size_in_megabytes) \
+    do { \
+        size_in_bytes = ((int64) (sizeof(*(objp)) + \
+            (objp)->mem_mon_p->bytes_used)); \
+        size_in_megabytes = ((double) size_in_bytes / (double) MEGA); \
+    } while (0)
+
 /******************************************************************************
 *******************************************************************************
 *******************************************************************************

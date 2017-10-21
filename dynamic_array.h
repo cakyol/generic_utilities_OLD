@@ -108,8 +108,5 @@ dynamic_array_get_all (dynamic_array_t *datp, int *count);
 extern void
 dynamic_array_destroy (dynamic_array_t *datp);
 
-extern int64
-dynamic_array_memory_usage (dynamic_array_t *datp, double *mega_bytes);
-
 #endif // __DYNAMIC_ARRAY_H__
 

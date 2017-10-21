@@ -99,9 +99,6 @@ trie_remove (trie_t *triep, void *key, int key_length, datum_t *removed_data);
 extern int
 trie_node_size (trie_t *triep);
 
-extern uint64
-trie_memory_usage (trie_t *triep, double *mega_bytes);
-
 extern void 
 trie_reset (trie_t *triep);
 

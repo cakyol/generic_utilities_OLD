@@ -117,10 +117,15 @@ table_member_count (table_t *tablep)
 PUBLIC uint64
 table_memory_usage (table_t *tablep, double *mega_bytes)
 {
-    return
-	(tablep->use_avl_tree) ?
-	    avl_tree_memory_usage(&tablep->u.avl, mega_bytes) :
-	    index_obj_memory_usage(&tablep->u.idx, mega_bytes);
+    int64 size;
+    
+    if (tablep->use_avl_tree) {
+        OBJECT_MEMORY_USAGE(&tablep->u.avl, size, *mega_bytes);
+    } else {
+        OBJECT_MEMORY_USAGE(&tablep->u.idx, size, *mega_bytes);
+    }
+
+    return size;
 }
 
 PUBLIC void

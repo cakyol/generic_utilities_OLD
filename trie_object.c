@@ -300,15 +300,6 @@ trie_node_size (trie_t *triep)
 	triep->alphabet_size * sizeof(trie_node_t*);
 }
 
-PUBLIC uint64
-trie_memory_usage (trie_t *triep, double *mega_bytes)
-{
-    uint64 size = sizeof(trie_t) + triep->memp->bytes_used;
-
-    SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
-    return size;
-}
-
 PUBLIC void
 trie_reset (trie_t *triep)
 {

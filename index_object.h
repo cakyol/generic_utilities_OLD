@@ -94,9 +94,6 @@ index_obj_traverse (index_obj_t *idx,
 extern datum_t *
 index_obj_get_all (index_obj_t *idx, int *returned_count);
 
-extern uint64
-index_obj_memory_usage (index_obj_t *idx, double *mega_bytes);
-
 /*
  * This function will trim the unused memory and return it back to
  * the system.  If the object expanded greatly and then shrunk

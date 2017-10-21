@@ -95,9 +95,6 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count);
 extern void 
 avl_tree_destroy (avl_tree_t *tree);
 
-extern uint64
-avl_tree_memory_usage (avl_tree_t *tree, double *mega_bytes);
-
 #endif // __AVL_TREE_OBJECT_H__
 
 

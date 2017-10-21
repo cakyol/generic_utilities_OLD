@@ -308,15 +308,6 @@ index_obj_get_all (index_obj_t *idx, int *returned_count)
     return storage_area;
 }
 
-PUBLIC uint64
-index_obj_memory_usage (index_obj_t *idx, double *mega_bytes)
-{
-    uint64 size = sizeof(index_obj_t) + idx->mem_mon_p->bytes_used;
-
-    SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
-    return size;
-}
-
 PUBLIC int
 index_obj_trim (index_obj_t *idx)
 {

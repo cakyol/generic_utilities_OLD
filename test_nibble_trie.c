@@ -47,7 +47,7 @@ char *argv [];
 
     printf("successfully added %d of %d strings to trie (nodes %d)\n", 
 	count, total, ntrie_obj.node_count);
-    mem = ntrie_memory_usage(&ntrie_obj, &megabytes);
+    OBJECT_MEMORY_USAGE(&ntrie_obj, mem, megabytes);
     printf("total memory used is %llu bytes (%lf Mbytes)\n",
 	mem, megabytes);
 

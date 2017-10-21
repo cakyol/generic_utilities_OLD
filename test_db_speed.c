@@ -41,7 +41,7 @@ int main (int argc, char *argv[])
     report_timer(&timr, count);
     printf("\n");
 
-    bytes_used = database_memory_usage(&db, &megabytes_used);
+    OBJECT_MEMORY_USAGE(&db, bytes_used, megabytes_used);
     printf("\ndatabase has %d elements in it and its size is: "
             "%llu bytes (%f Megabytes)\n\n",
             database_object_count(&db), bytes_used, megabytes_used);

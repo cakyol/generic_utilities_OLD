@@ -84,9 +84,6 @@ table_get_all (table_t *tablep, int *returned_count);
 extern int
 table_member_count (table_t *tablep);
 
-extern uint64
-table_memory_usage (table_t *tablep, double *mega_bytes);
-
 extern void 
 table_destroy (table_t *tablep);
 
