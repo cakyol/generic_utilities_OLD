@@ -16,7 +16,6 @@ int main (int argc, char *argv[])
 {
     error_t rv;
     int i, j, count;
-    datum_t d1, d2;
     sll_object_t sll;
 
     rv = sll_object_init(&sll, false, compare_ints, NULL);
@@ -29,16 +28,15 @@ int main (int argc, char *argv[])
     flush();
 
     for (i = START_INT; i <= END_INT; i++) {
-        d1.integer = i;
-        rv = sll_object_add_once(&sll, d1);
+        rv = sll_object_add_once_integer(&sll, i);
         if (rv) {
             fprintf(stderr, "adding %d failed\n", i);
         }
-        rv = sll_object_add_once(&sll, d1);
+        rv = sll_object_add_once_integer(&sll, i);
         if (rv) {
             fprintf(stderr, "adding %d failed in 2nd attempt\n", i);
         }
-        rv = sll_object_add_once(&sll, d1);
+        rv = sll_object_add_once_integer(&sll, i);
         if (rv) {
             fprintf(stderr, "adding %d failed in 3rd attempt\n", i);
         }
@@ -53,27 +51,26 @@ int main (int argc, char *argv[])
     flush();
 
     count = sll.n;
+    int s, d;
     for (i = START_INT; i <= END_INT; i++) {
 
-        d1.integer = i;
-        rv = sll_object_delete(&sll, d1, &d2);
+        rv = sll_object_delete_integer(&sll, i, &d);
         if (rv == 0) {
 
             count--;
             assert(count == sll.n);
-            assert(d1.integer == d2.integer);
+            assert(i == d);
 
             /* 
              * make sure that the deleted entry is NOT in the list 
              * but ALL others are
              */
             for (j = START_INT; j <= END_INT; j++) {
-                d1.integer = j;
                 if (j <= i) {
-                    assert(sll_object_search(&sll, d1, &d2) == ENODATA);
+                    assert(sll_object_search_integer(&sll, j, &s) == ENODATA);
                 } else {
-                    assert(sll_object_search(&sll, d1, &d2) == 0);
-                    assert(d1.integer == d2.integer);
+                    assert(sll_object_search_integer(&sll, j, &s) == 0);
+                    assert(j == s);
                 }
             }
         } else {

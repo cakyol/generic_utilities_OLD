@@ -124,6 +124,17 @@ sll_object_search (sll_object_t *sll,
 	datum_t searched_datum, datum_t *datum_found);
 
 /*
+ * integer & pointer add versions of the above function
+ */
+extern error_t
+sll_object_search_integer (sll_object_t *sll,
+        int searched_integer, int *found_integer);
+
+extern error_t
+sll_object_search_pointer (sll_object_t *sll,
+        void *searched_pointer, void **found_pointer);
+
+/*
  * deletes the node in which 'to_be_deleted' matches.
  * Returns 0 and the actual datum that was deleted if it
  * was found, else ENODATA and NULL otherwise.
@@ -131,6 +142,17 @@ sll_object_search (sll_object_t *sll,
 extern error_t 
 sll_object_delete (sll_object_t *sll,
 	datum_t to_be_deleted, datum_t *actual_data_deleted);
+
+/*
+ * integer & pointer add versions of the above function
+ */
+extern error_t
+sll_object_delete_integer (sll_object_t *sll,
+        int int_to_be_deleted, int *actual_int_deleted);
+
+extern error_t
+sll_object_delete_pointer (sll_object_t *sll,
+        void *pointer_to_be_deleted, void **actual_pointer_deleted);
 
 /*
  * Execute the function 'tfn' with appropriate parameters
