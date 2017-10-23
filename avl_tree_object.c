@@ -129,7 +129,8 @@ rotate_right (avl_node_t *node, avl_tree_t *tree)
 static avl_node_t *
 avl_lookup_engine (avl_tree_t *tree,
 	datum_t searched,
-	avl_node_t **pparent, avl_node_t **unbalanced, boolean *is_left)
+	avl_node_t **pparent, avl_node_t **unbalanced, 
+        boolean *is_left)
 {
     avl_node_t *node = tree->root_node;
     int res = 0;
@@ -264,25 +265,25 @@ avl_node_get_all (avl_node_t *node, datum_t *storage_area, int *index)
 
 static error_t 
 thread_unsafe_avl_tree_insert (avl_tree_t *tree,
-    datum_t data,
-    datum_t *exists)
+    datum_t datum_to_be_inserted,
+    datum_t *datum_already_present)
 {
     avl_node_t *found, *parent, *unbalanced, *node;
     boolean is_left;
 
     // assume the entry is not present initially
-    SAFE_NULLIFY_DATUMP(exists);
+    NULLIFY_DATUMP(datum_already_present);
 
-    found = avl_lookup_engine(tree, data,
+    found = avl_lookup_engine(tree, datum_to_be_inserted,
 		&parent, &unbalanced, &is_left);
 
     if (found) {
-        SAFE_DATUMP_SET(exists, found->data);
+        *datum_already_present = found->data;
 	return 0;
     }
 
     /* get a new node */
-    node = new_avl_node(tree, data);
+    node = new_avl_node(tree, datum_to_be_inserted);
     if (NULL == node) {
 	return ENOMEM;
     }
@@ -593,7 +594,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     return 0;
 }
 
-/****************** PUBLIC functions ******************/
+/**************************** Initialize *************************************/
 
 PUBLIC error_t
 avl_tree_init (avl_tree_t *tree,
@@ -619,35 +620,69 @@ avl_tree_init (avl_tree_t *tree,
     return 0;
 }
 
+/**************************** Insert *****************************************/
+
 PUBLIC error_t
 avl_tree_insert (avl_tree_t *tree,
-	datum_t data,
-	datum_t *exists)
+	datum_t datum_to_be_inserted,
+	datum_t *datum_already_present)
 {
     error_t rv;
 
     WRITE_LOCK(tree, NULL);
-    rv = thread_unsafe_avl_tree_insert(tree, data, exists);
+    rv = thread_unsafe_avl_tree_insert(tree,
+            datum_to_be_inserted, datum_already_present);
     WRITE_UNLOCK(tree);
     return rv;
 }
 
+PUBLIC error_t
+avl_tree_insert_integer (avl_tree_t *tree,
+        int integer_to_be_inserted,
+        int *integer_already_present)
+{
+    error_t rv;
+    datum_t datum_to_be_inserted, datum_already_present;
+
+    datum_to_be_inserted.integer = integer_to_be_inserted;
+    rv = avl_tree_insert(tree, datum_to_be_inserted, &datum_already_present);
+    *integer_already_present = datum_already_present.integer;
+    return rv;
+}
+
+PUBLIC error_t
+avl_tree_insert_pointer (avl_tree_t *tree,
+        void *pointer_to_be_inserted,
+        void **pointer_already_present)
+{
+    error_t rv;
+    datum_t datum_to_be_inserted, datum_already_present;
+
+    datum_to_be_inserted.pointer = pointer_to_be_inserted;
+    rv = avl_tree_insert(tree, datum_to_be_inserted, &datum_already_present);
+    *pointer_already_present = datum_already_present.pointer;
+    return rv;
+}
+
+/**************************** Search *****************************************/
+
 PUBLIC error_t 
 avl_tree_search (avl_tree_t *tree, 
-	datum_t searched,
-	datum_t *found)
+	datum_t datum_to_be_searched,
+	datum_t *datum_found)
 {
     error_t rv;
     avl_node_t *parent, *unbalanced, *node;
     boolean is_left;
 
     READ_LOCK(tree);
-    node = avl_lookup_engine(tree, searched, &parent, &unbalanced, &is_left);
+    node = avl_lookup_engine(tree, datum_to_be_searched, 
+                &parent, &unbalanced, &is_left);
     if (node) {
-        SAFE_DATUMP_SET(found, node->data);
+        *datum_found = node->data;
 	rv = 0;
     } else {
-	SAFE_NULLIFY_DATUMP(found);
+	NULLIFY_DATUMP(datum_found);
 	rv = ENODATA;
     }
     READ_UNLOCK(tree);
@@ -655,18 +690,78 @@ avl_tree_search (avl_tree_t *tree,
 }
 
 PUBLIC error_t
+avl_tree_search_integer (avl_tree_t *tree,
+        int integer_to_be_searched,
+        int *integer_found)
+{
+    error_t rv;
+    datum_t datum_to_be_searched, datum_found;
+
+    datum_to_be_searched.integer = integer_to_be_searched;
+    rv = avl_tree_search(tree, datum_to_be_searched, &datum_found);
+    *integer_found = datum_found.integer;
+    return rv;
+}
+
+PUBLIC error_t
+avl_tree_search_pointer (avl_tree_t *tree,
+        void *pointer_to_be_searched,
+        void **pointer_found)
+{
+    error_t rv;
+    datum_t datum_to_be_searched, datum_found;
+
+    datum_to_be_searched.pointer = pointer_to_be_searched;
+    rv = avl_tree_search(tree, datum_to_be_searched, &datum_found);
+    *pointer_found = datum_found.pointer;
+    return rv;
+}
+
+/**************************** Remove *****************************************/
+
+PUBLIC error_t
 avl_tree_remove (avl_tree_t *tree,
-	datum_t data_to_be_removed,
-	datum_t *actual_removed_data)
+	datum_t datum_to_be_removed,
+	datum_t *datum_actually_removed)
 {
     error_t rv;
 
     WRITE_LOCK(tree, NULL);
     rv = thread_unsafe_avl_tree_remove(tree,
-		data_to_be_removed, actual_removed_data);
+		datum_to_be_removed, datum_actually_removed);
     WRITE_UNLOCK(tree);
     return rv;
 }
+
+PUBLIC error_t
+avl_tree_remove_integer (avl_tree_t *tree,
+        int integer_to_be_removed,
+        int *integer_actually_removed)
+{
+    error_t rv;
+    datum_t datum_to_be_removed, datum_actually_removed;
+
+    datum_to_be_removed.integer = integer_to_be_removed;
+    rv = avl_tree_remove(tree, datum_to_be_removed, &datum_actually_removed);
+    *integer_actually_removed = datum_actually_removed.integer;
+    return rv;
+}
+
+PUBLIC error_t
+avl_tree_remove_pointer (avl_tree_t *tree,
+        void *pointer_to_be_removed,
+        void **pointer_actually_removed)
+{
+    error_t rv;
+    datum_t datum_to_be_removed, datum_actually_removed;
+
+    datum_to_be_removed.pointer = pointer_to_be_removed;
+    rv = avl_tree_remove(tree, datum_to_be_removed, &datum_actually_removed);
+    *pointer_actually_removed = datum_actually_removed.pointer;
+    return rv;
+}
+
+/**************************** Traverse ***************************************/
 
 PUBLIC error_t
 avl_tree_recursive_traverse (avl_tree_t *tree,

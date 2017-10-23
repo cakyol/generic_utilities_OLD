@@ -59,9 +59,13 @@ typedef struct avl_tree_s {
 
 } avl_tree_t;
 
+/**************************** Inlines ****************************************/
+
 static inline int
 avl_tree_size (avl_tree_t *tree)
 { return tree->n; }
+
+/**************************** Initialize *************************************/
 
 extern error_t 
 avl_tree_init (avl_tree_t *tree,
@@ -69,28 +73,76 @@ avl_tree_init (avl_tree_t *tree,
 	comparison_function_t cmpf,
         mem_monitor_t *parent_mem_monitor);
 
+/**************************** Insert *****************************************/
+
 extern error_t 
 avl_tree_insert (avl_tree_t *tree,
-	datum_t data,
-	datum_t *exists);
+	datum_t datum_to_be_inserted,
+	datum_t *datum_already_present);
+
+error_t
+avl_tree_insert_integer (avl_tree_t *tree,
+        int integer_to_be_inserted,
+        int *integer_already_present);
+
+error_t
+avl_tree_insert_pointer (avl_tree_t *tree,
+        void *pointer_to_be_inserted,
+        void **pointer_already_present);
+
+/**************************** Search *****************************************/
 
 extern error_t 
 avl_tree_search (avl_tree_t *tree,
-	datum_t searched,
-	datum_t *found);
+	datum_t datum_to_be_searched,
+	datum_t *datum_found);
+
+error_t
+avl_tree_search_integer (avl_tree_t *tree,
+        int integer_to_be_searched,
+        int *integer_found);
+
+error_t
+avl_tree_search_pointer (avl_tree_t *tree,
+        void *pointer_to_be_searched,
+        void **pointer_found);
+
+/**************************** Remove *****************************************/
 
 extern error_t 
 avl_tree_remove (avl_tree_t *tree,
-	datum_t data_to_be_removed,
-	datum_t *actual_data_removed);
+	datum_t datum_to_be_removed,
+	datum_t *datum_actually_removed);
+
+extern error_t
+avl_tree_remove_integer (avl_tree_t *tree,
+        int integer_to_be_removed,
+        int *integer_actually_removed);
+
+extern error_t
+avl_tree_remove_pointer (avl_tree_t *tree,
+        void *pointer_to_be_removed,
+        void **pointer_actually_removed);
+
+/**************************** Get all entries ********************************/
+
+extern datum_t *
+avl_tree_get_all (avl_tree_t *tree, int *returned_count);
+
+extern int *
+avl_tree_get_all_integers (avl_tree_t *tree, int *returned_count);
+
+extern void **
+avl_tree_get_all_pointers (avl_tree_t *tree, int *returned_count);
+
+/**************************** Traverse ***************************************/
 
 extern error_t
 avl_tree_traverse (avl_tree_t *tree,
 	traverse_function_t tfn,
 	datum_t p0, datum_t p1, datum_t p2, datum_t p3);
 
-extern datum_t *
-avl_tree_get_all (avl_tree_t *tree, int *returned_count);
+/**************************** Destroy ****************************************/
 
 extern void 
 avl_tree_destroy (avl_tree_t *tree);

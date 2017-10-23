@@ -76,6 +76,36 @@ index_obj_insert (index_obj_t *idx,
 	datum_t data,
 	datum_t *exists);
 
+/*
+ * integer & pointer versions of the above
+ */
+extern error_t
+index_obj_insert_integer (index_obj_t *idx,
+        int int_to_be_inserted, int *int_already_found)
+{
+    error_t rv;
+    datum_t d, f;
+
+    d.integer = int_to_be_inserted;
+    rv = index_obj_insert(idx, d, &f);
+    *int_already_found = f.integer;
+    return rv;
+}
+
+extern error_t
+index_obj_insert_pointer (index_obj_t *idx,
+        void *pointer_to_be_inserted, 
+        void **pointer_already_found)
+{
+    error_t rv;
+    datum_t d, f;
+
+    d.pointer = pointer_to_be_inserted;
+    rv = index_obj_insert(idx, d, &f);
+    *pointer_already_found = f.pointer;
+    return rv;
+}
+
 extern error_t 
 index_obj_search (index_obj_t *idx,
 	datum_t data,

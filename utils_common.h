@@ -196,6 +196,7 @@ typedef union datum_u {
 } datum_t;
 
 #define NULLIFY_DATUM(datum)		    ((datum).pointer = NULL)
+#define NULLIFY_DATUMP(datump)		    ((datump)->pointer = NULL)
 #define DATUM_IS_NULL(datum)		    (NULL == (datum).pointer)
 #define DATUM_NOT_NULL(datum)		    ((datum).pointer != NULL)
 
