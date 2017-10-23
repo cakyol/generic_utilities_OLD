@@ -241,6 +241,26 @@ sll_object_add (sll_object_t *sll, datum_t user_datum)
 }
 
 PUBLIC error_t
+sll_object_add_integer (sll_object_t *sll, int integer)
+{
+    datum_t d;
+
+    d.integer = integer;
+    return
+        sll_object_add(sll, d);
+}
+
+PUBLIC error_t
+sll_object_add_pointer (sll_object_t *sll, void *pointer)
+{
+    datum_t d;
+
+    d.pointer = pointer;
+    return
+        sll_object_add(sll, d);
+}
+
+PUBLIC error_t
 sll_object_add_once (sll_object_t *sll, datum_t user_datum)
 {
     error_t rv;
@@ -249,6 +269,26 @@ sll_object_add_once (sll_object_t *sll, datum_t user_datum)
     rv = thread_unsafe_sll_object_add_once(sll, user_datum);
     WRITE_UNLOCK(sll);
     return rv;
+}
+
+PUBLIC error_t
+sll_object_add_once_integer (sll_object_t *sll, int integer)
+{
+    datum_t d;
+
+    d.integer = integer;
+    return
+        sll_object_add_once(sll, d);
+}
+
+PUBLIC error_t
+sll_object_add_once_pointer (sll_object_t *sll, void *pointer)
+{
+    datum_t d;
+
+    d.pointer = pointer;
+    return
+        sll_object_add_once(sll, d);
 }
 
 PUBLIC error_t
@@ -267,6 +307,38 @@ sll_object_search (sll_object_t *sll,
 }
 
 PUBLIC error_t
+sll_object_search_integer (sll_object_t *sll, 
+        int searched_integer,
+        int *found_integer)
+{
+    error_t rv;
+    datum_t ds, df;
+
+    ds.integer = searched_integer;
+    rv = sll_object_search(sll, ds, &df);
+    if (SUCCEEDED(rv)) {
+        *found_integer = df.integer;
+    }
+    return rv;
+}
+
+PUBLIC error_t
+sll_object_search_pointer (sll_object_t *sll, 
+        void *searched_pointer,
+        void **found_pointer)
+{
+    error_t rv;
+    datum_t ds, df;
+
+    ds.pointer = searched_pointer;
+    rv = sll_object_search(sll, ds, &df);
+    if (SUCCEEDED(rv)) {
+        *found_pointer = df.pointer;
+    }
+    return rv;
+}
+
+PUBLIC error_t
 sll_object_delete (sll_object_t *sll,
 	datum_t to_be_deleted,
 	datum_t *actual_data_deleted)
@@ -276,6 +348,38 @@ sll_object_delete (sll_object_t *sll,
     WRITE_LOCK(sll, NULL);
     rv = thread_unsafe_sll_object_delete(sll, to_be_deleted, actual_data_deleted);
     WRITE_UNLOCK(sll);
+    return rv;
+}
+
+PUBLIC error_t
+sll_object_delete_integer (sll_object_t *sll,
+        int int_to_be_deleted,
+        int *actual_int_deleted)
+{
+    error_t rv;
+    datum_t ds, df;
+
+    ds.integer = int_to_be_deleted;
+    rv = sll_object_delete(sll, ds, &df);
+    if (SUCCEEDED(rv)) {
+        *actual_int_deleted = df.integer;
+    }
+    return rv;
+}
+
+PUBLIC error_t
+sll_object_delete_pointer (sll_object_t *sll,
+        void *pointer_to_be_deleted,
+        void **actual_pointer_deleted)
+{
+    error_t rv;
+    datum_t ds, df;
+
+    ds.pointer = pointer_to_be_deleted;
+    rv = sll_object_delete(sll, ds, &df);
+    if (SUCCEEDED(rv)) {
+        *actual_pointer_deleted = df.pointer;
+    }
     return rv;
 }
 

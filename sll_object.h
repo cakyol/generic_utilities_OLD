@@ -81,13 +81,34 @@ sll_object_add (sll_object_t *sll,
 	datum_t user_datum);
 
 /*
- * same ass adding datum but the datum is added only once.
+ * integer & pointer add versions of the above function
+ */
+extern error_t
+sll_object_add_integer (sll_object_t *sll, int integer);
+
+extern error_t
+sll_object_add_pointer (sll_object_t *sll, void *pointer);
+
+/*
+ * same as adding datum but the datum is added only once.
  * If it is already there, it will not be added again but
- * this will not be treated as an error.
+ * this will not be treated as an error.  Datum will be
+ * checked as being available or not by applying the user
+ * supplied comparison function at initialization of the
+ * list object.
  */
 extern error_t
 sll_object_add_once (sll_object_t *sll,
 	datum_t user_datum);
+
+/*
+ * integer & pointer add versions of the above function
+ */
+extern error_t
+sll_object_add_once_integer (sll_object_t *sll, int integer);
+
+extern error_t
+sll_object_add_once_pointer (sll_object_t *sll, void *pointer);
 
 /*
  * searches the first occurence of the matching datum.
