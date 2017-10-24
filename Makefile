@@ -83,7 +83,7 @@ test_db_speed:		test_db_speed.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c -o test_db_speed \
 		    		$(LIBNAME) $(STATIC_LIBS)
 
-tests:		test_stack_object \
+TESTS =		test_stack_object \
 		test_sll_object \
 		test_queue_object \
 		test_chunk_object \
@@ -95,11 +95,13 @@ tests:		test_stack_object \
 		test_db \
 		test_db_speed \
 
+tests:		$(TESTS)
+
 all:		$(LIBNAME) tests
 
 clean:
 		@rm -f *.o
-		@rm -f $(LIBNAME)
+		@rm -f $(LIBNAME) $(TESTS)
 		@touch *.c *.h
 
 
