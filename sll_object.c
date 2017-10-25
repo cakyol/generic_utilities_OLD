@@ -199,7 +199,7 @@ thread_unsafe_sll_object_delete (sll_object_t *sll,
 
 PUBLIC error_t
 sll_object_init (sll_object_t *sll,
-	boolean make_it_lockable,
+	boolean make_it_thread_safe,
 	comparison_function_t cmpf,
 	mem_monitor_t *parent_mem_monitor)
 {

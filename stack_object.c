@@ -73,7 +73,7 @@ thread_unsafe_stack_obj_pop (stack_obj_t *stk,
 
 PUBLIC error_t
 stack_obj_init (stack_obj_t *stk,
-	boolean make_it_lockable,
+	boolean make_it_thread_safe,
 	int maximum_size,
 	int expansion_size)
 {

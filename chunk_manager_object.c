@@ -98,7 +98,7 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgr)
 
 PUBLIC error_t
 chunk_manager_init (chunk_manager_t *cmgr,
-	boolean make_it_lockable,
+	boolean make_it_thread_safe,
 	int chunk_size, int initial_number_of_chunks, int expansion_size,
 	mem_monitor_t *parent_mem_monitor)
 {

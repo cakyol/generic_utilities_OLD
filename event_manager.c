@@ -151,7 +151,7 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
 
 PUBLIC error_t
 event_manager_init (event_manager_t *evrp,
-	boolean make_it_lockable,
+	boolean make_it_thread_safe,
 	mem_monitor_t *parent_mem_monitor)
 {
     error_t rv;

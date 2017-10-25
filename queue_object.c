@@ -57,7 +57,7 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
 
 PUBLIC error_t
 queue_obj_init (queue_obj_t *qobj,
-	boolean make_it_lockable,
+	boolean make_it_thread_safe,
 	int maximum_size)
 {
     error_t rv = 0;

@@ -202,7 +202,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
 PUBLIC error_t
 index_obj_init (index_obj_t *idx,
-	boolean make_it_lockable,
+	boolean make_it_thread_safe,
 	comparison_function_t cmpf,
 	int maximum_size,
 	int expansion_size,

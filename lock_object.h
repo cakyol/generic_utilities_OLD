@@ -89,12 +89,12 @@ lock_obj_destroy (lock_obj_t *lck);
 
     #define LOCK_VARIABLES \
         lock_obj_t lock; \
-        boolean locking_required;
+        boolean make_it_thread_safe;
 
     #define LOCK_SETUP(obj) \
         do { \
-            obj->locking_required = make_it_lockable; \
-            if (make_it_lockable) { \
+            obj->make_it_thread_safe = make_it_thread_safe; \
+            if (make_it_thread_safe) { \
                 if (FAILED(lock_obj_init(&obj->lock))) { \
                     return EFAULT; \
                 } \
@@ -103,16 +103,16 @@ lock_obj_destroy (lock_obj_t *lck);
         } while (0)
 
     #define READ_LOCK(obj) \
-        if (obj->locking_required) grab_read_lock(&obj->lock)
+        if (obj->make_it_thread_safe) grab_read_lock(&obj->lock)
 
     #define WRITE_LOCK(obj, thread_id_pointer) \
-        if (obj->locking_required) grab_write_lock(&obj->lock, thread_id_pointer)
+        if (obj->make_it_thread_safe) grab_write_lock(&obj->lock, thread_id_pointer)
 
     #define READ_UNLOCK(obj) \
-        if (obj->locking_required) release_read_lock(&obj->lock)
+        if (obj->make_it_thread_safe) release_read_lock(&obj->lock)
 
     #define WRITE_UNLOCK(obj) \
-        if (obj->locking_required) release_write_lock(&obj->lock)
+        if (obj->make_it_thread_safe) release_write_lock(&obj->lock)
 
     #define LOCK_OBJ_DESTROY(obj) \
         do { lock_obj_destroy(&obj->lock); } while (0)
