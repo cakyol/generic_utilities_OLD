@@ -71,38 +71,6 @@ not_sll_end_node (sll_node_t *sln)
         sln && (sln->next != (sll_node_t*) pointer_to_one);
 }
 
-PUBLIC error_t
-sll_object_init (sll_object_t *sll,
-	boolean make_it_lockable,
-	comparison_function_t cmpf,
-	mem_monitor_t *parent_mem_monitor)
-{
-    sll_node_t *node;
-    error_t rv = 0;
-
-    /* make the pointer value 0x1 */
-    pointer_to_one = NULL;
-    pointer_to_one++;
-        
-    LOCK_SETUP(sll);
-    MEM_MONITOR_SETUP(sll);
-
-    /* create the permanent "end" node */
-    node = (sll_node_t*) MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
-    if (node) {
-        node->next = (sll_node_t*) pointer_to_one;
-        node->user_datum.pointer = NULL;
-        sll->head = node;
-        sll->n = 0;
-        sll->cmpf = cmpf;
-    } else {
-        rv = ENOMEM;
-    }
-    WRITE_UNLOCK(sll);
-
-    return rv;
-}
-
 static inline sll_node_t *
 new_sll_node (sll_object_t *sll, datum_t user_datum)
 {
@@ -227,7 +195,41 @@ thread_unsafe_sll_object_delete (sll_object_t *sll,
     return ENODATA;
 }
 
-/******************************************************************************/
+/**************************** Initialize *************************************/
+
+PUBLIC error_t
+sll_object_init (sll_object_t *sll,
+	boolean make_it_lockable,
+	comparison_function_t cmpf,
+	mem_monitor_t *parent_mem_monitor)
+{
+    sll_node_t *node;
+    error_t rv = 0;
+
+    /* make the pointer value 0x1 */
+    pointer_to_one = NULL;
+    pointer_to_one++;
+        
+    LOCK_SETUP(sll);
+    MEM_MONITOR_SETUP(sll);
+
+    /* create the permanent "end" node */
+    node = (sll_node_t*) MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
+    if (node) {
+        node->next = (sll_node_t*) pointer_to_one;
+        node->user_datum.pointer = NULL;
+        sll->head = node;
+        sll->n = 0;
+        sll->cmpf = cmpf;
+    } else {
+        rv = ENOMEM;
+    }
+    WRITE_UNLOCK(sll);
+
+    return rv;
+}
+
+/**************************** Insert/add *************************************/
 
 PUBLIC error_t
 sll_object_add (sll_object_t *sll, datum_t user_datum)
@@ -291,6 +293,8 @@ sll_object_add_once_pointer (sll_object_t *sll, void *pointer)
         sll_object_add_once(sll, d);
 }
 
+/**************************** Search *****************************************/
+
 PUBLIC error_t
 sll_object_search (sll_object_t *sll,
 	datum_t searched_datum,
@@ -316,9 +320,7 @@ sll_object_search_integer (sll_object_t *sll,
 
     ds.integer = searched_integer;
     rv = sll_object_search(sll, ds, &df);
-    if (SUCCEEDED(rv)) {
-        *found_integer = df.integer;
-    }
+    *found_integer = df.integer;
     return rv;
 }
 
@@ -332,11 +334,11 @@ sll_object_search_pointer (sll_object_t *sll,
 
     ds.pointer = searched_pointer;
     rv = sll_object_search(sll, ds, &df);
-    if (SUCCEEDED(rv)) {
-        *found_pointer = df.pointer;
-    }
+    *found_pointer = df.pointer;
     return rv;
 }
+
+/**************************** Remove/delete **********************************/ 
 
 PUBLIC error_t
 sll_object_delete (sll_object_t *sll,
@@ -361,9 +363,7 @@ sll_object_delete_integer (sll_object_t *sll,
 
     ds.integer = int_to_be_deleted;
     rv = sll_object_delete(sll, ds, &df);
-    if (SUCCEEDED(rv)) {
-        *actual_int_deleted = df.integer;
-    }
+    *actual_int_deleted = df.integer;
     return rv;
 }
 
@@ -377,11 +377,11 @@ sll_object_delete_pointer (sll_object_t *sll,
 
     ds.pointer = pointer_to_be_deleted;
     rv = sll_object_delete(sll, ds, &df);
-    if (SUCCEEDED(rv)) {
-        *actual_pointer_deleted = df.pointer;
-    }
+    *actual_pointer_deleted = df.pointer;
     return rv;
 }
+
+/**************************** Traverse/iterate *******************************/ 
 
 PUBLIC error_t
 sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
@@ -397,6 +397,8 @@ sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
     }
     return 0;
 }
+
+/**************************** Destroy ****************************************/ 
 
 PUBLIC void
 sll_object_destroy (sll_object_t *sll)

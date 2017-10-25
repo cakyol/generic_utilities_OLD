@@ -109,7 +109,7 @@ int main (int argc, char *argv[])
 {
     object_database_t db;
     int type, instance;
-    object_t *obj;
+    object_t *obj, *parent;
     int count;
 
     database_initialize(&db, 1, notify_event, NULL);
@@ -118,9 +118,11 @@ int main (int argc, char *argv[])
     count = 0;
     // reverse ordering is WORST performance for the index object
     // but irrelevant to the avl tree object
+
+    parent = &db.root_object;
     for (type = MAX_TYPES; type > 0; type--) {
 	for (instance = type; instance > 0; instance--) {
-	    obj = object_create(&db.root_object, type, instance);
+	    obj = object_create(parent, type, instance);
 	    if (obj) {
 		printf("object type %d, instance %d created\n", type, instance);
 		add_del_attributes(&db, obj);
@@ -131,6 +133,7 @@ int main (int argc, char *argv[])
                 fprintf(stderr, "object %d,%d creation failed\n",
                         type, instance);
             }
+            parent = obj;
 	}
     }
     printf("finished creating all objects\n");
