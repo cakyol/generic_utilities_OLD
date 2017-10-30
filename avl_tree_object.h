@@ -47,6 +47,8 @@ struct avl_node_s {
 typedef struct avl_tree_s {
 
     LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
+
     avl_node_t *root_node, *first_node, *last_node;
     comparison_function_t cmpf;
 
@@ -54,7 +56,6 @@ typedef struct avl_tree_s {
     chunk_manager_t nodes;
 #endif // USE_CHUNK_MANAGER
 
-    mem_monitor_t mem_mon, *mem_mon_p;
     int n;
 
 } avl_tree_t;

@@ -89,7 +89,7 @@ lock_obj_destroy (lock_obj_t *lck);
 
     #define LOCK_VARIABLES \
         lock_obj_t lock; \
-        boolean make_it_thread_safe;
+        boolean make_it_thread_safe
 
     #define LOCK_SETUP(obj) \
         do { \

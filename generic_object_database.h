@@ -328,7 +328,7 @@ object_destroy (object_t *obj);
 struct object_database_s {
 
     /* dynamic memory bookkeeper */
-    mem_monitor_t mem_mon, *mem_mon_p;
+    MEM_MON_VARIABLES;
 
     /* unique integer for this database */
     int database_id;

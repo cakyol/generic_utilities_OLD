@@ -27,15 +27,55 @@
 #include "queue_object.h"
 
 static error_t
+thread_unsafe_queue_expand (queue_obj_t *qobj)
+{
+    int new_size;
+    datum_t *new_elements;
+    int w;
+
+    if (qobj->expansion_increment <= 0) return ENOSPC;
+    new_size = qobj->maximum_size + qobj->expansion_increment;
+    new_elements = MEM_MONITOR_ALLOC(qobj, (new_size * sizeof(datum_t)));
+    if (NULL == new_elements) return ENOSPC;
+
+    /* copy all unread events/data to new queue elements array */
+    for (w = 0; w < qobj->n; w++) {
+        new_elements[w] = qobj->elements[qobj->read_idx];
+        qobj->read_idx = (qobj->read_idx + 1) % qobj->maximum_size;
+    }
+
+    /* it is now safe to adjust all relevant counters etc */
+    qobj->read_idx = 0;
+    qobj->write_idx = qobj->n;
+    qobj->maximum_size += qobj->expansion_increment;
+
+    /* free up old queue array assign new one */
+    MEM_MONITOR_FREE(qobj, qobj->elements);
+    qobj->elements = new_elements;
+
+    /* done */
+    return 0;
+}
+
+static error_t
 thread_unsafe_queue_obj_queue (queue_obj_t *qobj, 
 	datum_t data)
 {
+    /* do we have space */
     if (qobj->n < qobj->maximum_size) {
 	qobj->elements[qobj->write_idx] = data;
 	qobj->n++;
 	qobj->write_idx = (qobj->write_idx + 1) % qobj->maximum_size;
 	return 0;
     }
+
+    /* no space, can we expand */
+    if (SUCCEEDED(thread_unsafe_queue_expand(qobj))) {
+        return
+            thread_unsafe_queue_obj_queue(qobj, data);
+    }
+
+    /* no way */
     return ENOSPC;
 }
 
@@ -58,7 +98,8 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
 PUBLIC error_t
 queue_obj_init (queue_obj_t *qobj,
 	boolean make_it_thread_safe,
-	int maximum_size)
+	int maximum_size, int expansion_increment,
+        mem_monitor_t *parent_mem_monitor)
 {
     error_t rv = 0;
 
@@ -67,12 +108,16 @@ queue_obj_init (queue_obj_t *qobj,
     }
 
     LOCK_SETUP(qobj);
+    MEM_MONITOR_SETUP(qobj);
+
     qobj->maximum_size = maximum_size;
+    qobj->expansion_increment = expansion_increment;
     qobj->n = 0;
     qobj->read_idx = qobj->write_idx = 0;
 
     /* allocate its queue element storage */
-    qobj->elements = (datum_t*) malloc(maximum_size * sizeof(datum_t));
+    qobj->elements = (datum_t*) MEM_MONITOR_ALLOC(qobj,
+            (maximum_size * sizeof(datum_t)));
     if (NULL == qobj->elements) {
 	rv = ENOMEM;
     }
@@ -108,7 +153,7 @@ PUBLIC void
 queue_obj_destroy (queue_obj_t *qobj)
 {
     if (qobj->elements) {
-	free(qobj->elements);
+	MEM_MONITOR_FREE(qobj, qobj->elements);
     }
     LOCK_OBJ_DESTROY(qobj);
     memset(qobj, 0, sizeof(queue_obj_t));

@@ -51,8 +51,8 @@
 
 typedef struct index_obj_s {
 
-    LOCK_VARIABLES
-    mem_monitor_t mem_mon, *mem_mon_p;
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
     comparison_function_t cmpf;
     int initial_size;
     int maximum_size;

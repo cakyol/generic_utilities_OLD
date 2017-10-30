@@ -415,22 +415,25 @@ mem_monitor_reallocate (mem_monitor_t *mem, void *ptr, int newsize);
 extern void
 mem_monitor_free (mem_monitor_t *mem, void *ptr);
 
-#define MEM_MONITOR_SETUP(object_p) \
+#define MEM_MON_VARIABLES \
+    mem_monitor_t mem_mon, *mem_mon_p
+
+#define MEM_MONITOR_SETUP(objp) \
     do { \
-        mem_monitor_init(&object_p->mem_mon); \
-        object_p->mem_mon_p = \
+        mem_monitor_init(&objp->mem_mon); \
+        objp->mem_mon_p = \
             parent_mem_monitor ? \
-                parent_mem_monitor : &object_p->mem_mon; \
+                parent_mem_monitor : &objp->mem_mon; \
     } while (0)
 
-#define MEM_MONITOR_ALLOC(object_p, size) \
-    mem_monitor_allocate(object_p->mem_mon_p, size)
+#define MEM_MONITOR_ALLOC(objp, size) \
+    mem_monitor_allocate(objp->mem_mon_p, size)
 
-#define MEM_REALLOC(object_p, oldp, newsize) \
-    mem_monitor_reallocate(object_p->mem_mon_p, oldp, newsize)
+#define MEM_REALLOC(objp, oldp, newsize) \
+    mem_monitor_reallocate(objp->mem_mon_p, oldp, newsize)
 
-#define MEM_MONITOR_FREE(object_p, ptr) \
-    mem_monitor_free(object_p->mem_mon_p, ptr)
+#define MEM_MONITOR_FREE(objp, ptr) \
+    mem_monitor_free(objp->mem_mon_p, ptr)
 
 #define OBJECT_MEMORY_USAGE(objp, size_in_bytes, size_in_megabytes) \
     do { \

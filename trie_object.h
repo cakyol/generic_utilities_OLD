@@ -66,8 +66,9 @@ typedef int (*trie_index_converter)(int);
 
 typedef struct trie_s {
 
-    LOCK_VARIABLES
-    mem_monitor_t mem_mon, *mem_mon_p;
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
+
     int alphabet_size;
     trie_index_converter tic;
     int node_count;

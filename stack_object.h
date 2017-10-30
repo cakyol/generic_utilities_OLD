@@ -32,7 +32,9 @@
 
 typedef struct stack_obj_s {
 
-    LOCK_VARIABLES
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
+
     int maximum_size;
     int expansion_size;
     int expansion_count;

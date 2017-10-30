@@ -1,62 +1,43 @@
 
 #include "queue_object.h"
 
-#define QUEUE_SIZE	100000
+#define QUEUE_SIZE	1000
+#define ITER_COUNT      (QUEUE_SIZE * 20)
+
+
 
 int main (int argc, char *argv[])
 {
     queue_obj_t qobj;
-    int i;
-    datum_t queued_data, dequeued_data, old_dequeued_data;
-    int queued_count, dequeued_count;
-    int qblock_count, dqblock_count;
-    int filled = 0;
+    int i, j, n_stored;
 
-    if (queue_obj_init(&qobj, true, QUEUE_SIZE)) {
+    if (queue_obj_init(&qobj, true, QUEUE_SIZE, 64, NULL)) {
 	fprintf(stderr, "queue_obj_init failed\n");
 	return -1;
     }
 
-    queued_data.integer = 0;
-    old_dequeued_data.integer = -1;
-    queued_count = dequeued_count = 0;
-    qblock_count = dqblock_count = 0;
-    while (1) {
-
-	/* queue faster than dequeue */
-	if (!filled) {
-	    for (i = 0; i < QUEUE_SIZE/500; i++) {
-		if (queue_obj_queue(&qobj, queued_data) == OK) {
-		    queued_data.integer++;
-		    queued_count++;
-		} else {
-		    filled = 1;
-		    break;
-		}
-	    }
-	    qblock_count++;
-	    printf("queued %d times\n", i);
-	}
-
-	for (i = 0; i < QUEUE_SIZE/700; i++) {
-	    if (queue_obj_dequeue(&qobj, &dequeued_data) != OK) {
-		goto all_done;
-	    }
-	    if (dequeued_data.integer != (old_dequeued_data.integer + 1)) {
-		fprintf(stderr, "data mismatch, read %d expected %d\n",
-			dequeued_data.integer, old_dequeued_data.integer + 1);
-		return ERROR;
-	    }
-	    old_dequeued_data = dequeued_data;
-	    dequeued_count++;
-	}
-	dqblock_count++;
-	printf("dequeued %d times\n", i);
+    /* fill up the fifo */
+    for (i = 0; i < ITER_COUNT; i++) {
+        if (FAILED(queue_obj_queue_integer(&qobj, i))) {
+            fprintf(stderr, "queueing %d failed\n", i);
+            return -1;
+        }
     }
 
-all_done:
-    printf("queue object ok, queued %d (%d) times, dequeued %d (%d) times\n",
-	    qblock_count, queued_count, dqblock_count, dequeued_count);
+    /* now read back and verify */
+    i = 0;
+    n_stored = qobj.n;
+    while (SUCCEEDED(queue_obj_dequeue_integer(&qobj, &j))) {
+        if (j == i) {
+            printf("queue data %d %d verified\n", i, j);
+        } else {
+            fprintf(stderr, "dequeue data mismatch: dqed %d, should be %d\n",
+                j, i);
+        }
+        i++;
+    }
+    assert((qobj.n == 0) && (i == n_stored));
+
     return OK;
 }
 

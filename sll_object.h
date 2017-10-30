@@ -52,8 +52,9 @@ struct sll_node_s {
  */
 typedef struct sll_object_s {
 
-    LOCK_VARIABLES
-    mem_monitor_t mem_mon, *mem_mon_p;
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
+
     sll_node_t *head;
     comparison_function_t cmpf;
     int n;

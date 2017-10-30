@@ -35,12 +35,14 @@
  */
 typedef struct queue_obj_s {
 
-    LOCK_VARIABLES
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
 
-    /* queues are of fixed size, user specifies this */
+    /* queues may expand by the specified size, if non zero */
     int maximum_size;
+    int expansion_increment;
 
-    /* how many elements are in the queue */
+    /* how many elements are in the queue at a given instance */
     int n;
 
     /* read index & write index */
@@ -54,7 +56,8 @@ typedef struct queue_obj_s {
 extern error_t
 queue_obj_init (queue_obj_t *qobj,
 	boolean make_it_thread_safe,
-	int maximum_size);
+	int maximum_size, int expansion_increment,
+        mem_monitor_t *parent_mem_monitor);
 
 extern error_t
 queue_obj_queue (queue_obj_t *qobj,

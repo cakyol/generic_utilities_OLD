@@ -51,11 +51,7 @@
 typedef struct chunk_manager_s {
 
     LOCK_VARIABLES;
-
-    /*
-     * memory usage counters
-     */
-    mem_monitor_t mem_mon, *mem_mon_p;
+    MEM_MON_VARIABLES;
 
     /*
      * The actual stack of free chunks.  The 'index' is used to pop

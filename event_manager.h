@@ -85,8 +85,8 @@ typedef struct process_address_s {
  */
 typedef struct event_manager_s {
 
-    LOCK_VARIABLES
-    mem_monitor_t mem_mon, *mem_mon_p;
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
 
     /*
      * list of processes interested in object creation

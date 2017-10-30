@@ -62,12 +62,13 @@
 
 typedef struct dynamic_array_s {
 
-    LOCK_VARIABLES
+    LOCK_VARIABLES;
+    MEM_MON_VARIABLES;
+
     int size;
     int n;
     int lowest, highest;
     uint64 inserts, deletes;
-    mem_monitor_t mem_mon, *mem_mon_p;
     datum_t *elements;
 
 } dynamic_array_t;
