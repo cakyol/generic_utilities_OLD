@@ -33,10 +33,13 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
     datum_t *new_elements;
     int w;
 
+    /* q is defined to be of fixed size, not allowed to expand */
     if (qobj->expansion_increment <= 0) return ENOSPC;
+
+    /* expand the elements */
     new_size = qobj->maximum_size + qobj->expansion_increment;
     new_elements = MEM_MONITOR_ALLOC(qobj, (new_size * sizeof(datum_t)));
-    if (NULL == new_elements) return ENOSPC;
+    if (NULL == new_elements) return ENOMEM;
 
     /* copy all unread events/data to new queue elements array */
     for (w = 0; w < qobj->n; w++) {
@@ -54,6 +57,7 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
     qobj->elements = new_elements;
 
     /* done */
+    qobj->expansion_count++;
     return 0;
 }
 
@@ -61,6 +65,8 @@ static error_t
 thread_unsafe_queue_obj_queue (queue_obj_t *qobj, 
 	datum_t data)
 {
+    error_t rv;
+
     /* do we have space */
     if (qobj->n < qobj->maximum_size) {
 	qobj->elements[qobj->write_idx] = data;
@@ -70,13 +76,14 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
     }
 
     /* no space, can we expand */
-    if (SUCCEEDED(thread_unsafe_queue_expand(qobj))) {
+    rv = thread_unsafe_queue_expand(qobj);
+    if (SUCCEEDED(rv)) {
         return
             thread_unsafe_queue_obj_queue(qobj, data);
     }
 
     /* no way */
-    return ENOSPC;
+    return rv;
 }
 
 static error_t
@@ -112,6 +119,7 @@ queue_obj_init (queue_obj_t *qobj,
 
     qobj->maximum_size = maximum_size;
     qobj->expansion_increment = expansion_increment;
+    qobj->expansion_count = 0;
     qobj->n = 0;
     qobj->read_idx = qobj->write_idx = 0;
 

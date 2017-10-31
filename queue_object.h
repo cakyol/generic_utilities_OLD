@@ -41,6 +41,7 @@ typedef struct queue_obj_s {
     /* queues may expand by the specified size, if non zero */
     int maximum_size;
     int expansion_increment;
+    int expansion_count;
 
     /* how many elements are in the queue at a given instance */
     int n;
