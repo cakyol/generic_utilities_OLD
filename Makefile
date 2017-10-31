@@ -2,7 +2,7 @@
 CC =		gcc
 
 CFLAGS = 	-O3 -Wall -Werror 
-# CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
+CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
 # CFLAGS = 	-O3 -DUSE_CHUNK_MANAGER -Wall -Werror
 # CFLAGS = 	-g -Wall -Werror
 

@@ -27,27 +27,53 @@
 #include "lock_object.h"
 
 static inline boolean
+thread_can_get_the_read_lock (lock_obj_t *lck)
+{
+    /*
+     * if there are no current writers and no pending 
+     * writers, thread CAN indeed get the read lock.
+     * Note that if a writer is pending, we cannot 
+     * continue granting new read locks.
+     */
+    return
+        !(lck->pending_writer_thread_set) &&
+        !(lck->writer_thread_set);
+}
+
+static inline boolean
 thread_can_get_the_write_lock (lock_obj_t *lck, pthread_t thread_id)
 {
-    /* there are existing readers, thread can NOT get the write lock */
+    /* 
+     * there are existing readers, thread can 
+     * NOT get the write lock at this instant
+     */
     if (lck->readers > 0) return false;
 
     /*
-     * If we are here, it means there are no readers AND if there
-     * is no current writer as well, the thread CAN get the write lock.
+     * If there is already a writer thread, we can re-obtain it
+     * as long as it is still us requesting the write lock.  This
+     * is re-entrant write locking.
      */
-    if (!lck->writer_thread_set) return true;
+    if (lck->writer_thread_set) {
+        return
+            pthread_equal(thread_id, lck->writer_thread_id);
+    }
 
     /*
-     * if we are here, there are no readers but there IS a writer.
-     * In this case, if the writer is the SAME thread as THIS thread,
-     * we can lock again since the same thread can obtain the write
-     * lock repeatedly.
+     * If we are here, there is currently no writer.  We can obtain
+     * the write lock immediately as long as there are no other
+     * pending writers OR obtain it as long as the pending writer
+     * is us.
      */
-    if (pthread_equal(thread_id, lck->writer_thread_id)) return true;
 
-    /* nope */
-    return false;
+    if (lck->pending_writer_thread_set) {
+        return
+            pthread_equal(thread_id, lck->pending_writer_thread_id);
+    }
+
+    /*
+     * If here, there are no current or pending writers, so we are ok */
+    return true;
 }
 
 /*
@@ -58,42 +84,42 @@ PUBLIC error_t
 lock_obj_init (lock_obj_t *lck)
 {
     pthread_mutexattr_t mtxattr;
-    int rc;
+    error_t rv;
 
     /* get default mutex attributes */
-    if ((rc = pthread_mutexattr_init(&mtxattr)))
-	return ERROR;
+    if ((rv = pthread_mutexattr_init(&mtxattr)))
+	return rv;
 
     /* 
      * make mutex recursively enterable, for 
      * nested calls by the same process/thread
      */
-    if ((rc = pthread_mutexattr_settype(&mtxattr, PTHREAD_MUTEX_RECURSIVE)))
-        return ERROR;
+    if ((rv = pthread_mutexattr_settype(&mtxattr, PTHREAD_MUTEX_RECURSIVE)))
+        return rv;
 
     /* make mutex sharable between processes */
-    if ((rc = pthread_mutexattr_setpshared(&mtxattr, PTHREAD_PROCESS_SHARED)))
-        return ERROR;
+    if ((rv = pthread_mutexattr_setpshared(&mtxattr, PTHREAD_PROCESS_SHARED)))
+        return rv;
 
 #if 0
 
     /* make mutex robust */
-    if ((rc = pthread_mutexattr_setrobust(&mtxattr, PTHREAD_MUTEX_ROBUST)))
-        return ERROR;
+    if ((rv = pthread_mutexattr_setrobust(&mtxattr, PTHREAD_MUTEX_ROBUST)))
+        return rv;
 
 #endif // 0
 
     /* init with the desired attributes */
-    if ((rc = pthread_mutex_init(&lck->mtx, &mtxattr)))
-	return ERROR;
+    if ((rv = pthread_mutex_init(&lck->mtx, &mtxattr)))
+	return rv;
 
     /* no readers or writers to start with */
-    lck->readers = lck->writers = 0;
+    lck->readers = 
+        lck->write_count = 0;
+    lck->pending_writer_thread_set =
+        lck->writer_thread_set = false;
 
-    /* no writer thread either */
-    lck->writer_thread_set = false;
-
-    return OK;
+    return 0;
 }
 
 /*
@@ -115,7 +141,7 @@ PUBLIC void
 grab_read_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    while (lck->writers > 0) {
+    while (!thread_can_get_the_read_lock(lck)) {
 	pthread_mutex_unlock(&lck->mtx);
 	sched_yield();
 	pthread_mutex_lock(&lck->mtx);
@@ -170,8 +196,8 @@ grab_write_lock (lock_obj_t *lck, pthread_t *thread_idp)
     pthread_t this_thread_id;
 
     /* 
-     * if the caller does not pass in its own thread id, 
-     * this function will find it.
+     * if the caller does not pass in its own 
+     * thread id, this function will find it.
      */
     if (thread_idp) {
         this_thread_id = *thread_idp;
@@ -180,32 +206,19 @@ grab_write_lock (lock_obj_t *lck, pthread_t *thread_idp)
     }
 
     pthread_mutex_lock(&lck->mtx);
-
-    /* 
-     * This is VERY important, we are indicating that 
-     * a writer is pending.  This means that we are waiting
-     * to obtain the write lock but have not quite got it yet.
-     * This is an indication that new readers can not be allowed 
-     * any more.  Without this indication, readers can for ever 
-     * lock out a writer.
-     */
-    lck->writers++;
-
-    while (1) {
-
-	if (thread_can_get_the_write_lock(lck, this_thread_id)) {
-	    lck->writer_thread_id = this_thread_id;
-	    lck->writer_thread_set = true;
-	    pthread_mutex_unlock(&lck->mtx);
-	    return;
-	}
-	
-	/* could not get it, block & try again */
-	pthread_mutex_unlock(&lck->mtx);
-	sched_yield();
-	pthread_mutex_lock(&lck->mtx);
-	continue;
+    while (!thread_can_get_the_write_lock(lck, this_thread_id)) {
+        lck->pending_writer_thread_set = true;
+        lck->pending_writer_thread_id = this_thread_id;
+        pthread_mutex_unlock(&lck->mtx);
+        sched_yield();
+        pthread_mutex_lock(&lck->mtx);
+        continue;
     }
+    lck->pending_writer_thread_set = false;
+    lck->writer_thread_set = true;
+    lck->writer_thread_id = this_thread_id;
+    lck->write_count++;
+    pthread_mutex_unlock(&lck->mtx);
 }
 
 /*
@@ -215,13 +228,19 @@ grab_write_lock (lock_obj_t *lck, pthread_t *thread_idp)
  * corrupted data will result.  For example, calling this
  * when the lock is not even acquired will definitely corrupt
  * the data structures.
+ *
+ * This call removes the lock when the write count decreases
+ * to zero.  The count was there to count the number of
+ * re-entrant write locks.
  */
 PUBLIC void 
 release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->writers--;
-    lck->writer_thread_set = false;
+    lck->write_count--;
+    if (lck->write_count <= 0) {
+        lck->writer_thread_set = false;
+    }
     pthread_mutex_unlock(&lck->mtx);
 }
 

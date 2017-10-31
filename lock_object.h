@@ -59,11 +59,25 @@
 
 typedef struct lock_obj_s {
 
-    pthread_mutex_t mtx;	    // protects the rest of the variables
-    int readers;		    // number of concurrent readers
-    int writers;		    // number of pending/current writers
-    boolean writer_thread_set;	    // indicates 'writer_thread_id' below is valid
-    pthread_t writer_thread_id;	    // actual thread which has the write lock
+    /* protects all the rest of the variables */
+    pthread_mutex_t mtx;
+
+    /* number of readers at this instant */
+    int readers;
+
+    /* is there a thread WAITING to write */
+    boolean pending_writer_thread_set;
+    pthread_t pending_writer_thread_id;
+
+    /* is there an actual thread which HAS acquired the write lock */
+    boolean writer_thread_set;
+    pthread_t writer_thread_id;
+
+    /*
+     * number of times the current writer thread 
+     * recursively acquired the write lock.
+     */
+    int write_count;
 
 } lock_obj_t;
 
