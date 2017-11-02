@@ -594,7 +594,7 @@ avl_tree_insert (avl_tree_t *tree,
 {
     error_t rv;
 
-    WRITE_LOCK(tree, NULL);
+    WRITE_LOCK(tree);
     rv = thread_unsafe_avl_tree_insert(tree,
             datum_to_be_inserted, datum_already_present);
     WRITE_UNLOCK(tree);
@@ -691,7 +691,7 @@ avl_tree_remove (avl_tree_t *tree,
 {
     error_t rv;
 
-    WRITE_LOCK(tree, NULL);
+    WRITE_LOCK(tree);
     rv = thread_unsafe_avl_tree_remove(tree,
 		datum_to_be_removed, datum_actually_removed);
     WRITE_UNLOCK(tree);
@@ -875,7 +875,7 @@ avl_tree_traverse (avl_tree_t *tree,
 PUBLIC void
 avl_tree_destroy (avl_tree_t *tree)
 {
-    WRITE_LOCK(tree, NULL);
+    WRITE_LOCK(tree);
     avl_node_destroy_nodes(tree, tree->root_node, false);
     assert(tree->n == 0);
     tree->root_node = tree->first_node = tree->last_node = NULL;

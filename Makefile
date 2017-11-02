@@ -1,7 +1,7 @@
 
 CC =		gcc
 
-CFLAGS = 	-O3 -Wall -Werror 
+# CFLAGS = 	-O3 -Wall -Werror 
 CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
 # CFLAGS = 	-O3 -DUSE_CHUNK_MANAGER -Wall -Werror
 # CFLAGS = 	-g -Wall -Werror
@@ -36,6 +36,10 @@ LIB_OBJS =	utils_common.o \
 utils_lib.a:	$(LIB_OBJS)
 		ar -r $(LIBNAME) $(LIB_OBJS)
 		ranlib $(LIBNAME)
+
+test_lock_object:	test_lock_object.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_lock_object.c \
+			    -o test_lock_object $(LIBNAME) $(STATIC_LIBS)
 
 test_stack_object:	test_stack_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_stack_object.c \
@@ -83,7 +87,8 @@ test_db_speed:		test_db_speed.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c -o test_db_speed \
 		    		$(LIBNAME) $(STATIC_LIBS)
 
-TESTS =		test_stack_object \
+TESTS =		test_lock_object \
+		test_stack_object \
 		test_sll_object \
 		test_queue_object \
 		test_chunk_object \

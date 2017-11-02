@@ -231,7 +231,7 @@ dynamic_array_insert (dynamic_array_t *datp,
 {
     error_t rv;
 
-    WRITE_LOCK(datp, NULL);
+    WRITE_LOCK(datp);
     rv = thread_unsafe_dynamic_array_insert(datp, index, data);
     WRITE_UNLOCK(datp);
     return rv;
@@ -305,7 +305,7 @@ dynamic_array_remove (dynamic_array_t *datp,
 {
     error_t rv;
 
-    WRITE_LOCK(datp, NULL);
+    WRITE_LOCK(datp);
     rv = thread_unsafe_dynamic_array_remove(datp, index, removed);
     WRITE_UNLOCK(datp);
     return rv;

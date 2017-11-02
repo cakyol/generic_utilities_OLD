@@ -236,7 +236,7 @@ sll_object_add (sll_object_t *sll, datum_t user_datum)
 {
     error_t rv;
 
-    WRITE_LOCK(sll, NULL);
+    WRITE_LOCK(sll);
     rv = thread_unsafe_sll_object_add(sll, user_datum);
     WRITE_UNLOCK(sll);
     return rv;
@@ -267,7 +267,7 @@ sll_object_add_once (sll_object_t *sll, datum_t user_datum)
 {
     error_t rv;
 
-    WRITE_LOCK(sll, NULL);
+    WRITE_LOCK(sll);
     rv = thread_unsafe_sll_object_add_once(sll, user_datum);
     WRITE_UNLOCK(sll);
     return rv;
@@ -303,7 +303,7 @@ sll_object_search (sll_object_t *sll,
     error_t rv;
     sll_node_t *node_found;
 
-    WRITE_LOCK(sll, NULL);
+    WRITE_LOCK(sll);
     rv = thread_unsafe_sll_object_search(sll, searched_datum, 
             datum_found, &node_found);
     WRITE_UNLOCK(sll);
@@ -347,7 +347,7 @@ sll_object_delete (sll_object_t *sll,
 {
     error_t rv;
 
-    WRITE_LOCK(sll, NULL);
+    WRITE_LOCK(sll);
     rv = thread_unsafe_sll_object_delete(sll, to_be_deleted, actual_data_deleted);
     WRITE_UNLOCK(sll);
     return rv;
@@ -405,7 +405,7 @@ sll_object_destroy (sll_object_t *sll)
 {
     sll_node_t *next, *iter;
 
-    WRITE_LOCK(sll, NULL);
+    WRITE_LOCK(sll);
     iter = sll->head;
     while (not_sll_end_node(iter)) {
         next = iter->next;

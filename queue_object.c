@@ -139,7 +139,7 @@ queue_obj_queue (queue_obj_t *qobj,
 {
     error_t rv;
 
-    WRITE_LOCK(qobj, NULL);
+    WRITE_LOCK(qobj);
     rv = thread_unsafe_queue_obj_queue(qobj, data);
     WRITE_UNLOCK(qobj);
     return rv;
@@ -151,7 +151,7 @@ queue_obj_dequeue (queue_obj_t *qobj,
 {
     error_t rv;
 
-    WRITE_LOCK(qobj, NULL);
+    WRITE_LOCK(qobj);
     rv = thread_unsafe_queue_obj_dequeue(qobj, returned_data);
     WRITE_UNLOCK(qobj);
     return rv;

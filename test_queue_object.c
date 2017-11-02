@@ -1,7 +1,7 @@
 
 #include "queue_object.h"
 
-#define QUEUE_SIZE	                750000
+#define QUEUE_SIZE	                7500000
 #define QUEUE_EXPANSION_INCREMENT       128
 #define ITER_COUNT                      (QUEUE_SIZE - 5)
 

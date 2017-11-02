@@ -104,7 +104,7 @@ stack_obj_push (stack_obj_t *stk,
 {
     error_t rv;
 
-    WRITE_LOCK(stk, NULL);
+    WRITE_LOCK(stk);
     rv = thread_unsafe_stack_obj_push(stk, data);
     WRITE_UNLOCK(stk);
     return rv;
@@ -116,7 +116,7 @@ stack_obj_pop (stack_obj_t *stk,
 {
     error_t rv;
 
-    WRITE_LOCK(stk, NULL);
+    WRITE_LOCK(stk);
     rv = thread_unsafe_stack_obj_pop(stk, returned_data);
     WRITE_UNLOCK(stk);
     return rv;

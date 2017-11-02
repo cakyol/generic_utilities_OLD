@@ -239,7 +239,7 @@ index_obj_insert (index_obj_t *idx,
 {
     error_t rv;
 
-    WRITE_LOCK(idx, NULL);
+    WRITE_LOCK(idx);
     rv = thread_unsafe_index_obj_insert(idx, 
             datum_to_be_inserted, datum_already_present);
     WRITE_UNLOCK(idx);
@@ -327,7 +327,7 @@ index_obj_remove (index_obj_t *idx,
 {
     error_t rv;
     
-    WRITE_LOCK(idx, NULL);
+    WRITE_LOCK(idx);
     rv = thread_unsafe_index_obj_remove(idx,
 		datum_to_be_removed, datum_actually_removed);
     WRITE_UNLOCK(idx);

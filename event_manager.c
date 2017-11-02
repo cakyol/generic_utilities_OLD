@@ -206,7 +206,7 @@ register_for_object_events (event_manager_t *evrp,
 {
     error_t rv;
 
-    WRITE_LOCK(evrp, NULL);
+    WRITE_LOCK(evrp);
     rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
             OBJECT_EVENTS, true);
     WRITE_UNLOCK(evrp);
@@ -217,7 +217,7 @@ PUBLIC void
 un_register_from_object_events (event_manager_t *evrp,
         int object_type, process_address_t *pap)
 {
-    WRITE_LOCK(evrp, NULL);
+    WRITE_LOCK(evrp);
     (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
             OBJECT_EVENTS, false);
     WRITE_UNLOCK(evrp);
@@ -233,7 +233,7 @@ register_for_attribute_events (event_manager_t *evrp,
 {
     error_t rv;
 
-    WRITE_LOCK(evrp, NULL);
+    WRITE_LOCK(evrp);
     rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
             ATTRIBUTE_EVENTS, true);
     WRITE_UNLOCK(evrp);
@@ -244,7 +244,7 @@ PUBLIC void
 un_register_from_attribute_events (event_manager_t *evrp,
         int object_type, process_address_t *pap)
 {
-    WRITE_LOCK(evrp, NULL);
+    WRITE_LOCK(evrp);
     (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
             ATTRIBUTE_EVENTS, true);
     WRITE_UNLOCK(evrp);

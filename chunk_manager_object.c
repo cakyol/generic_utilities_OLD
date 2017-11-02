@@ -30,7 +30,7 @@ static error_t
 chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
 {
     int i, potential_capacity;
-    void **chunks;
+    void **chunks = NULL;           // shut the compiler up
     void *one_chunk;
 
     if (cmgr->potential_capacity > cmgr->total_chunk_count) {
@@ -117,7 +117,7 @@ chunk_manager_alloc (chunk_manager_t *cmgr)
 {
     void *rv;
 
-    WRITE_LOCK(cmgr, NULL);
+    WRITE_LOCK(cmgr);
     rv = thread_unsafe_chunk_manager_alloc(cmgr);
     WRITE_UNLOCK(cmgr);
     return rv;
@@ -126,7 +126,7 @@ chunk_manager_alloc (chunk_manager_t *cmgr)
 PUBLIC void
 chunk_manager_free (chunk_manager_t *cmgr, void *chunk)
 {
-    WRITE_LOCK(cmgr, NULL);
+    WRITE_LOCK(cmgr);
     cmgr->chunks[++cmgr->index] = chunk;
     WRITE_UNLOCK(cmgr);
 }
