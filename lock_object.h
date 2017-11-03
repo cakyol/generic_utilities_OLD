@@ -59,28 +59,29 @@
 
 typedef struct lock_obj_s {
 
-    pthread_rwlock_t rwlock;
-    int readers;
-    int recursive_writes;
+    pthread_mutex_t mtx;	    // protects the rest of the variables
+    int readers;		    // number of concurrent readers
+    int pending_writers;	    // number of pending/current writers
+    int writer_thread_id;	    // actual thread which has the write lock
 
 } lock_obj_t;
 
-extern int 
+extern error_t 
 lock_obj_init (lock_obj_t *lck);
 
-extern int
+extern void
 grab_read_lock (lock_obj_t *lck);
 
-extern int 
+extern void 
 release_read_lock (lock_obj_t *lck);
 
-extern int 
+extern void 
 grab_write_lock (lock_obj_t *lck);
 
-extern int
+extern void
 release_write_lock (lock_obj_t *lck);
 
-extern int 
+extern void 
 lock_obj_destroy (lock_obj_t *lck);
 
 #ifdef LOCKABILITY_REQUIRED
