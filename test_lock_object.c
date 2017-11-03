@@ -2,11 +2,12 @@
 #include "lock_object.h"
 
 #define ARRAY_SIZE          100000000
-#define MAX_THREADS         512
-#define LOCK_COUNT          1
+#define MAX_THREADS         256
+#define LOCK_COUNT          100
 
 int array [ARRAY_SIZE];
 lock_obj_t lock;
+byte thread_complete_array [MAX_THREADS] = { 0 };
 
 void *thread_function (void *arg)
 {
@@ -32,8 +33,33 @@ void *thread_function (void *arg)
         printf("validation PASSED for value %d\n", value);
     }
     fflush(stdout);
-    fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_write_lock(&lock);
+    if (thread_complete_array[value] != 0) {
+        fprintf(stderr, "OOOPPPPS, have revisited %d\n", value);
+    }
+    thread_complete_array[value] = 1;
+    return NULL;
+}
+
+void *validate_array_thread (void *arg)
+{
+    int i, value, failures;
+
+    for (i = 0; i < LOCK_COUNT; i++) grab_read_lock(&lock);
+    value = array[0];
+    printf("READ validating now for value %d\n", value);
+    failures = 0;
+    for (i = 0; i < ARRAY_SIZE; i++) {
+        if (array[i] != value) failures++;
+    }
+    if (failures) {
+        printf("READ validation FAILED for value %d: %d entries\n",
+            value, failures);
+    } else {
+        printf("READ validation PASSED for value %d\n", value);
+    }
+    fflush(stdout);
+    for (i = 0; i < LOCK_COUNT; i++) release_read_lock(&lock);
     return NULL;
 }
 
@@ -61,10 +87,27 @@ int main (int argc, char *argv[])
         if (rv) {
             fprintf(stderr, "pthread_create FAILED at iteration %d\n", i);
         }
+
+        /* every 5 write threads, create a read thread to validate */
+        if ((i % 5) == 0) {
+            rv = pthread_create(&tid, NULL, validate_array_thread, NULL);
+            if (rv) {
+                fprintf(stderr, "pthread_create FAILED for validation\n");
+            }
+        }
     }
     fflush(stdout);
     fflush(stderr);
-    while (1);
+    while (1) {
+        not_all_threads_complete:
+        sleep(1);
+        for (i = 0; i < MAX_THREADS; i++) {
+            if (thread_complete_array[i] == 0) {
+                goto not_all_threads_complete;
+            }
+        }
+        return 0;
+    }
     return 0;
 }
 

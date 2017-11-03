@@ -26,19 +26,56 @@
 
 #include "lock_object.h"
 
-static inline boolean
+#define MAX_ALLOWED_CONSECUTIVE_WRITE_GRANTS        4
+#define MAX_ALLOWED_CONSECUTIVE_READ_GRANTS         2
+
+static boolean
 thread_got_the_write_lock (lock_obj_t *lck)
 {
     int tid;
+    boolean granted = false;
 
-    if (lck->readers > 0) return 0;
+    /* if any current readers, we cannot get the write lock */
+    if (lck->readers > 0) {
+        return false;
+    }
+
+    /*
+     * If we are here, write lock can be obtained if noone else
+     * has acquired it already or this thread already owns it.
+     */
     tid = get_thread_id();
     if (lck->writer_thread_id < 0) {
         lck->writer_thread_id = tid;
-        return 1;
+        granted = true;
+    } else {
+        granted = (lck->writer_thread_id == tid);
     }
-    return
-        lck->writer_thread_id == tid;
+    if (granted) {
+        lck->write_lock_requests--;
+        lck->write_lock_reentry_count++;
+    }
+    return granted;
+}
+
+static boolean
+thread_got_the_read_lock (lock_obj_t *lck)
+{
+    /*
+     * if there is a current writer, or any
+     * pending write lock request, the
+     * thread can not get the read lock.
+     * Write lock requests always get
+     * priority over read lock requests.
+     */
+    if ((lck->write_lock_reentry_count > 0) ||
+        (lck->write_lock_requests > 0)) {
+            return false;
+    }
+
+    /* otherwise, the thread can get the read lock */
+    lck->readers++;
+    return true;
 }
 
 /*
@@ -50,6 +87,9 @@ lock_obj_init (lock_obj_t *lck)
 {
     pthread_mutexattr_t mtxattr;
     int rv;
+
+    /* clear all variables */
+    memset(lck, 0, sizeof(lock_obj_t));
 
     /* get default mutex attributes */
     if ((rv = pthread_mutexattr_init(&mtxattr)))
@@ -78,10 +118,7 @@ lock_obj_init (lock_obj_t *lck)
     if ((rv = pthread_mutex_init(&lck->mtx, &mtxattr)))
 	return rv;
 
-    /* no readers or writers to start with */
-    lck->readers = lck->pending_writers = 0;
-
-    /* no writer thread either */
+    /* no writer to start with */
     lck->writer_thread_id = -1;
 
     return 0;
@@ -106,14 +143,16 @@ PUBLIC void
 grab_read_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    while (lck->pending_writers > 0) {
+    while (1) {
+        if (thread_got_the_read_lock(lck)) {
+            pthread_mutex_unlock(&lck->mtx);
+            return;
+        }
 	pthread_mutex_unlock(&lck->mtx);
 	sched_yield();
 	pthread_mutex_lock(&lck->mtx);
 	continue;
     }
-    lck->readers++;
-    pthread_mutex_unlock(&lck->mtx);
 }
 
 /*
@@ -151,7 +190,7 @@ PUBLIC void
 grab_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->pending_writers++;
+    lck->write_lock_requests++;
     while (1) {
 	if (thread_got_the_write_lock(lck)) {
 	    pthread_mutex_unlock(&lck->mtx);
@@ -176,7 +215,7 @@ PUBLIC void
 release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    if (--lck->pending_writers <= 0) {
+    if (--lck->write_lock_reentry_count <= 0) {
         lck->writer_thread_id = -1;
     }
     pthread_mutex_unlock(&lck->mtx);
