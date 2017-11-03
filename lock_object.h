@@ -57,25 +57,6 @@
 
 #include "utils_common.h"
 
-/*
- * If so many read lock requests are pending on a lock,
- * no more write lock requests will be granted to not
- * starve the read lock requests.
- */
-#define MAX_PENDING_READ_LOCK_REQUESTS      5
-
-/*
- * Conversely, if so many write lock requests are pending 
- * on a lock, no more read locks will be granted to not
- * starve the write lock requests.
- *
- * Usually, write lock requests should get higher priority
- * and that is why this number is less.  If this number
- * is 1, write lock requests will ALWAYS trump a read lock
- * request.
- */
-#define MAX_PENDING_WRITE_LOCK_REQUESTS     2
-
 typedef struct lock_obj_s {
 
     pthread_mutex_t mtx;	    // protects the rest of the variables
