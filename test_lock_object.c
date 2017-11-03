@@ -106,6 +106,7 @@ int main (int argc, char *argv[])
                 goto not_all_threads_complete;
             }
         }
+	sleep(10);
         return 0;
     }
     return 0;

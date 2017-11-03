@@ -32,7 +32,7 @@
 static boolean
 thread_got_the_write_lock (lock_obj_t *lck)
 {
-    int tid;
+    pthread_t tid;
     boolean granted = false;
 
     /* if any current readers, we cannot get the write lock */
@@ -44,12 +44,13 @@ thread_got_the_write_lock (lock_obj_t *lck)
      * If we are here, write lock can be obtained if noone else
      * has acquired it already or this thread already owns it.
      */
-    tid = get_thread_id();
-    if (lck->writer_thread_id < 0) {
+    tid = pthread_self();
+    if (!lck->writer_thread_id_set) {
         lck->writer_thread_id = tid;
+	lck->writer_thread_id_set = true;
         granted = true;
     } else {
-        granted = (lck->writer_thread_id == tid);
+        granted = pthread_equal(lck->writer_thread_id, tid);
     }
     if (granted) {
         lck->write_lock_requests--;
@@ -117,9 +118,6 @@ lock_obj_init (lock_obj_t *lck)
     /* init with the desired attributes */
     if ((rv = pthread_mutex_init(&lck->mtx, &mtxattr)))
 	return rv;
-
-    /* no writer to start with */
-    lck->writer_thread_id = -1;
 
     return 0;
 }
@@ -216,7 +214,7 @@ release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
     if (--lck->write_lock_reentry_count <= 0) {
-        lck->writer_thread_id = -1;
+        lck->writer_thread_id_set = false;
     }
     pthread_mutex_unlock(&lck->mtx);
 }

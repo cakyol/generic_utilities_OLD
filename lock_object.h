@@ -59,11 +59,30 @@
 
 typedef struct lock_obj_s {
 
-    pthread_mutex_t mtx;	    // protects the rest of the variables
-    int readers;		    // number of actual concurrent readers
-    int write_lock_requests;        // pending write lock requests
-    int write_lock_reentry_count;   // rentrant write lock count
-    int writer_thread_id;	    // actual thread which has the write lock
+    /* this protects access to all the variables */
+    pthread_mutex_t mtx;
+
+    /* number of distinct threads which have acquired the read lock */
+    ushort  readers;
+
+    /*
+     * number of threads waiting in line to obtain a write lock.
+     * This is important since it marks that a write lock request
+     * is pending, which blocks any new read lock requests.
+     */
+    ushort write_lock_requests;
+
+    /* how many consecutive times the current thread acquired the write lock */
+    ushort write_lock_reentry_count;
+
+    /*
+     * The thread which has the write lock now.  If 'writer_thread_id_set'
+     * is true, it means 'tid' is valid.  Since there is 'NULL'
+     * equivalent of a thread id, the boolean is used to indicate
+     * whether it is set or not set.
+     */
+    bool writer_thread_id_set;
+    pthread_t writer_thread_id;
 
 } lock_obj_t;
 
