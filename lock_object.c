@@ -62,17 +62,38 @@ thread_got_the_write_lock (lock_obj_t *lck)
 static boolean
 thread_got_the_read_lock (lock_obj_t *lck)
 {
-    /*
-     * if there is a current writer, or any
-     * pending write lock request, the
-     * thread can not get the read lock.
-     * Write lock requests always get
-     * priority over read lock requests.
-     */
-    if ((lck->write_lock_reentry_count > 0) ||
-        (lck->write_lock_requests > 0)) {
-            return false;
+    /* if there is a current writer, cannot grant read lock */
+    if (lck->write_lock_reentry_count > 0) {
+        return false;
     }
+
+    /* 
+     * What to do when a write lock request comes in when a reader already
+     * has a read lock.  Should we not allow any further read locks or not ?
+     * Two possibilities exist:
+     *
+     * - Do not allow recursive locks.
+     *   This may become too restrictive.
+     *
+     * - Do not allow a write lock request.
+     *   This may starve the writer but is safer.  Alternative is a possible
+     *   deadlock.  Say thread 1 gets the read lock.  Now thread 2 wants the
+     *   write lock but cannot get it.  However, if we do not allow further
+     *   read locks but the 1st thread recursively wants a read lock again
+     *   and is not granted, 1st thread will wait on a read lock and the 2nd
+     *   will wait till the read unlocks.  They both become deadlocked.
+     *
+     * So, to be able to provide recursive locks, AND ensure that no deadlocks
+     * ever occur, we may have to starve the writer.  This will delay the
+     * write lock but would avoid a deadlock, which is much worse.
+     *
+     */
+#if 0 // see the argument above, let it starve
+
+    if (lck->write_lock_requests > 0) {
+        return false;
+    }
+#endif // 0
 
     /* otherwise, the thread can get the read lock */
     lck->readers++;

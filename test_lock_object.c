@@ -88,8 +88,8 @@ int main (int argc, char *argv[])
             fprintf(stderr, "pthread_create FAILED at iteration %d\n", i);
         }
 
-        /* every 5 write threads, create a read thread to validate */
-        if ((i % 5) == 0) {
+        /* every other thread, create a read thread to validate */
+        if (i & 1) { 
             rv = pthread_create(&tid, NULL, validate_array_thread, NULL);
             if (rv) {
                 fprintf(stderr, "pthread_create FAILED for validation\n");
