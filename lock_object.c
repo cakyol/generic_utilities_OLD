@@ -26,9 +26,6 @@
 
 #include "lock_object.h"
 
-#define MAX_ALLOWED_CONSECUTIVE_WRITE_GRANTS        4
-#define MAX_ALLOWED_CONSECUTIVE_READ_GRANTS         2
-
 static boolean
 thread_got_the_write_lock (lock_obj_t *lck)
 {
@@ -93,6 +90,7 @@ thread_got_the_read_lock (lock_obj_t *lck)
     if (lck->write_lock_requests > 0) {
         return false;
     }
+
 #endif // 0
 
     /* otherwise, the thread can get the read lock */
