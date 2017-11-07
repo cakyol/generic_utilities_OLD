@@ -3,7 +3,7 @@
 
 #define ARRAY_SIZE          100000000
 #define MAX_THREADS         256
-#define LOCK_COUNT          100
+#define LOCK_COUNT          16
 
 int array [ARRAY_SIZE];
 lock_obj_t lock;
