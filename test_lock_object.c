@@ -32,12 +32,13 @@ void *thread_function (void *arg)
     } else {
         printf("validation PASSED for value %d\n", value);
     }
-    fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_write_lock(&lock);
     if (thread_complete_array[value] != 0) {
         fprintf(stderr, "OOOPPPPS, have revisited %d\n", value);
     }
     thread_complete_array[value] = 1;
+    fflush(stdout);
+    fflush(stderr);
     return NULL;
 }
 
@@ -88,7 +89,7 @@ int main (int argc, char *argv[])
             fprintf(stderr, "pthread_create FAILED at iteration %d\n", i);
         }
 
-        /* every other thread, create a read thread to validate */
+        /* every other thread, also create a read thread to validate */
         if (i & 1) { 
             rv = pthread_create(&tid, NULL, validate_array_thread, NULL);
             if (rv) {
@@ -100,13 +101,16 @@ int main (int argc, char *argv[])
     fflush(stderr);
     while (1) {
         not_all_threads_complete:
-        sleep(1);
         for (i = 0; i < MAX_THREADS; i++) {
             if (thread_complete_array[i] == 0) {
+                fprintf(stderr, "thread array %d not done yet\n", i);
+                sleep(1);
                 goto not_all_threads_complete;
             }
         }
-	sleep(10);
+        printf("all threads have finished, size of one lock object is %lu bytes\n",
+                sizeof(lock_obj_t));
+        fflush(stdout);
         return 0;
     }
     return 0;

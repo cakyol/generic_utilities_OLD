@@ -63,7 +63,7 @@ typedef struct lock_obj_s {
     pthread_mutex_t mtx;
 
     /* number of distinct threads which have acquired the read lock */
-    ushort  readers;
+    ushort readers;
 
     /*
      * number of threads waiting in line to obtain a write lock.

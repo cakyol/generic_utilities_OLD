@@ -85,7 +85,7 @@ thread_got_the_read_lock (lock_obj_t *lck)
      * write lock but would avoid a deadlock, which is much worse.
      *
      */
-#if 0 // see the argument above, let it starve
+#if 0 // see the argument above, let the write lock starve
 
     if (lck->write_lock_requests > 0) {
         return false;
@@ -93,7 +93,7 @@ thread_got_the_read_lock (lock_obj_t *lck)
 
 #endif // 0
 
-    /* otherwise, the thread can get the read lock */
+    /* the thread can get the read lock */
     lck->readers++;
     return true;
 }
