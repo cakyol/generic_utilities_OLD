@@ -50,8 +50,8 @@ thread_got_the_write_lock (lock_obj_t *lck)
         granted = pthread_equal(lck->writer_thread_id, tid);
     }
     if (granted) {
-        // lck->write_lock_requests--;
-        lck->write_lock_count++;
+        lck->pending_write_locks--;
+        lck->recursive_write_locks_granted++;
     }
     return granted;
 }
@@ -60,7 +60,7 @@ static boolean
 thread_got_the_read_lock (lock_obj_t *lck)
 {
     /* if there is a current writer, cannot grant read lock */
-    if (lck->write_lock_count > 0) {
+    if (lck->recursive_write_locks_granted > 0) {
         return false;
     }
 
@@ -94,6 +94,7 @@ thread_got_the_read_lock (lock_obj_t *lck)
 #endif // 0
 
     /* the thread can get the read lock */
+    lck->pending_read_locks--;
     lck->readers++;
     return true;
 }
@@ -160,6 +161,7 @@ PUBLIC void
 grab_read_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
+    lck->pending_read_locks++;
     while (1) {
         if (thread_got_the_read_lock(lck)) {
             pthread_mutex_unlock(&lck->mtx);
@@ -207,7 +209,7 @@ PUBLIC void
 grab_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    // lck->write_lock_requests++;
+    lck->pending_write_locks++;
     while (1) {
 	if (thread_got_the_write_lock(lck)) {
 	    pthread_mutex_unlock(&lck->mtx);
@@ -232,7 +234,7 @@ PUBLIC void
 release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    if (--lck->write_lock_count <= 0) {
+    if (--lck->recursive_write_locks_granted <= 0) {
         lck->writer_thread_id_set = false;
     }
     pthread_mutex_unlock(&lck->mtx);

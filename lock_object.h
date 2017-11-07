@@ -59,11 +59,15 @@
 
 typedef struct lock_obj_s {
 
-    pthread_mutex_t mtx;            // protects all the variables below
-    pthread_t writer_thread_id;     // current writer thread
-    ushort readers;                 // current active readers
-    ushort write_lock_count;        // recursive write locks
-    bool writer_thread_id_set;      // 'writer_thread_id' is valid/set
+    pthread_mutex_t mtx;                    // protects all the variables below
+
+    short pending_read_locks;               // read lock requests not yet granted
+    short readers;                          // current active readers
+
+    short pending_write_locks;              // write lock requests not yet granted
+    short recursive_write_locks_granted;    // recursive write locks granted
+    bool writer_thread_id_set;              // whether 'writer_thread_id' is set
+    pthread_t writer_thread_id;             // current writer thread
 
 } lock_obj_t;
 
