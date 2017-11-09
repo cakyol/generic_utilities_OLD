@@ -26,8 +26,8 @@ LIB_OBJS =	utils_common.o \
 		avl_tree_object.o \
 		table.o \
 		dynamic_array.o \
-		generic_object_database.o \
 		event_manager.o \
+		generic_object_database.o \
 		### trie_object.o
 
 %.o:		%.c %.h event_types.h

@@ -60,80 +60,65 @@ void notify_event (event_record_t *evrp)
     printf("UNKNOWN EVENT TYPE %d\n", event);
 }
 
-void add_del_attributes (object_database_t *obj_db, object_t *obj)
+void add_del_attributes (object_database_t *obj_db, int type, int instance)
 {
     int i, iter, count;
     char complex_value[50];
-    attribute_instance_t *aitp;
     int av;
 
-    printf("adding & deleting attributes to an object\n");
+    printf("adding attributes to an object\n");
     count = 0;
     for (iter = 0; iter < ITER; iter++) {
 	for (i = MAX_ATTRS; i > 1; i--) {
-	    aitp = object_attribute_instance_add(obj, i);
-	    if (NULL == aitp) {
-		fprintf(stderr, "object (%d, %d) attribute %d add failed\n",
-			obj->object_type, obj->object_instance, i);
-	    }
 	    for (av = 0; av < MAX_AV_COUNT; av++) {
-		object_attribute_add_simple_value(obj, i, av);
+		object_attribute_add_simple_value(obj_db, type, instance, i, av);
 		sprintf(complex_value, "cav %d", av);
-		object_attribute_add_complex_value(obj, i,
+		object_attribute_add_complex_value(obj_db, type, instance, i,
 			(byte*) complex_value, strlen(complex_value) + 1);
 		count++;
 	    }
 
-#if 0
-	    // deletes all values and sets it
-	    object_attribute_set_simple_value(obj, i, i);
-	    //printf("deleting attribute instance %d from object (%d, %d)\n",
-		    //i, obj->object_type, obj->object_instance);
-	    object_attribute_instance_destroy(obj, i);
-#endif
 	}
-#if 0
-	for (i = MAX_ATTRS; i > 1; i--) {
-	    if (object_attribute_instance_destroy(obj, i) != ok) {
-		printf("object (%d, %d) attribute %d delete failed\n",
-			obj->object_type, obj->object_instance, i);
-		count++;
-	    }
-	}
-#endif
-
     }
 }
 
 int main (int argc, char *argv[])
 {
     object_database_t db;
-    int type, instance;
-    object_t *obj, *parent;
+    int parent_type, parent_instance;
+    int child_type, child_instance;
     int count;
 
     database_initialize(&db, 1, notify_event, NULL);
 
     printf("creating objects\n");
     count = 0;
+
     // reverse ordering is WORST performance for the index object
     // but irrelevant to the avl tree object
 
-    parent = &db.root_object;
-    for (type = MAX_TYPES; type > 0; type--) {
-	for (instance = type; instance > 0; instance--) {
-	    obj = object_create(parent, type, instance);
-	    if (obj) {
-		printf("object type %d, instance %d created\n", type, instance);
-		add_del_attributes(&db, obj);
-		//object_destroy(obj);
-		//printf("object destroyed\n");
-		count++;
-	    } else {
-                fprintf(stderr, "object %d,%d creation failed\n",
-                        type, instance);
-            }
-            parent = obj;
+    parent_type = parent_instance = 0;
+
+    for (child_type = MAX_TYPES; child_type > 0; child_type--) {
+	for (child_instance = child_type; child_instance > 0; child_instance--) {
+	    if (FAILED(object_create(&db,
+                            parent_type, parent_instance,
+                            child_type, child_instance)))
+            {
+                fprintf(stderr, "object %d,%d creation with parent %d,%d failed\n",
+                        child_type, child_instance,
+                        parent_type, parent_instance);
+                continue;
+            } 
+	    
+            printf("object %d,%d with parent %d,%d created\n",
+                child_type, child_instance,
+                parent_type, parent_instance);
+            add_del_attributes(&db, child_type, child_instance);
+            count++;
+
+            parent_type = child_type;
+            parent_instance = child_instance;
 	}
     }
     printf("finished creating all objects\n");

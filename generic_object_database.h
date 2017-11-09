@@ -90,7 +90,8 @@
 #ifndef __GENERIC_OBJECT_DATABASE_H__
 #define __GENERIC_OBJECT_DATABASE_H__
 
-/* This uses more memory for widespread attribute values
+/* 
+ * This uses more memory for widespread attribute values
  * but is extremely fast.  If attribute id numbers are
  * kept consecutive, then it also uses much less memory
  */
@@ -101,8 +102,11 @@
 #include "event_types.h"
 #include "object_types.h"
 
+#define TYPICAL_NAME_SIZE			(64)
+
 typedef struct attribute_value_s attribute_value_t;
 typedef struct attribute_instance_s attribute_instance_t;
+typedef struct object_identifier_s object_identifier_t;
 typedef struct object_s object_t;
 typedef struct object_database_s object_database_t;
 typedef struct event_record_s event_record_t;
@@ -110,355 +114,7 @@ typedef void (*event_handler_function)(event_record_t*);
 
 /******************************************************************************
  *
- * attribute related
- *
- */
-
-/*
- * The structure below can be used for every possible kind of 
- * data type.  This includes all the basic types as well
- * as pointers to byte streams.  Every possible data is either a
- * 'simple' type (byte, char, short, int, int64) or complex
- * type (pointer to a byte stream and its length).
- *
- * One consequence of this method is that ALL simple data types,
- * regardless of their size, will always be stored as int64.
- * This is not so bad given the simplicity it provides.
- *
- * Here is the important differentiation points between 'simple'
- * and 'complex' attribute values:
- *
- * - an attribute value length should never be < 0.  This shows an
- *   an internal error.
- *
- * - if length == 0, it indicates a 'simple' attribute value type.
- *
- * - if length > 0, it represents a pointer to a byte stream
- *   whose length is as given.
- *
- * The way both types of data stored is a bit strange but very
- * convenient in the sense that only ONE malloc allocates all the
- * needed space.  Basically, for byte stream data, the data starts 
- * WITH the 'attribute_value_data'.  It 'becomes' part of the 
- * stream.  In this case, the first 8 bytes of the stream data
- * will always be stored in the 'attribute_value_data' as 'bytes'.
- *
- * Since an attribute can have multiple values, simple or complex,
- * there is a linked list implementation of values for each attribute
- * id.  Since it is not expected for a single attribute id to have 
- * many values, this implementation is suficient.  After all,
- * how many values is expected ?  Bear in mind obviously that if
- * one attribute starts storing lots of values, performance
- * will start suffering.
- *
- */
-struct attribute_value_s {
-
-    attribute_value_t *next_attribute_value;
-    int attribute_value_length;
-    int64 attribute_value_data;
-};
-
-struct attribute_instance_s {
-
-    object_t *object;		// which object does this attribute belong to
-    int attribute_id;		// which attribute is it
-    int n_attribute_values;	// how many values does it have
-    attribute_value_t *avps;	// linked list of the actual values
-};
-
-/*
- * add the specified simple value 'value' to the attribute.
- * if the value is already there, it is a no op but not an error.
- * The value can be any simple byte up to the size of int64.
- */
-extern error_t
-attribute_instance_add_simple_value (attribute_instance_t *aitp, 
-	int64 value);
-
-/*
- * SET the attribute to this specific value.  All other already
- * existing values will be gone.  The attribute value will be
- * reset ONLY to this value.
- */
-extern error_t
-attribute_instance_set_simple_value (attribute_instance_t *aitp, 
-	int64 value);
-
-/*
- * reverse of the above.  Delete the value from the list of values.
- * if the value is not found, it IS considered an error
- */
-extern error_t
-attribute_instance_delete_simple_value (attribute_instance_t *aitp,
-	int64 value);
-
-/*
- * same as the group of functions above but for a complex attribute
- */
-extern error_t
-attribute_instance_add_complex_value (attribute_instance_t *aitp,
-	byte *stream, int length);
-
-extern error_t
-attribute_instance_set_complex_value (attribute_instance_t *aitp, 
-	byte *stream, int length);
-
-extern error_t
-attribute_instance_delete_complex_value (attribute_instance_t *aitp,
-	byte *stream, int length);
-
-/*
- * obtains the n'th value from the attribute values.
- * if n < 0, the first value will be returned.  If
- * n > maximum number of values, the last value
- * will be returned.
- *
- * Note that first attribute value is the 0'th value (not 1st).
- */
-extern error_t
-attribute_instance_get_value (attribute_instance_t *aitp, int nth,
-	attribute_value_t **returned_attribute_value);
-
-/*
- * destroys an attribute and all its values from an object
- */
-extern void
-attribute_instance_destroy (attribute_instance_t *aitp);
-
-/******************************************************************************
- *
- * object related
- *
- */
-
-struct object_s {
-
-    /* which database this object belongs to */
-    object_database_t *obj_db;
-
-    /*
-     * Unique identification of this object.  This combination is
-     * always unique per database and distinctly identifies an object.
-     * This combination is always the unique 'key'.
-     */ 
-    int object_type;
-    int object_instance;
-
-    /*
-     * Unless it is the root object, its parent
-     * Root object's parent is NULL.
-     */ 
-    object_t *parent;
-
-    /* Can have many children; no limit */
-    table_t children;
-
-    /* All the attributes of this object */
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    dynamic_array_t attributes;
-#else 
-    table_t attributes;
-#endif
-
-    /* for private use, do NOT use */
-    unsigned int private_flags;
-};
-
-static inline boolean
-object_is_root (object_t *obj)
-{ return ROOT_OBJECT_TYPE == obj->object_type; }
-
-static inline int
-object_child_count (object_t *obj)
-{ return table_member_count(&obj->children); }
-
-extern object_t *
-object_create (object_t *parent, 
-	int object_type, int object_instance);
-
-extern attribute_instance_t *
-object_attribute_instance_add (object_t *obj, int attribute_id);
-
-extern error_t
-object_attribute_add_simple_value (object_t *obj, int attribute_id,
-	int64 value);
-
-extern error_t
-object_attribute_set_simple_value (object_t *obj, int attribute_id,
-	int64 value);
-
-extern error_t
-object_attribute_delete_simple_value (object_t *obj, int attribute_id,
-	int64 value);
-
-extern error_t
-object_attribute_add_complex_value (object_t *obj, int attribute_id,
-	byte *stream, int length);
-
-extern error_t
-object_attribute_set_complex_value (object_t *obj, int attribute_id,
-	byte *stream, int length);
-
-extern error_t
-object_attribute_delete_complex_value (object_t *obj, int attribute_id,
-	byte *stream, int length);
-
-extern attribute_instance_t *
-object_find_attribute_instance (object_t *obj, int attribute_id);
-
-extern error_t
-object_attribute_get_nth_value (object_t *obj, int attribute_id, int nth,
-	attribute_value_t **avtpp);
-
-extern error_t
-object_attribute_instance_destroy (object_t *obj, int attribute_id);
-
-extern void
-object_destroy (object_t *obj);
-
-/******************************************************************************
- *
- * database related
- *
- */
-
-#define TYPICAL_NAME_SIZE			(64)
-
-struct object_database_s {
-
-    /* dynamic memory bookkeeper */
-    MEM_MON_VARIABLES;
-
-    /* unique integer for this database */
-    int database_id;
-
-    /*
-     * Objects are always uniquely indexed by 'object_type' & 
-     * 'object_instance'.  There can be only ONE object of
-     * this unique combination in every database.
-     */
-    table_t object_index;
-
-    /*
-     * the root object; this is special, can NOT be deleted
-     * This is used to store all the objects (children) of 
-     * the database.
-     */
-    object_t root_object;
-
-    /* notify whoever is interested */
-    event_handler_function evhf;
-
-    /*
-     * There are two reasons for database changes.  Ones produced locally
-     * by direct function calls from the application itself, or ones that
-     * happen because of processing events arriving from remote databases
-     * to synchronise them all.
-     *
-     * In the case of local changes, this database must send the change
-     * to all other databases so that they can be kept in sync.
-     *
-     * If on the other hand, an event was received from another database,
-     * after syncing this database to it, the event must be locally
-     * advertised to the registered local event handler.
-     *
-     * When either case is happening, the other case must not be executed
-     * or the database will start spinning and chase its own tail 
-     * continuously.
-     *
-     * This variable controls this situation.
-     */
-    boolean processing_remote_event;
-
-    // for spurious event suppression
-    int blocked_events;
-};
-
-extern error_t
-database_initialize (object_database_t *obj_db,
-        int db_id, event_handler_function evhf,
-        mem_monitor_t *parent_mem_monitor);
-
-static inline int
-database_object_count (object_database_t *obj_db)
-{ return table_member_count(&obj_db->object_index); }
-
-extern void
-database_register_evhf (object_database_t *obj_db,
-	event_handler_function evhf);
-
-extern object_t *
-database_object_find (object_database_t *obj_db, 
-	int object_type, int object_instance);
-
-extern int
-database_get_objects_of_type (object_t *root_object, 
-	int object_type, object_t **found_objects, int limit);
-
-extern error_t
-database_object_find_and_destroy (object_database_t *obj_db,
-	int object_type, int object_instance);
-
-/******************************************************************************
- *
- *  Database reading & writing into a file.
- *
- *  The database in a file conforms to the below format:
- *
- *  - The filename is formed by concatanating "database_" & id number,
- *    such as "database_29".
- *
- *  - One or more object records where each one is an object,
- *    its parent and all its attributes and attribute values.
- *
- *  OPTIONAL
- *  - Last entry is a checksum.  This stops the database file from being
- *    hand modified.
- *
- *  Everything is in readable text.  All numbers are in decimal.
- *  The format is one or more objects grouped like below and repeated
- *  as many times as there are objects, where each object is separated
- *  by blank lines to improve readability.  The line breaks are delimiters.
- *
- *  OBJ %d %d %d %d
- *      (parent type, instance, object type, instance)
- *  AID %d
- *      (attribute id)
- *  SAV %ll
- *      (simple attribute value)
- *  CAV %d %d %d %d %d %d ....
- *      (complex attribute value, first int is the length & the rest
- *       are all the data bytes)
- *
- *  Parsing of an object is very context oriented.  When a 'OBJ' line
- *  is parsed, it defines the object context to which all consecutive
- *  lines apply, until another 'OBJ' line is reached where the context
- *  changes and so on till the end of the file.
- *  When an 'AID' is parsed it defines an new attribute id for the current
- *  object in context.
- *  When a 'CAV' or 'SAV' is encountered the attribute value is defined
- *  for the current attribute id in context.
- */
-
-/*
- * Writes out the database to a file.
- */
-extern error_t
-database_store (object_database_t *obj_db);
-
-/*
- * reads a database from a file
- */
-extern error_t
-database_load (int database_id, object_database_t *obj_db);
-
-extern void
-database_destroy (object_database_t *obj_db);
-
-/******************************************************************************
- *
- * events related
+ * event management related structures
  *
  */
 
@@ -514,6 +170,308 @@ struct event_record_s {
     int64 attribute_value_data;
     byte extra_data [0];
 };
+
+/******************************************************************************
+ *
+ * attribute related structures
+ *
+ */
+
+/*
+ * The structure below can be used for every possible kind of 
+ * data type.  This includes all the basic types as well
+ * as pointers to byte streams.  Every possible data is either a
+ * 'simple' type (byte, char, short, int, int64) or complex
+ * type (pointer to a byte stream and its length).
+ *
+ * One consequence of this method is that ALL simple data types,
+ * regardless of their size, will always be stored as int64.
+ * This is a bit wasteful but not so bad given the simplicity it 
+ * provides.
+ *
+ * Here is the important differentiation points between 'simple'
+ * and 'complex' attribute values:
+ *
+ * - an attribute value length should never be < 0.  This shows an
+ *   an internal error.
+ *
+ * - if length == 0, it indicates a 'simple' attribute value type.
+ *
+ * - if length > 0, it represents a pointer to a byte stream
+ *   whose length is as given.
+ *
+ * The way both types of data stored is a bit strange but very
+ * convenient in the sense that only ONE malloc allocates all the
+ * needed space.  Basically, for byte stream data, the data starts 
+ * WITH the 'attribute_value_data'.  It 'becomes' part of the 
+ * stream.  In this case, the first 8 bytes of the stream data
+ * will always be stored in the 'attribute_value_data' as 'bytes'.
+ *
+ * Since an attribute can have multiple values, simple or complex,
+ * there is a linked list implementation of values for each attribute
+ * id.  Since it is not expected for a single attribute id to have 
+ * very many values, this implementation is sufficient.  If however,
+ * an attribute starts storing lots of values, performance will
+ * start suffering.
+ *
+ */
+struct attribute_value_s {
+
+    attribute_value_t *next_attribute_value;
+    int attribute_value_length;
+    int64 attribute_value_data;
+};
+
+struct attribute_instance_s {
+
+    object_t *object;		// which object does this attribute belong to
+    int attribute_id;		// which attribute is it
+    int n_attribute_values;	// how many values does it have
+    attribute_value_t *avps;	// linked list of the attribute values
+};
+
+/******************************************************************************
+ *
+ * object related structures
+ *
+ */
+
+struct object_identifier_s {
+
+    int object_type;
+    int object_instance;
+
+};
+
+struct object_s {
+
+    /* which database this object belongs to */
+    object_database_t *obj_db;
+
+    /*
+     * Unique identification of this object.  This combination is
+     * always unique per database and distinctly identifies an object.
+     * This combination is always the unique 'key'.
+     */ 
+    int object_type;
+    int object_instance;
+
+    /*
+     * Unless it is the root object, its parent
+     * Root object's parent is NULL.
+     */ 
+    object_t *parent;
+
+    /* Can have many children; no limit */
+    table_t children;
+
+    /* All the attributes of this object */
+#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
+    dynamic_array_t attributes;
+#else 
+    table_t attributes;
+#endif
+
+    /* for private use, do NOT use */
+    unsigned int private_flags;
+};
+
+/******************************************************************************
+ *
+ * database related structures
+ *
+ */
+
+struct object_database_s {
+
+    /* dynamic memory bookkeeper */
+    MEM_MON_VARIABLES;
+
+    /* unique integer for this database */
+    int database_id;
+
+    /*
+     * Objects are always uniquely indexed by 'object_type' & 
+     * 'object_instance'.  There can be only ONE object of
+     * this unique combination in every database.
+     */
+    table_t object_index;
+
+    /*
+     * the root object; this is special, can NOT be deleted
+     * This is used to store all the objects (children) of 
+     * the database.
+     */
+    object_t root_object;
+
+    /* notify whoever is interested */
+    event_handler_function evhf;
+
+    /*
+     * There are two reasons for database changes.  Ones produced locally
+     * by direct function calls from the application itself, or ones that
+     * happen because of processing events arriving from remote databases
+     * to synchronise them all.
+     *
+     * In the case of local changes, this database must send the change
+     * to all other databases so that they can be kept in sync.
+     *
+     * If on the other hand, an event was received from another database,
+     * after syncing this database to it, the event must be locally
+     * advertised to the registered local event handler.
+     *
+     * When either case is happening, the other case must not be executed
+     * or the database will start spinning and chase its own tail 
+     * continuously.
+     *
+     * This variable controls this situation.
+     */
+    boolean processing_remote_event;
+
+    // for spurious event suppression
+    int blocked_events;
+};
+
+/************* User functions ************************************************/
+
+extern int
+database_initialize (object_database_t *obj_db,
+        int db_id, event_handler_function evhf,
+        mem_monitor_t *parent_mem_monitor);
+
+extern void
+database_register_evhf (object_database_t *obj_db,
+	event_handler_function evhf);
+
+extern int
+object_create (object_database_t *obj_db,
+        int parent_object_type, int parent_object_instance,
+        int child_object_type, int child_object_instance);
+
+extern int
+object_exists (object_database_t *obj_db,
+        int object_type, int object_instance);
+
+extern int
+object_attribute_add (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id);
+
+extern int
+object_attribute_add_simple_value (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+        int64 simple_value);
+
+extern int
+object_attribute_set_simple_value (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+	int64 simple_value);
+
+extern int
+object_attribute_delete_simple_value (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+	int64 simple_value);
+
+extern int
+object_attribute_add_complex_value (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+	byte *complex_value_data, int complex_value_data_length);
+
+extern int
+object_attribute_set_complex_value (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+	byte *complex_value_data, int complex_value_data_length);
+
+extern int
+object_attribute_delete_complex_value (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+	byte *complex_value_data, int complex_value_data_length);
+
+extern int
+object_attribute_get_value (object_database_t *obj_db,
+        int object_type, int object_instance, 
+        int attribute_id, int nth,
+        attribute_value_t **cloned_attribute_value);
+
+extern int
+object_attribute_get_all_values (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id,
+        int *how_many, attribute_value_t *returned_attribute_values[]);
+
+extern int
+object_attribute_destroy (object_database_t *obj_db,
+        int object_type, int object_instance, int attribute_id);
+
+extern int
+object_destroy (object_database_t *obj_db,
+        int object_type, int object_instance);
+
+#if 0
+
+extern int
+database_get_objects_of_type (object_database_t *obj_db,
+        int parent_object_type, int parent_object_instance,
+	int matching_object_type, object_t **found_objects, int limit);
+#endif
+
+static inline int
+database_object_count (object_database_t *obj_db)
+{ return table_member_count(&obj_db->object_index); }
+
+/******************************************************************************
+ *
+ *  Database reading & writing into a file.
+ *
+ *  The database in a file conforms to the below format:
+ *
+ *  - The filename is formed by concatanating "database_" & id number,
+ *    such as "database_29".
+ *
+ *  - One or more object records where each one is an object,
+ *    its parent and all its attributes and attribute values.
+ *
+ *  OPTIONAL
+ *  - Last entry is a checksum.  This stops the database file from being
+ *    hand modified.
+ *
+ *  Everything is in readable text.  All numbers are in decimal.
+ *  The format is one or more objects grouped like below and repeated
+ *  as many times as there are objects, where each object is separated
+ *  by blank lines to improve readability.  The line breaks are delimiters.
+ *
+ *  OBJ %d %d %d %d
+ *      (parent type, instance, object type, instance)
+ *  AID %d
+ *      (attribute id)
+ *  SAV %ll
+ *      (simple attribute value)
+ *  CAV %d %d %d %d %d %d ....
+ *      (complex attribute value, first int is the length & the rest
+ *       are all the data bytes)
+ *
+ *  Parsing of an object is very context oriented.  When a 'OBJ' line
+ *  is parsed, it defines the object context to which all consecutive
+ *  lines apply, until another 'OBJ' line is reached where the context
+ *  changes and so on till the end of the file.
+ *  When an 'AID' is parsed it defines an new attribute id for the current
+ *  object in context.
+ *  When a 'CAV' or 'SAV' is encountered the attribute value is defined
+ *  for the current attribute id in context.
+ */
+
+/*
+ * Writes out the database to a file.
+ */
+extern int
+database_store (object_database_t *obj_db);
+
+/*
+ * reads a database from a file
+ */
+extern int
+database_load (int database_id, object_database_t *obj_db);
+
+extern void
+database_destroy (object_database_t *obj_db);
 
 #endif // __GENERIC_OBJECT_DATABASE_H__
 

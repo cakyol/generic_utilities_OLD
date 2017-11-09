@@ -191,7 +191,7 @@ no_space (int rv)
 typedef union datum_u {
 
     void *pointer;
-    int integer;
+    int64 integer;
 
 } datum_t;
 

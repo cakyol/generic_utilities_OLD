@@ -28,21 +28,21 @@ int main (int argc, char *argv[])
 
     datum.integer = EXTREME_DATA;
     if (SUCCEEDED(dynamic_array_insert(&dyn, EXTREME, datum))) {
-        printf("inserted %d into index %d\n", datum.integer, EXTREME);
+        printf("inserted %lld into index %d\n", datum.integer, EXTREME);
     } else {
-        printf("inserting %d into index %d FAILED\n", datum.integer, EXTREME);
+        printf("inserting %lld into index %d FAILED\n", datum.integer, EXTREME);
     }
 
     datum.integer = EXTREME_DATA;
     if (SUCCEEDED(dynamic_array_insert(&dyn, -EXTREME, datum))) {
-        printf("inserted %d into index %d\n", datum.integer, -EXTREME);
+        printf("inserted %lld into index %d\n", datum.integer, -EXTREME);
     } else {
-        printf("inserting %d into index %d FAILED\n", datum.integer, -EXTREME);
+        printf("inserting %lld into index %d FAILED\n", datum.integer, -EXTREME);
     }
 
     for (i = -EXTREME-10; i < EXTREME+10; i++) {
 	if (SUCCEEDED(dynamic_array_get(&dyn, i, &datum))) {
-	    printf("value for %d is %d\n", i, datum.integer);
+	    printf("value for %d is %lld\n", i, datum.integer);
 	} else {
 	    printf("dynamic_array_get failed for entry %d\n", i);
 	}
