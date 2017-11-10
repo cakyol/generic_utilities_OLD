@@ -31,10 +31,14 @@
 #include "lock_object.h"
 
 /*
- * Users should NEVER traverse thru the nodes by themselves but ONLY
- * thru the APIs provided.  This is becoz the 'next' pointer does NOT
- * point to the next node as implied.  Internal implementation has
- * some tricks which prohibits use of the 'next' pointer directly.
+ * Users should be aware that the list is terminated with an
+ * ACTUAL node whose next pointer AND the datum pointer is NULL.
+ * An 'end of list' marker node is needed to implement fast
+ * deletion from the list.
+ *
+ * Therefore, when iterating thru a list, take into account
+ * the fact that the LAST node is ONLY a marker and NOT
+ * real data.
  */
 typedef struct sll_node_s sll_node_t;
 struct sll_node_s {

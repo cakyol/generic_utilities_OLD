@@ -1,8 +1,11 @@
 
 #include "sll_object.h"
 
-#define START_INT   25
-#define END_INT     500
+#define START_INT   1
+#define END_INT     3000
+#define SIZE	    (END_INT + 1)
+
+byte hashmap [SIZE] = { 0 };
 
 static void
 flush (void)
@@ -32,6 +35,7 @@ int main (int argc, char *argv[])
         if (rv) {
             fprintf(stderr, "adding %d failed\n", i);
         }
+	hashmap[i] = 1;
         rv = sll_object_add_once_integer(&sll, i);
         if (rv) {
             fprintf(stderr, "adding %d failed in 2nd attempt\n", i);
@@ -41,7 +45,7 @@ int main (int argc, char *argv[])
             fprintf(stderr, "adding %d failed in 3rd attempt\n", i);
         }
     }
-    printf("all data (%d of them) added to list\n", sll.n);
+    printf("all %d items added to list\n", sll.n);
     flush();
 
     assert(sll.n == (END_INT - START_INT + 1));
@@ -56,28 +60,29 @@ int main (int argc, char *argv[])
 
         rv = sll_object_delete_integer(&sll, i, &d);
         if (rv == 0) {
-
             count--;
             assert(count == sll.n);
             assert(i == d);
+	    hashmap[i] = 0;
 
             /* 
              * make sure that the deleted entry is NOT in the list 
              * but ALL others are
              */
             for (j = START_INT; j <= END_INT; j++) {
-                if (j <= i) {
-                    assert(sll_object_search_integer(&sll, j, &s) == ENODATA);
-                } else {
+		if (hashmap[j]) {
                     assert(sll_object_search_integer(&sll, j, &s) == 0);
                     assert(j == s);
-                }
+		} else {
+                    assert(sll_object_search_integer(&sll, j, &s) == ENODATA);
+		}
             }
         } else {
             fprintf(stderr, "sll_object_delete for %d failed\n", i);
         }
     }
     assert(sll.n == 0);
+    printf("all data verified, list is sane\n");
 
     return 0;
 }

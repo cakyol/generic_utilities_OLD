@@ -28,12 +28,7 @@
 
 /*
  * We maintain an "end node" always in the list.  This is represented
- * by setting its 'next' pointer to the value of 0x1.  We cannot use 
- * the datum value of NULL (or 0) as an end node indicator since users MAY
- * want to use those values as ligitimate data to be stored in the list.
- * Alternatively, If I introduce another field into the structure, it will 
- * bump up its size by at least 4 bytes wasting too much memory.
- * Therefore I am using the kludge mentioned above which works very well.
+ * by setting its 'next' AND datum pointers to the value of NULL.
  *
  * The reason we need an "end node" representation is so that we
  * can delete a node VERY quickly.  What we do to delete a node
@@ -47,28 +42,19 @@
  * and is ONLY a marker.
  */
 
-/*
- * Pointer value that eventually should point to a value of 0x1.
- * We cannot use integer arithmetic on pointers and since
- * I dont want to use "intptr_t", I use this instead with 
- * a value of "1" in it, to represent an end node.
- */
-static char *pointer_to_one;
-
 static inline boolean
 sll_end_node (sll_node_t *sln)
 {
     return
         (NULL == sln) || 
-        (NULL == sln->next) ||
-        ((sll_node_t*) pointer_to_one == sln->next);
+        ((NULL == sln->next) && (NULL == sln->user_datum.pointer));
 }
 
 static inline boolean
 not_sll_end_node (sll_node_t *sln)
 {
     return
-        sln && (sln->next != (sll_node_t*) pointer_to_one);
+        sln && (NULL != sln->next) && (NULL != sln->user_datum.pointer);
 }
 
 static inline sll_node_t *
@@ -92,18 +78,13 @@ thread_unsafe_sll_object_add (sll_object_t *sll,
 {
     sll_node_t *node = new_sll_node(sll, user_datum);
 
-    if (node) {
-	node->next = sll->head;
-	sll->head = node;
-        sll->n++;
-	return 0;
-    }
+    if (NULL == node)
+	return ENOMEM;
 
-    /*
-     * only reason this could have failed is if 
-     * 'new_sll_node' failed due to malloc failure
-     */
-    return ENOMEM;
+    node->next = sll->head;
+    sll->head = node;
+    sll->n++;
+    return 0;
 }
 
 static error_t
@@ -206,17 +187,13 @@ sll_object_init (sll_object_t *sll,
     sll_node_t *node;
     error_t rv = 0;
 
-    /* make the pointer value 0x1 */
-    pointer_to_one = NULL;
-    pointer_to_one++;
-        
     LOCK_SETUP(sll);
     MEM_MONITOR_SETUP(sll);
 
     /* create the permanent "end" node */
     node = (sll_node_t*) MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
     if (node) {
-        node->next = (sll_node_t*) pointer_to_one;
+        node->next = NULL;
         node->user_datum.pointer = NULL;
         sll->head = node;
         sll->n = 0;
