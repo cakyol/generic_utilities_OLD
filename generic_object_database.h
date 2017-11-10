@@ -403,17 +403,19 @@ extern int
 object_attribute_destroy (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id);
 
+extern object_identifier_t *
+database_get_objects_of_type (object_database_t *obj_db,
+        int parent_object_type, int parent_object_instance,
+	int matching_object_type, int *returned_count);
+
+extern object_identifier_t *
+object_get_children (object_database_t *obj_db,
+        int parent_object_type, int parent_object_instance,
+	int *returned_count);
+
 extern int
 object_destroy (object_database_t *obj_db,
         int object_type, int object_instance);
-
-#if 0
-
-extern int
-database_get_objects_of_type (object_database_t *obj_db,
-        int parent_object_type, int parent_object_instance,
-	int matching_object_type, object_t **found_objects, int limit);
-#endif
 
 static inline int
 database_object_count (object_database_t *obj_db)

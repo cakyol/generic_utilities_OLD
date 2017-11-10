@@ -167,34 +167,39 @@ restore_events (object_database_t *obj_db, int events)
  * specified with 'v_limit'.
  */
 static int
-get_matching_objects_traverse_function (void *utility_object, void *utility_node,
-    datum_t user_data, datum_t d_object_type, datum_t d_collector, datum_t d_index,
-    datum_t d_limit)
+get_matching_children_tfn (void *utility_object, void *utility_node,
+    datum_t user_data, datum_t d_matching_object_type, 
+    datum_t d_collector, datum_t d_index, datum_t d_limit)
 {
     object_t *obj = user_data.pointer;
-    int object_type = d_object_type.integer;
-    object_t **collector = (object_t**) d_collector.pointer;
-    int *index = (int*) d_index.pointer;
-    int limit = d_limit.integer;
+    int matching_object_type = d_matching_object_type.integer;
+    object_identifier_t *collector; 
+    int *index;
 
-    /* 
-     * Array index/storage limit reached, stop the iteration.
-     * Return an error in this situation to stop the traversal.
-     */
-    if (*index >= limit) return ENOSPC;
-
-    /* end of objects reached but this is not an error, simply an end node */
+    /* end of iteration */
     if (NULL == obj) return 0;
 
-    /* if filter matches root OR the specified type store the current object */
-    if ((object_type == ALL_OBJECT_TYPES) || (object_type == obj->object_type)) {
-	collector[*index] = obj;
-	(*index)++;
-    }
+    /* if object type does not match, skip rest */
+    if ((matching_object_type != ALL_OBJECT_TYPES) &&
+	(matching_object_type != obj->object_type))
+	    return 0;
 
-    /* now do the same for all its children recursively */
-    table_traverse(&obj->children, get_matching_objects_traverse_function,
+    index = (int*) d_index.pointer;
+    if (*index >= d_limit.integer) return ENOSPC;
+    
+    collector = (object_identifier_t*) d_collector.pointer;
+    collector[*index].object_type = obj->object_type;
+    collector[*index].object_instance = obj->object_instance;
+    (*index)++;
+
+/*
+ * Only process first level children, do not recursively 
+ * go down to do grand children, grand grand children etc.
+ */
+#if 0
+    table_traverse(&obj->children, get_matching_children_tfn,
             d_object_type, d_collector, d_index, d_limit);
+#endif
 
     return 0;
 }
@@ -933,7 +938,7 @@ __object_attribute_instance_destroy (object_t *obj, int attribute_id)
 static int
 __object_get_children_of_type (object_t *parent,
         int matching_object_type, 
-	object_identifier_t *found_objects[], int limit)
+	object_identifier_t *found_objects, int limit)
 {
     int index = 0;
     datum_t d_object_type;
@@ -947,7 +952,7 @@ __object_get_children_of_type (object_t *parent,
     d_limit.integer = limit;
 
     table_traverse(&parent->children, 
-	get_matching_objects_traverse_function,
+	get_matching_children_tfn,
 	d_object_type, d_found_objects, d_index, d_limit);
 
     return index;
@@ -1610,25 +1615,42 @@ object_destroy (object_database_t *obj_db,
     return rv;
 }
 
-PUBLIC int
+PUBLIC object_identifier_t *
 object_get_children_of_type (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
-        int matching_object_type,
-        object_identifier_t *found_objects[], int limit)
+        int matching_object_type, int *returned_count)
 {
-    int rv;
+    int size;
     object_t *root;
+    object_identifier_t *found_objects;
 
     READ_LOCK(obj_db);
-    root = get_object_pointer(obj_db, parent_object_type, parent_object_instance);
-    if (NULL == root) {
-        rv = 0;
-    } else {
-        rv = __object_get_children_of_type(root, 
-                    matching_object_type, found_objects, limit);
+    *returned_count = 0;
+    found_objects = NULL;
+    root = get_object_pointer(obj_db,
+		parent_object_type, parent_object_instance);
+    if (root) {
+	size = table_member_count(&root->children);
+	found_objects = malloc((size + 1) * sizeof(object_identifier_t));
+	if (found_objects) {
+	    __object_get_children_of_type(root, 
+		    matching_object_type, found_objects, size+1);
+	    *returned_count = size;
+	}
     }
     READ_UNLOCK(obj_db);
-    return rv;
+    return found_objects;
+}
+
+PUBLIC object_identifier_t *
+object_get_children (object_database_t *obj_db,
+	int parent_object_type, int parent_object_instance,
+	int *returned_count)
+{
+    return
+	object_get_children_of_type(obj_db,
+	    parent_object_type, parent_object_instance,
+	    ALL_OBJECT_TYPES, returned_count);
 }
 
 PUBLIC void
