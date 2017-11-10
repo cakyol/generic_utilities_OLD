@@ -285,6 +285,7 @@ struct object_s {
 struct object_database_s {
 
     /* dynamic memory bookkeeper */
+    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
 
     /* unique integer for this database */
@@ -336,6 +337,7 @@ struct object_database_s {
 
 extern int
 database_initialize (object_database_t *obj_db,
+        boolean make_it_thread_safe,
         int db_id, event_handler_function evhf,
         mem_monitor_t *parent_mem_monitor);
 

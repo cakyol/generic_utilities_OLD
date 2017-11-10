@@ -144,18 +144,7 @@ lock_obj_init (lock_obj_t *lck)
 
 /*
  * Obtains a read lock.  The way this works is that a read access
- * can be given only if there are no writers, pending or active.
- *
- * A pending writer is a thread waiting to obtain a write lock but
- * has not quite got it yet.  It may be awaiting for all the readers
- * to finish or another thread to finish writing.
- *
- * A pending writer always gets priority.  If writers are pending,
- * further read accesses are not granted.  This is so that readers 
- * cannot lock out a writer indefinitely.  If a writer is active/pending, 
- * as soon as the current readers are done, the writer gets priority.  
- * Until then, new read requests will not be granted.
- *
+ * can be given only if there are no writers.
  */
 PUBLIC void 
 grab_read_lock (lock_obj_t *lck)

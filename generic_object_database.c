@@ -930,6 +930,29 @@ __object_attribute_instance_destroy (object_t *obj, int attribute_id)
     return ENODATA;
 }
 
+static int
+__object_get_children_of_type (object_t *parent,
+        int matching_object_type, 
+	object_identifier_t *found_objects[], int limit)
+{
+    int index = 0;
+    datum_t d_object_type;
+    datum_t d_found_objects;
+    datum_t d_index;
+    datum_t d_limit;
+
+    d_object_type.integer = matching_object_type;
+    d_found_objects.pointer = found_objects;
+    d_index.pointer = &index;
+    d_limit.integer = limit;
+
+    table_traverse(&parent->children, 
+	get_matching_objects_traverse_function,
+	d_object_type, d_found_objects, d_index, d_limit);
+
+    return index;
+}
+
 /******************************************************************************
  *
  * event management related functions
@@ -1054,9 +1077,9 @@ process_attribute_value_deleted_event (object_database_t *obj_db,
     return -1;
 }
 
-/*** TODO TO DO ***/
-static object_database_t *
-database_find (int db_id)
+/********** TO DO TO DO **********/
+/* static */ object_database_t *
+database_find (int database_id)
 {
     return NULL;
 }
@@ -1264,6 +1287,7 @@ notify_event (object_database_t *obj_db,
 
 PUBLIC int
 database_initialize (object_database_t *obj_db,
+        boolean make_it_thread_safe,
         int database_id, event_handler_function evhf,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -1271,6 +1295,7 @@ database_initialize (object_database_t *obj_db,
 
     memset(obj_db, 0, sizeof(object_database_t));
 
+    LOCK_SETUP(obj_db);
     MEM_MONITOR_SETUP(obj_db);
 
     // memset to 0 already does this but just making a point
@@ -1297,6 +1322,8 @@ database_initialize (object_database_t *obj_db,
     /* initialize root object indexes */
     object_indexes_init(obj_db->mem_mon_p, root_obj);
 
+    WRITE_UNLOCK(obj_db);
+
     // done
     return 0;
 }
@@ -1305,7 +1332,9 @@ PUBLIC void
 database_register_evhf (object_database_t *obj_db,
     event_handler_function evhf)
 {
+    WRITE_LOCK(obj_db);
     obj_db->evhf = evhf;
+    WRITE_UNLOCK(obj_db);
 }
 
 PUBLIC int
@@ -1313,35 +1342,53 @@ object_create (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
 {
-    object_t *parent = 
-        get_object_pointer(obj_db, parent_object_type, parent_object_instance);
-    object_t *child;
+    int rv;
+    object_t *parent, *child;
 
-    if (NULL == parent) return ENODATA;
-    child = object_create_engine(parent, child_object_type, child_object_instance);
-    return
-        child ? 0 : EFAULT;
+    WRITE_LOCK(obj_db);
+    parent = get_object_pointer(obj_db,
+                parent_object_type, parent_object_instance);
+    if (NULL == parent) {
+        rv = ENODATA;
+    } else {
+        child = object_create_engine(parent,
+                    child_object_type, child_object_instance);
+        rv = (child ? 0 : EFAULT);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
 object_exists (object_database_t *obj_db,
         int object_type, int object_instance)
 {
-    return
-        (NULL != get_object_pointer(obj_db, object_type, object_instance));
+    int rv;
+
+    READ_LOCK(obj_db);
+    rv = (NULL != get_object_pointer(obj_db, object_type, object_instance));
+    READ_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
 object_attribute_add (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
     attribute_instance_t *aitp;
 
-    if (NULL == obj) return ENODATA;
-    aitp = attribute_instance_add(obj, attribute_id);
-    return
-        aitp ? 0 : ENOMEM;
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        aitp = attribute_instance_add(obj, attribute_id);
+        rv = (aitp ? 0 : ENOMEM);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1349,11 +1396,19 @@ object_attribute_add_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         int64 simple_value)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_add_simple_value(obj, attribute_id, simple_value);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_add_simple_value(obj,
+                    attribute_id, simple_value);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1361,11 +1416,19 @@ object_attribute_set_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         int64 simple_value)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_set_simple_value(obj, attribute_id, simple_value);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_set_simple_value(obj,
+                    attribute_id, simple_value);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1373,11 +1436,19 @@ object_attribute_delete_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         int64 simple_value)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_delete_simple_value(obj, attribute_id, simple_value);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_delete_simple_value(obj,
+                    attribute_id, simple_value);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1385,12 +1456,19 @@ object_attribute_add_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_add_complex_value(obj, attribute_id,
-                complex_value_data, complex_value_data_length);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_add_complex_value(obj, attribute_id,
+                    complex_value_data, complex_value_data_length);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1398,12 +1476,19 @@ object_attribute_set_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_set_complex_value(obj, attribute_id,
-                complex_value_data, complex_value_data_length);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_set_complex_value(obj, attribute_id,
+                    complex_value_data, complex_value_data_length);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1411,12 +1496,19 @@ object_attribute_delete_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_delete_complex_value(obj, attribute_id,
-                complex_value_data, complex_value_data_length);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_delete_complex_value(obj, attribute_id,
+                    complex_value_data, complex_value_data_length);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
@@ -1430,16 +1522,24 @@ object_attribute_get_value (object_database_t *obj_db,
     attribute_value_t *avtp;
     int i;
 
+    READ_LOCK(obj_db);
+
     /* assume failure */
     *cloned_avtp = NULL;
 
     /* get object */
     obj = get_object_pointer(obj_db, object_type, object_instance);
-    if (NULL == obj) return ENODATA;
+    if (NULL == obj) {
+        READ_UNLOCK(obj_db);
+        return ENODATA;
+    }
 
     /* get attribute */
     aitp = get_attribute_instance_pointer(obj, attribute_id);
-    if (NULL == aitp) return ENODATA;
+    if (NULL == aitp) {
+        READ_UNLOCK(obj_db);
+        return ENODATA;
+    }
 
     /* trim index to sane limits */
     if (nth < 0)  {
@@ -1455,9 +1555,11 @@ object_attribute_get_value (object_database_t *obj_db,
     }
     if (avtp) {
         *cloned_avtp = clone_attribute_value(avtp);
+        READ_UNLOCK(obj_db);
         return 0;
     }
 
+    READ_UNLOCK(obj_db);
     return EFAULT;
 }
 
@@ -1466,6 +1568,8 @@ object_attribute_get_all_values (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[])
 {
+    READ_LOCK(obj_db);
+    READ_UNLOCK(obj_db);
     return 0;
 }
 
@@ -1473,49 +1577,72 @@ PUBLIC int
 object_attribute_destroy (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    return
-        __object_attribute_instance_destroy(obj, attribute_id);
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = __object_attribute_instance_destroy(obj, attribute_id);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
 object_destroy (object_database_t *obj_db,
         int object_type, int object_instance)
 {
-    object_t *obj = get_object_pointer(obj_db, object_type, object_instance);
+    int rv;
+    object_t *obj;
 
-    if (NULL == obj) return ENODATA;
-    object_destroy_engine(obj, true);
-    return 0;
+    WRITE_LOCK(obj_db);
+    obj = get_object_pointer(obj_db, object_type, object_instance);
+    if (NULL == obj) {
+        rv = ENODATA;
+    } else {
+        rv = 0;
+        object_destroy_engine(obj, true);
+    }
+    WRITE_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC int
-database_get_objects_of_type (object_t *root_object, int object_type, 
-	object_t *found_objects[], int limit)
+object_get_children_of_type (object_database_t *obj_db,
+        int parent_object_type, int parent_object_instance,
+        int matching_object_type,
+        object_identifier_t *found_objects[], int limit)
 {
-    int index = 0;
-    datum_t d_object_type;
-    datum_t d_found_objects;
-    datum_t d_index;
-    datum_t d_limit;
+    int rv;
+    object_t *root;
 
-    d_object_type.integer = object_type;
-    d_found_objects.pointer = found_objects;
-    d_index.pointer = &index;
-    d_limit.integer = limit;
-
-    table_traverse(&root_object->children, 
-	get_matching_objects_traverse_function,
-	d_object_type, d_found_objects, d_index, d_limit);
-
-    return index;
+    READ_LOCK(obj_db);
+    root = get_object_pointer(obj_db, parent_object_type, parent_object_instance);
+    if (NULL == root) {
+        rv = 0;
+    } else {
+        rv = __object_get_children_of_type(root, 
+                    matching_object_type, found_objects, limit);
+    }
+    READ_UNLOCK(obj_db);
+    return rv;
 }
 
 PUBLIC void
 database_destroy (object_database_t *obj_db)
 {
+    WRITE_LOCK(obj_db);
+
+    /*
+     * we cannot unlock since the lock
+     * will also have been destroyed.
+     *
+     * WRITE_UNLOCK(obj_db);
+     *
+     */
 }
 
 /******************************************************************************
@@ -1619,51 +1746,6 @@ database_write_one_object (void *utility_object, void *utility_node,
     return 0;
 }
 
-/*
- * If a database file already exists, a backup is taken.
- */
-PUBLIC int
-database_store (object_database_t *obj_db)
-{
-    int err;
-    FILE *fp;
-    char database_name [TYPICAL_NAME_SIZE];
-    char backup_db_name [TYPICAL_NAME_SIZE];
-    char backup_db_tmp [TYPICAL_NAME_SIZE];
-    datum_t d_FILE, p1, p2, p3;
-
-    sprintf(database_name, "database_%d", obj_db->database_id);
-    sprintf(backup_db_name, "%s_BACKUP", database_name);
-    sprintf(backup_db_tmp, "%s_tmp", backup_db_name);
-
-    /* does not matter if these fail */
-    unlink(backup_db_tmp);
-    rename(backup_db_name, backup_db_tmp);
-    rename(database_name, backup_db_name);
-
-    fp = fopen(database_name, "w");
-    if (NULL == fp) return -1;
-
-    /* write out all its objects & their children recursively */
-    d_FILE.pointer = fp;
-    err = table_traverse(&obj_db->root_object.children,
-	database_write_one_object, d_FILE, p1, p2, p3);
-
-    /* close up the file */
-    fprintf(fp, "\n\n");
-    fflush(fp);
-    fclose(fp);
-
-    /* if writing to the file failed, restore back from backup */
-    if (err != ok) {
-        unlink(database_name);
-        rename(backup_db_name, database_name);
-    }
-    unlink(backup_db_tmp);
-
-    return err;
-}
-
 static int
 load_parent_and_child (object_database_t *obj_db, FILE *fp,
     object_t **parentp, object_t **objp)
@@ -1764,6 +1846,57 @@ load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
     return err;
 }
 
+/*
+ * If a database file already exists, a backup is taken.
+ */
+PUBLIC int
+database_store (object_database_t *obj_db)
+{
+    int err;
+    FILE *fp;
+    char database_name [TYPICAL_NAME_SIZE];
+    char backup_db_name [TYPICAL_NAME_SIZE];
+    char backup_db_tmp [TYPICAL_NAME_SIZE];
+    datum_t d_FILE, p1, p2, p3;
+
+    READ_LOCK(obj_db);
+
+    sprintf(database_name, "database_%d", obj_db->database_id);
+    sprintf(backup_db_name, "%s_BACKUP", database_name);
+    sprintf(backup_db_tmp, "%s_tmp", backup_db_name);
+
+    /* does not matter if these fail */
+    unlink(backup_db_tmp);
+    rename(backup_db_name, backup_db_tmp);
+    rename(database_name, backup_db_name);
+
+    fp = fopen(database_name, "w");
+    if (NULL == fp) {
+        READ_UNLOCK(obj_db);
+        return -1;
+    }
+
+    /* write out all its objects & their children recursively */
+    d_FILE.pointer = fp;
+    err = table_traverse(&obj_db->root_object.children,
+	database_write_one_object, d_FILE, p1, p2, p3);
+
+    /* close up the file */
+    fprintf(fp, "\n\n");
+    fflush(fp);
+    fclose(fp);
+
+    /* if writing to the file failed, restore back from backup */
+    if (err != 0) {
+        unlink(database_name);
+        rename(backup_db_name, database_name);
+    }
+    unlink(backup_db_tmp);
+    READ_UNLOCK(obj_db);
+
+    return err;
+}
+
 PUBLIC int
 database_load (int database_id, object_database_t *obj_db)
 {
@@ -1780,7 +1913,7 @@ database_load (int database_id, object_database_t *obj_db)
     if (NULL == fp) return -1;
 
     database_destroy(obj_db);
-    if (database_initialize(obj_db, database_id, NULL, NULL) != ok) {
+    if (database_initialize(obj_db, true, database_id, NULL, NULL) != ok) {
         return -1;
     }
 

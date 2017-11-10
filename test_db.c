@@ -1,7 +1,7 @@
 
 #include "generic_object_database.h"
 
-#define MAX_TYPES		10
+#define MAX_TYPES		300
 #define MAX_ATTRS		10
 #define ITER			1
 #define MAX_AV_COUNT		3
@@ -89,7 +89,7 @@ int main (int argc, char *argv[])
     int child_type, child_instance;
     int count;
 
-    database_initialize(&db, 1, notify_event, NULL);
+    database_initialize(&db, true, 1, notify_event, NULL);
 
     printf("creating objects\n");
     count = 0;
@@ -121,9 +121,14 @@ int main (int argc, char *argv[])
             parent_instance = child_instance;
 	}
     }
-    printf("finished creating all objects\n");
+    printf("finished creating all %d objects\n", count);
+    printf("now writing to file ... ");
+    fflush(stdout);
+    fflush(stdout);
     database_store(&db);
-    printf("\n");
+    printf("done\n");
+    fflush(stdout);
+    fflush(stdout);
     return 0;
 }
 

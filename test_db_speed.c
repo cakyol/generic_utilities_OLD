@@ -21,7 +21,7 @@ int main (int argc, char *argv[])
     uint64 bytes_used;
     double megabytes_used;
 
-    database_initialize(&db, 1, NULL, NULL);
+    database_initialize(&db, true, 1, NULL, NULL);
 
     /* create objects */
     count = 0;
