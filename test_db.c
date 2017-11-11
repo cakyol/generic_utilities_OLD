@@ -1,10 +1,10 @@
 
 #include "generic_object_database.h"
 
-#define MAX_TYPES		300
-#define MAX_ATTRS		10
+#define MAX_TYPES		2000
+#define MAX_ATTRS		2
 #define ITER			1
-#define MAX_AV_COUNT		3
+#define MAX_AV_COUNT		2
 
 char temp_buffer [64];
 

@@ -236,12 +236,25 @@ struct attribute_instance_s {
  *
  */
 
+/*
+ * User facing APIs only deal with this representation of an object
+ * since pointers are always hidden from the user and the only way
+ * to address an object is thru this.
+ */
 struct object_identifier_s {
-
     int object_type;
     int object_instance;
-
 };
+
+/*
+ * Internal APIs mostly use pointers since they are thread protected.
+ * and pointers are safe to use.  So, this one type can be used both 
+ * for user facing APIs as well as internal uses.
+ */
+typedef union object_representation_s {
+    object_identifier_t object_id;
+    object_t *object_ptr;
+} object_representation_t;
 
 struct object_s {
 
@@ -403,14 +416,45 @@ extern int
 object_attribute_destroy (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id);
 
-extern object_identifier_t *
-database_get_objects_of_type (object_database_t *obj_db,
-        int parent_object_type, int parent_object_instance,
+/*
+ * Returns only the FIRST level of children objects MATCHING ONLY 
+ * the specified type.
+ * Returns in the form of object identification (type, instance).
+ */
+extern object_representation_t *
+object_get_matching_children (object_database_t *obj_db,
+	int parent_object_type, int parent_object_instance,
 	int matching_object_type, int *returned_count);
 
-extern object_identifier_t *
+/*
+ * Returns ALL of the FIRST level children objects.
+ * Returns in the form of object identification (type, instance).
+ */
+extern object_representation_t *
 object_get_children (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
+	int *returned_count);
+
+/*
+ * NOT RECOMMENDED TO BE USED EXTERNALLY, INTERNAL USE ONLY.
+ *
+ * Returns ALL LEVELS of children objects MATCHING ONLY the specified type.
+ * Returns in the form of object pointer.
+ */
+extern object_representation_t *
+object_get_matching_descendants (object_database_t *obj_db,
+	int parent_object_type, int parent_object_instance,
+	int matching_object_type, int *returned_count);
+
+/*
+ * NOT RECOMMENDED TO BE USED EXTERNALLY, INTERNAL USE ONLY.
+ *
+ * Returns ALL LEVELS of children of ALL objects of the parent.
+ * Returns in the form of object pointer.
+ */
+extern object_representation_t *
+object_get_descendants (object_database_t *obj_db,
+	int parent_object_type, int parent_object_instance,
 	int *returned_count);
 
 extern int

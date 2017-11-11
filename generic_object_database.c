@@ -161,10 +161,10 @@ restore_events (object_database_t *obj_db, int events)
 }
 
 /*
- * this function collects all matching objects which are equal to the
- * specified type (or all) recursively under a specific object.
- * It collects them into the 'v_collector' array up to the max limit
- * specified with 'v_limit'.
+ * This function collects all FIRST level children of an object
+ * whose object types match a specified type.
+ * It collects them into the collector array up to the specified
+ * limit.
  */
 static int
 get_matching_children_tfn (void *utility_object, void *utility_node,
@@ -173,13 +173,13 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
 {
     object_t *obj = user_data.pointer;
     int matching_object_type = d_matching_object_type.integer;
-    object_identifier_t *collector; 
+    object_representation_t *collector; 
     int *index;
 
     /* end of iteration */
     if (NULL == obj) return 0;
 
-    /* if object type does not match, skip rest */
+    /* if object type does not match, skip it */
     if ((matching_object_type != ALL_OBJECT_TYPES) &&
 	(matching_object_type != obj->object_type))
 	    return 0;
@@ -187,9 +187,9 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
     index = (int*) d_index.pointer;
     if (*index >= d_limit.integer) return ENOSPC;
     
-    collector = (object_identifier_t*) d_collector.pointer;
-    collector[*index].object_type = obj->object_type;
-    collector[*index].object_instance = obj->object_instance;
+    collector = (object_representation_t*) d_collector.pointer;
+    collector[*index].object_id.object_type = obj->object_type;
+    collector[*index].object_id.object_instance = obj->object_instance;
     (*index)++;
 
 /*
@@ -200,6 +200,46 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
     table_traverse(&obj->children, get_matching_children_tfn,
             d_object_type, d_collector, d_index, d_limit);
 #endif
+
+    return 0;
+}
+
+/*
+ * This is similar to above but it collects ALL the matching objects below
+ * the specified object, including children, grand children and ALL.
+ * Entire set of descendants.
+ *
+ * This is used internally, so the collector array stores the
+ * object pointers.
+ */
+static int
+get_matching_descendants_tfn (void *utility_object, void *utility_node,
+    datum_t user_data, datum_t d_matching_object_type, 
+    datum_t d_collector, datum_t d_index, datum_t d_limit)
+{
+    object_t *obj = user_data.pointer;
+    int matching_object_type = d_matching_object_type.integer;
+    object_representation_t *collector; 
+    int *index;
+
+    /* end of iteration */
+    if (NULL == obj) return 0;
+
+    /* if object type does not match, skip it */
+    if ((matching_object_type != ALL_OBJECT_TYPES) &&
+	(matching_object_type != obj->object_type))
+	    return 0;
+
+    index = (int*) d_index.pointer;
+    if (*index >= d_limit.integer) return ENOSPC;
+    
+    collector = (object_representation_t*) d_collector.pointer;
+    collector[*index].object_ptr = obj;
+    (*index)++;
+
+    /* now get all the descendants too */
+    table_traverse(&obj->children, get_matching_descendants_tfn,
+            d_matching_object_type, d_collector, d_index, d_limit);
 
     return 0;
 }
@@ -936,9 +976,9 @@ __object_attribute_instance_destroy (object_t *obj, int attribute_id)
 }
 
 static int
-__object_get_children_of_type (object_t *parent,
+__object_get_matching_children (object_t *parent,
         int matching_object_type, 
-	object_identifier_t *found_objects, int limit)
+	object_representation_t *found_objects, int limit)
 {
     int index = 0;
     datum_t d_object_type;
@@ -953,6 +993,29 @@ __object_get_children_of_type (object_t *parent,
 
     table_traverse(&parent->children, 
 	get_matching_children_tfn,
+	d_object_type, d_found_objects, d_index, d_limit);
+
+    return index;
+}
+
+static int
+__object_get_matching_descendants (object_t *parent,
+	int matching_object_type,
+	object_representation_t *found_objects, int limit)
+{
+    int index = 0;
+    datum_t d_object_type;
+    datum_t d_found_objects;
+    datum_t d_index;
+    datum_t d_limit;
+
+    d_object_type.integer = matching_object_type;
+    d_found_objects.pointer = found_objects;
+    d_index.pointer = &index;
+    d_limit.integer = limit;
+
+    table_traverse(&parent->children, 
+	get_matching_descendants_tfn,
 	d_object_type, d_found_objects, d_index, d_limit);
 
     return index;
@@ -1615,14 +1678,14 @@ object_destroy (object_database_t *obj_db,
     return rv;
 }
 
-PUBLIC object_identifier_t *
-object_get_children_of_type (object_database_t *obj_db,
+PUBLIC object_representation_t *
+object_get_matching_children (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
     int size;
     object_t *root;
-    object_identifier_t *found_objects;
+    object_representation_t *found_objects;
 
     READ_LOCK(obj_db);
     *returned_count = 0;
@@ -1631,9 +1694,9 @@ object_get_children_of_type (object_database_t *obj_db,
 		parent_object_type, parent_object_instance);
     if (root) {
 	size = table_member_count(&root->children);
-	found_objects = malloc((size + 1) * sizeof(object_identifier_t));
+	found_objects = malloc((size + 1) * sizeof(object_representation_t));
 	if (found_objects) {
-	    __object_get_children_of_type(root, 
+	    __object_get_matching_children(root, 
 		    matching_object_type, found_objects, size+1);
 	    *returned_count = size;
 	}
@@ -1642,15 +1705,59 @@ object_get_children_of_type (object_database_t *obj_db,
     return found_objects;
 }
 
-PUBLIC object_identifier_t *
+PUBLIC object_representation_t *
 object_get_children (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int *returned_count)
 {
     return
-	object_get_children_of_type(obj_db,
+	object_get_matching_children(obj_db,
 	    parent_object_type, parent_object_instance,
 	    ALL_OBJECT_TYPES, returned_count);
+}
+
+PUBLIC object_representation_t *
+object_get_matching_descendants (object_database_t *obj_db,
+        int parent_object_type, int parent_object_instance,
+        int matching_object_type, int *returned_count)
+{
+    int size;
+    object_t *root;
+    object_representation_t *found_objects;
+
+    READ_LOCK(obj_db);
+    *returned_count = 0;
+    found_objects = NULL;
+    root = get_object_pointer(obj_db,
+		parent_object_type, parent_object_instance);
+    if (root) {
+
+	/*
+	 * We cannot guess in advance how many of these will be so
+	 * allocate the full size of the database, just in case.
+	 */
+	size = table_member_count(&obj_db->object_index);
+
+	found_objects = malloc((size + 1) * sizeof(object_representation_t));
+	if (found_objects) {
+	    __object_get_matching_descendants(root, 
+		    matching_object_type, found_objects, size+1);
+	    *returned_count = size;
+	}
+    }
+    READ_UNLOCK(obj_db);
+    return found_objects;
+}
+
+PUBLIC object_representation_t *
+object_get_descendants (object_database_t *obj_db,
+	int parent_object_type, int parent_object_instance,
+	int *returned_count)
+{
+    return
+	object_get_matching_descendants
+	    (obj_db, parent_object_type, parent_object_instance,
+	     ALL_OBJECT_TYPES, returned_count);
 }
 
 PUBLIC void
@@ -1729,7 +1836,7 @@ database_write_object_basics (FILE *fp, object_t *obj)
     /* ignore root object, we do not store this */
     if (obj->object_type == ROOT_OBJECT_TYPE) return 0;
 
-    fprintf(fp, "\n\n%s %d %d %d %d",
+    fprintf(fp, "\n%s %d %d %d %d",
 	object_acronym, 
         obj->parent->object_type, obj->parent->object_instance,
 	obj->object_type, obj->object_instance);
@@ -1745,25 +1852,6 @@ database_write_object_basics (FILE *fp, object_t *obj)
 	}
 	free(attributes);
     }
-    
-    return 0;
-}
-
-static int
-database_write_one_object (void *utility_object, void *utility_node,
-    datum_t object_datum, datum_t d_FILE, 
-    datum_t p1, 
-    datum_t p2, 
-    datum_t p3)
-{
-    object_t *obj = (object_t*) object_datum.pointer;
-
-    /* write the core object */
-    database_write_object_basics((FILE*) d_FILE.pointer, obj);
-
-    /* now recursively process all its children */
-    table_traverse(&obj->children, database_write_one_object,
-	d_FILE, p1, p2, p3);
     
     return 0;
 }
@@ -1868,18 +1956,37 @@ load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
     return err;
 }
 
+int
+database_write_one_object (void *utility_object, void *utility_node,
+	datum_t object_datum, datum_t d_FILE, 
+        datum_t p1, datum_t p2, datum_t p3)
+{
+    object_t *obj = (object_t*) object_datum.pointer;
+
+    /* write the core object */
+    database_write_object_basics((FILE*) d_FILE.pointer, obj);
+
+#if 0
+    /* now recursively process all its children */
+    table_traverse(&obj->children, database_write_one_object,
+	    d_FILE, p1, p2, p3);
+#endif
+					    
+    return 0;
+}
+
 /*
  * If a database file already exists, a backup is taken.
  */
 PUBLIC int
 database_store (object_database_t *obj_db)
 {
-    int err;
     FILE *fp;
     char database_name [TYPICAL_NAME_SIZE];
     char backup_db_name [TYPICAL_NAME_SIZE];
     char backup_db_tmp [TYPICAL_NAME_SIZE];
-    datum_t d_FILE, p1, p2, p3;
+    datum_t d_FILE;
+    datum_t unused;
 
     READ_LOCK(obj_db);
 
@@ -1897,26 +2004,37 @@ database_store (object_database_t *obj_db)
         READ_UNLOCK(obj_db);
         return -1;
     }
-
-    /* write out all its objects & their children recursively */
     d_FILE.pointer = fp;
-    err = table_traverse(&obj_db->root_object.children,
-	database_write_one_object, d_FILE, p1, p2, p3);
+
+#if 0
+    object_representation_t *all_db_objects;
+    int i, db_objects_count;
+
+    all_db_objects = object_get_descendants(obj_db,
+			ROOT_OBJECT_TYPE, ROOT_OBJECT_INSTANCE,
+			&db_objects_count);
+    for (i = 0; i < db_objects_count; i++) {
+	database_write_object_basics(fp, all_db_objects[i].object_ptr);
+    }
+    if (all_db_objects) free(all_db_objects);
+#else
+    table_traverse(&obj_db->object_index, database_write_one_object,
+	d_FILE, unused, unused, unused);
+#endif
 
     /* close up the file */
-    fprintf(fp, "\n\n");
+    fprintf(fp, "\n");
     fflush(fp);
     fclose(fp);
 
-    /* if writing to the file failed, restore back from backup */
-    if (err != 0) {
-        unlink(database_name);
-        rename(backup_db_name, database_name);
-    }
+#if 0 // error
+    unlink(database_name);
+    rename(backup_db_name, database_name);
     unlink(backup_db_tmp);
+#endif
     READ_UNLOCK(obj_db);
 
-    return err;
+    return 0;
 }
 
 PUBLIC int

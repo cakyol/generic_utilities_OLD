@@ -49,6 +49,14 @@ int main (int argc, char *argv[])
             num_elements, bytes_used, megabytes_used);
     printf("   approx %d bytes per element\n", (int) (bytes_used/num_elements));
 
+    printf("now writing database to disk ... ");
+    fflush(stdout);
+    fflush(stdout);
+    database_store(&db);
+    printf("done\n");
+    fflush(stdout);
+    fflush(stdout);
+
     /* search objects */
     printf("searching objects\n");
     count = 0;
