@@ -1,7 +1,8 @@
 
 #include "generic_object_database.h"
+#include <sys/resource.h>
 
-#define MAX_TYPES		2000
+#define MAX_TYPES		3000
 #define MAX_ATTRS		2
 #define ITER			1
 #define MAX_AV_COUNT		2
@@ -66,7 +67,7 @@ void add_del_attributes (object_database_t *obj_db, int type, int instance)
     char complex_value[50];
     int av;
 
-    printf("adding attributes to an object\n");
+    //printf("adding attributes to an object\n");
     count = 0;
     for (iter = 0; iter < ITER; iter++) {
 	for (i = MAX_ATTRS; i > 1; i--) {
@@ -111,9 +112,9 @@ int main (int argc, char *argv[])
                 continue;
             } 
 	    
-            printf("object %d,%d with parent %d,%d created\n",
-                child_type, child_instance,
-                parent_type, parent_instance);
+            //printf("object %d,%d with parent %d,%d created\n",
+                //child_type, child_instance,
+                //parent_type, parent_instance);
             add_del_attributes(&db, child_type, child_instance);
             count++;
 

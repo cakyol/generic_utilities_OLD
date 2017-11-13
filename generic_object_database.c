@@ -1828,8 +1828,12 @@ database_write_one_attribute (FILE *fp, void *vattr)
 }
 
 static int
-database_write_object_basics (FILE *fp, object_t *obj)
+database_write_one_object_tfn (void *utility_object, void *utility_node,
+	datum_t object_datum, datum_t d_FILE, 
+        datum_t p1, datum_t p2, datum_t p3)
 {
+    object_t *obj = (object_t*) object_datum.pointer;
+    FILE *fp = d_FILE.pointer;
     datum_t *attributes = NULL;
     int attr_count = 0;
 
@@ -1956,28 +1960,60 @@ load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
     return err;
 }
 
-int
-database_write_one_object (void *utility_object, void *utility_node,
-	datum_t object_datum, datum_t d_FILE, 
-        datum_t p1, datum_t p2, datum_t p3)
-{
-    object_t *obj = (object_t*) object_datum.pointer;
-
-    /* write the core object */
-    database_write_object_basics((FILE*) d_FILE.pointer, obj);
-
-#if 0
-    /* now recursively process all its children */
-    table_traverse(&obj->children, database_write_one_object,
-	    d_FILE, p1, p2, p3);
-#endif
-					    
-    return 0;
-}
-
 /*
- * If a database file already exists, a backup is taken.
+ * Write the database out to disk.
+ *
+ * THIS IS *** VERY *** IMPORTANT SO UNDERSTAND IT WELL.
+ *
+ * We have to ensure that the database is written out in a way such
+ * that when we recreate it reading back from the file, the parent 
+ * of an object to be created must already have been written out 
+ * earlier such that when we create an object, its parent
+ * already exists and we can associate the two objects.  Now, to be
+ * able to do that, we have to start recursively writing from root
+ * object down, first writing out the object and its children later.
+ * This way since children are written out later, the parent object has
+ * already been created.  So, writing the database to a file involves
+ * writing the current object out, followed recusively writing out
+ * all its children.
+ *
+ * This is fine and dandy with ONE HUGE PROBLEM.  For very deep databases,
+ * we run out of recursion stack, no matter how hard I tried to extend 
+ * the stack and we almost always crash.  
+ *
+ * So, unfortunately, this method of recursively writing objects followed
+ * after by their children, although correct, cannot be used.
+ *
+ * Here is the alternative.  The 'object_index' in the database holds 
+ * ALL the objects but in random order (not neatly parent followed 
+ * by children as we want).  But since our tree traversal uses morris
+ * traversals, it does not use any extra stack or queue or any kind
+ * of memory.  This makes it PERFECT for extremely large databases
+ * since we never run out of stack space.  But now, we introduce the
+ * problem where we may have to create an object without having yet 
+ * created its parent.  So, how do we solve this problem.  This actually
+ * is not as difficult but it just needs a second pass over all the 
+ * objects.
+ *
+ * In the first pass, we create the objects and if we happen to have 
+ * their parent already available we can do the association immediately.
+ * However, there will be many objects in which the parents are NOT
+ * yet created.  In those cases, we store the parent object identifier
+ * (in the form of type, instance) and move to the next object.
+ *
+ * Now in the second pass, since we have crerated ALL the objects, we simply
+ * scan thru all the objects whose parents have not yet been resolved 
+ * and associate them.  When the association is complete all objects
+ * will have their parents represented as 'pointer' values.
+ *
+ * So, in the absolute worst case, we will make 2n object processing 
+ * if there are n elements in the database.
+ * Since both these passes use iterative methods (morris traverse),
+ * we will never run out of stack, even for very large databases.
+ * But we will consume more time.  Increasing execution time is a valid
+ * solution but crashing dus to stack overflow is not.
  */
+
 PUBLIC int
 database_store (object_database_t *obj_db)
 {
@@ -2005,22 +2041,8 @@ database_store (object_database_t *obj_db)
         return -1;
     }
     d_FILE.pointer = fp;
-
-#if 0
-    object_representation_t *all_db_objects;
-    int i, db_objects_count;
-
-    all_db_objects = object_get_descendants(obj_db,
-			ROOT_OBJECT_TYPE, ROOT_OBJECT_INSTANCE,
-			&db_objects_count);
-    for (i = 0; i < db_objects_count; i++) {
-	database_write_object_basics(fp, all_db_objects[i].object_ptr);
-    }
-    if (all_db_objects) free(all_db_objects);
-#else
-    table_traverse(&obj_db->object_index, database_write_one_object,
+    table_traverse(&obj_db->object_index, database_write_one_object_tfn,
 	d_FILE, unused, unused, unused);
-#endif
 
     /* close up the file */
     fprintf(fp, "\n");
