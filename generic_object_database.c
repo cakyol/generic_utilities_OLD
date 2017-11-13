@@ -26,6 +26,21 @@
 
 #include "generic_object_database.h"
 
+/*
+ * This flag signals that the parent field of an object
+ * is not yet a pointer.  Instead it is represented 
+ * as (type, instance).  This is the 'object_identifier_t'
+ * in the union of 'object_representation_t'.  This is
+ * done when a database is first loaded from the disk.
+ * Since all objects have not yet been resolved, the
+ * parent will be represented as 'object_identifier_t'.
+ * After the 2nd pass of the database load funtions,
+ * this will be resolved and will therefater be represented
+ * as a pointer.  This flag denotes what state the
+ * parent representation is in.
+ */
+#define UNRESOLVED_PARENT		(0x1)
+
 /******************************************************************************
  *
  * global variables which control whether an avl tree or the index
@@ -102,6 +117,19 @@ get_object_pointer (object_database_t *obj_db,
         return found_datum.pointer;
     }
     return NULL;
+}
+
+static object_t *
+get_parent_pointer (object_t *obj)
+{
+    if (obj->private_flags & UNRESOLVED_PARENT) {
+	return
+	    get_object_pointer(obj->obj_db,
+		obj->parent.object_id.object_type,
+		obj->parent.object_id.object_instance);
+    }
+    return
+	obj->parent.object_ptr;
 }
 
 static attribute_instance_t *
@@ -704,6 +732,7 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
     datum_t obj_datum, removed_obj_datum;
     datum_t *all_its_children;
     object_database_t *obj_db = obj->obj_db;
+    object_t *parent;
     int child_count, i;
     int events;
 
@@ -717,12 +746,14 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
     /* prepare object pointer */
     obj_datum.pointer = obj;
 
+    parent = get_parent_pointer(obj);
+
     /*
      * make sure it is taken out of the parent's children list
      * but only if full & consistent cleanup is required.
      */ 
-    if (leave_parent_consistent && obj->parent) {
-	table_remove(&obj->parent->children, obj_datum, &removed_obj_datum);
+    if (leave_parent_consistent && parent) {
+	table_remove(&parent->children, obj_datum, &removed_obj_datum);
     }
 
     /*
@@ -754,7 +785,8 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
     }
 
     /* take object out of the main object index */
-    assert(ok == table_remove(&obj_db->object_index, obj_datum, &removed_obj_datum));
+    assert(0 == table_remove(&obj_db->object_index,
+		obj_datum, &removed_obj_datum));
     assert(removed_obj_datum.pointer == obj_datum.pointer);
 
     /* free up its index objects */
@@ -774,22 +806,41 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
 }
 
 static object_t *
-object_create_engine (object_t *parent,
+object_create_engine (object_database_t *obj_db,
+	boolean parent_must_exist,
+	int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
 {
-    object_database_t *obj_db;
-    object_t *obj;
+    object_t *obj, *parent;
     datum_t obj_datum, exists_datum;
 
-    /* make sure parameters are sane */
-    assert(NULL != parent);
-    obj_db = parent->obj_db;
+    /* 
+     * Obtain parent pointer.
+     *
+     * Note that it IS possible when loading from the database,
+     * that the parent object has not yet been created.  In that
+     * case, simply store the type & instance of the parent rather
+     * than a direct pointer to it.  This will get resolved later.
+     * This is controlled by 'parent_must_exist'.
+     */
+    parent = get_object_pointer(obj_db,
+		    parent_object_type, parent_object_instance);
+    if (parent_must_exist && (NULL == parent)) {
+	return NULL;
+    }
 
     /* allocate the object & fill in some basics */
     obj = MEM_MONITOR_ALLOC(obj_db, sizeof(object_t));
     assert(obj != NULL);
     obj->obj_db = obj_db;
-    obj->parent = parent;
+    if (parent) {
+	obj->parent.object_ptr = parent;
+	obj->private_flags &= (~UNRESOLVED_PARENT);
+    } else {
+	obj->parent.object_id.object_type = parent_object_type;
+	obj->parent.object_id.object_instance = parent_object_instance;
+	obj->private_flags |= UNRESOLVED_PARENT;
+    }
     obj->object_type = child_object_type;
     obj->object_instance = child_object_instance;
     obj_datum.pointer = obj;
@@ -803,22 +854,41 @@ object_create_engine (object_t *parent,
      */
     assert(0 == table_insert(&obj_db->object_index, obj_datum, &exists_datum));
     if (exists_datum.pointer) {
+
+	/* it already exists, we dont need the new one */
         MEM_MONITOR_FREE(obj_db, obj);
+
         obj = exists_datum.pointer;
-        if (obj->parent == parent) {
-            return obj;
-        }
-        return NULL;
+	if (parent) {
+	    if (obj->parent.object_ptr == parent) return obj;
+
+	    /* parents dont match, something wrong */
+	    return NULL;
+	}
+
+	/* parent pointer not yet resolved, we cant check parent integrity */
+	return obj;
     }
 
     /* make sure this object is added as a child of the parent */
-    assert(0 == table_insert(&parent->children, obj_datum, &exists_datum));
+    if (parent) {
+	assert(0 == table_insert(&parent->children, obj_datum, &exists_datum));
+    }
 
     /* initialize the children and attribute indexes */
     object_indexes_init(obj_db->mem_mon_p, obj);
 
-    /* send out the creation event */
-    notify_event(obj_db, OBJECT_CREATED, obj, parent, 0, NULL);
+    /*
+     * send out the creation event but only if the parent exists.
+     * If it does not, it means we are just loading from the 
+     * database and some parents have not yet been resolved.
+     * In this case, wait now since the 2nd pass of the database
+     * parent resolving phase will generate the events as the
+     * parent resolving completes.
+     */
+    if (parent) {
+	notify_event(obj_db, OBJECT_CREATED, obj, parent, 0, NULL);
+    }
 
     /* done */
     return obj;
@@ -1047,15 +1117,12 @@ static int
 process_object_created_event (object_database_t *obj_db,
     event_record_t *evrp)
 {
-    object_t *obj, *parent;
+    object_t *obj;
 
-    get_both_objects(obj_db, evrp, &parent, NULL);
-    if (parent) {
-	obj = object_create_engine(parent, evrp->related_object_type,
-		    evrp->related_object_instance);
-	return obj ? ok : error;
-    }
-    return -1;
+    obj = object_create_engine(obj_db, true,
+		evrp->related_object_type, evrp->related_object_instance,
+		evrp->object_type, evrp->object_instance);
+    return obj ? 0 : -1;
 }
 
 static int
@@ -1372,7 +1439,7 @@ database_initialize (object_database_t *obj_db,
 
     root_obj = &obj_db->root_object;
     root_obj->obj_db = obj_db;
-    root_obj->parent = NULL;
+    root_obj->parent.object_ptr = NULL;
     root_obj->object_type = ROOT_OBJECT_TYPE;
     root_obj->object_instance = ROOT_OBJECT_INSTANCE;
 
@@ -1411,18 +1478,13 @@ object_create (object_database_t *obj_db,
         int child_object_type, int child_object_instance)
 {
     int rv;
-    object_t *parent, *child;
+    object_t *obj;
 
     WRITE_LOCK(obj_db);
-    parent = get_object_pointer(obj_db,
-                parent_object_type, parent_object_instance);
-    if (NULL == parent) {
-        rv = ENODATA;
-    } else {
-        child = object_create_engine(parent,
-                    child_object_type, child_object_instance);
-        rv = (child ? 0 : EFAULT);
-    }
+    obj = object_create_engine(obj_db, true,
+		parent_object_type, parent_object_instance,
+		child_object_type, child_object_instance);
+    rv = (obj ? 0 : EFAULT);
     WRITE_UNLOCK(obj_db);
     return rv;
 }
@@ -1842,7 +1904,8 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
 
     fprintf(fp, "\n%s %d %d %d %d",
 	object_acronym, 
-        obj->parent->object_type, obj->parent->object_instance,
+        obj->parent.object_ptr->object_type,
+	obj->parent.object_ptr->object_instance,
 	obj->object_type, obj->object_instance);
 
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
@@ -1861,33 +1924,20 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
 }
 
 static int
-load_parent_and_child (object_database_t *obj_db, FILE *fp,
-    object_t **parentp, object_t **objp)
+load_object (object_database_t *obj_db, FILE *fp,
+	object_t **objp)
 {
     int count;
     int parent_type, parent_instance, object_type, object_instance;
 
     count = fscanf(fp, "%d %d %d %d",
-                &parent_type, &parent_instance, &object_type, &object_instance);
+                &parent_type, &parent_instance, 
+		&object_type, &object_instance);
     if (4 != count) return -1;
-
-    /* if we are here, all syntax is correct, find the parent */
-    if (parent_type == ROOT_OBJECT_TYPE) {
-        *parentp = &obj_db->root_object;
-    } else {
-        *parentp = get_object_pointer(obj_db, parent_type, parent_instance);
-    }
-
-    /* now create the object under the parent */
-    if (*parentp) {
-        *objp = object_create_engine(*parentp, object_type, object_instance);
-        if (NULL == *objp) return -1;
-    } else {
-        *objp = NULL;
-        return -1;
-    }
-
-    return 0;
+    *objp = object_create_engine(obj_db, false,
+		parent_type, parent_instance,
+		object_type, object_instance);
+    return *objp ? 0 : -1;
 }
 
 static int
@@ -2064,7 +2114,7 @@ database_load (int database_id, object_database_t *obj_db)
 {
     char database_name [TYPICAL_NAME_SIZE];
     FILE *fp;
-    int count;
+    int rv, count;
     object_t *obj, *parent;
     attribute_instance_t *aitp;
     attribute_value_t *avtp;
@@ -2082,6 +2132,7 @@ database_load (int database_id, object_database_t *obj_db)
     obj = parent = NULL;
     aitp = NULL;
     avtp = NULL;
+    rv = 0;
 
     while ((count = fscanf(fp, "%s", string)) != EOF) {
 
@@ -2089,25 +2140,29 @@ database_load (int database_id, object_database_t *obj_db)
         if (count != 1) continue;
 
         if (strcmp(string, object_acronym) == 0) {
-            if (load_parent_and_child(obj_db, fp, &parent, &obj) != ok) {
-                return -1;
+            if (load_object(obj_db, fp, &obj) != 0) {
+                rv = -1;
+		break;
             }
         } else if (strcmp(string, attribute_id_acronym) == 0) {
-            if (load_attribute_id(obj_db, fp, obj, &aitp) != ok) {
-                return -1;
+            if (load_attribute_id(obj_db, fp, obj, &aitp) != 0) {
+                rv = -1;
+		break;
             }
         } else if (strcmp(string, simple_attribute_value_acronym) == 0) {
-            if (load_simple_attribute_value(obj_db, fp, aitp) != ok) {
-                return -1;
+            if (load_simple_attribute_value(obj_db, fp, aitp) != 0) {
+                rv = -1;
+		break;
             }
         } else if (strcmp(string, complex_attribute_value_acronym) == 0) {
-            if (load_complex_attribute_value(obj_db, fp, aitp) != ok) {
-                return -1;
+            if (load_complex_attribute_value(obj_db, fp, aitp) != 0) {
+                rv = -1;
+		break;
             }
         }
     }
-
-    return 0;
+    fclose(fp);
+    return rv;
 }
 
 

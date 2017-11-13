@@ -273,7 +273,7 @@ struct object_s {
      * Unless it is the root object, its parent
      * Root object's parent is NULL.
      */ 
-    object_t *parent;
+    object_representation_t parent;
 
     /* Can have many children; no limit */
     table_t children;
