@@ -1849,6 +1849,8 @@ static char *attribute_id_acronym = "AID";
 static char *complex_attribute_value_acronym = "CAV";
 static char *simple_attribute_value_acronym = "SAV";
 
+/*************** Writing the database to a file functions *********************/
+
 static int
 database_write_one_attribute_value (FILE *fp, attribute_value_t *avtp)
 {
@@ -1921,93 +1923,6 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
     }
     
     return 0;
-}
-
-static int
-load_object (object_database_t *obj_db, FILE *fp,
-	object_t **objp)
-{
-    int count;
-    int parent_type, parent_instance, object_type, object_instance;
-
-    count = fscanf(fp, "%d %d %d %d",
-                &parent_type, &parent_instance, 
-		&object_type, &object_instance);
-    if (4 != count) return -1;
-    *objp = object_create_engine(obj_db, false,
-		parent_type, parent_instance,
-		object_type, object_instance);
-    return *objp ? 0 : -1;
-}
-
-static int
-load_attribute_id (object_database_t *obj_db, FILE *fp,
-    object_t *obj, attribute_instance_t **aitpp)
-{
-    int aid;
-
-    /* we should NOT have a NULL object at this point */
-    if (NULL == obj) return -1;
-
-    if (fscanf(fp, "%d", &aid) != 1)
-        return -1;
-    *aitpp = attribute_instance_add(obj, aid);
-    if (NULL == *aitpp)
-        return -1;
-
-    return 0;
-}
-
-static int
-load_simple_attribute_value (object_database_t *obj_db, FILE *fp,
-    attribute_instance_t *aitp)
-{
-    int64 value;
-
-    /* we should NOT have a NULL attribute id at this point */
-    if (NULL == aitp) return -1;
-
-    if (fscanf(fp, "%lld", &value) != 1) return -1;
-    return
-        attribute_add_simple_value(aitp, value);
-
-    return 0;
-}
-
-static int
-load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
-    attribute_instance_t *aitp)
-{
-    byte *value;
-    int i, len;
-    int err;
-
-    /* we should NOT have a NULL attribute id at this point */
-    if (NULL == aitp) return -1;
-
-    /* read length */
-    if (fscanf(fp, "%d", &len) != 1) return -1;
-
-    /* allocate temp space */
-    value = (byte*) malloc(len + 1);
-    if (NULL == value) return -1;
-
-    /* read each data byte in */
-    for (i = 0; i < len; i++) {
-        if (fscanf(fp, "%d", (int*) (&value[i])) != 1) {
-            free(value);
-            return -1;
-        }
-    }
-
-    /* add complex value to the attribute */
-    err = attribute_add_complex_value(aitp, value, len);
-
-    /* free up temp storage */
-    free(value);
-
-    /* done */
-    return err;
 }
 
 /*
@@ -2107,6 +2022,95 @@ database_store (object_database_t *obj_db)
     READ_UNLOCK(obj_db);
 
     return 0;
+}
+
+/*************** Reading back from a file functions ***************************/
+
+static int
+load_object (object_database_t *obj_db, FILE *fp,
+	object_t **objp)
+{
+    int count;
+    int parent_type, parent_instance, object_type, object_instance;
+
+    count = fscanf(fp, "%d %d %d %d",
+                &parent_type, &parent_instance, 
+		&object_type, &object_instance);
+    if (4 != count) return -1;
+    *objp = object_create_engine(obj_db, false,
+		parent_type, parent_instance,
+		object_type, object_instance);
+    return *objp ? 0 : -1;
+}
+
+static int
+load_attribute_id (object_database_t *obj_db, FILE *fp,
+    object_t *obj, attribute_instance_t **aitpp)
+{
+    int aid;
+
+    /* we should NOT have a NULL object at this point */
+    if (NULL == obj) return -1;
+
+    if (fscanf(fp, "%d", &aid) != 1)
+        return -1;
+    *aitpp = attribute_instance_add(obj, aid);
+    if (NULL == *aitpp)
+        return -1;
+
+    return 0;
+}
+
+static int
+load_simple_attribute_value (object_database_t *obj_db, FILE *fp,
+    attribute_instance_t *aitp)
+{
+    int64 value;
+
+    /* we should NOT have a NULL attribute id at this point */
+    if (NULL == aitp) return -1;
+
+    if (fscanf(fp, "%lld", &value) != 1) return -1;
+    return
+        attribute_add_simple_value(aitp, value);
+
+    return 0;
+}
+
+static int
+load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
+    attribute_instance_t *aitp)
+{
+    byte *value;
+    int i, len;
+    int err;
+
+    /* we should NOT have a NULL attribute id at this point */
+    if (NULL == aitp) return -1;
+
+    /* read length */
+    if (fscanf(fp, "%d", &len) != 1) return -1;
+
+    /* allocate temp space */
+    value = (byte*) malloc(len + 1);
+    if (NULL == value) return -1;
+
+    /* read each data byte in */
+    for (i = 0; i < len; i++) {
+        if (fscanf(fp, "%d", (int*) (&value[i])) != 1) {
+            free(value);
+            return -1;
+        }
+    }
+
+    /* add complex value to the attribute */
+    err = attribute_add_complex_value(aitp, value, len);
+
+    /* free up temp storage */
+    free(value);
+
+    /* done */
+    return err;
 }
 
 PUBLIC int
