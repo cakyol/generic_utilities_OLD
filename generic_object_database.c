@@ -2166,6 +2166,10 @@ database_load (int database_id, object_database_t *obj_db)
         }
     }
     fclose(fp);
+
+    /* TO DO */
+    /* DO THE SECOND PASS HERE TO RESOLVE ALL PARENTS */
+
     return rv;
 }
 
