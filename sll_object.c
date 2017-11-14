@@ -26,37 +26,6 @@
 
 #include "sll_object.h"
 
-/*
- * We maintain an "end node" always in the list.  This is represented
- * by setting its 'next' AND datum pointers to the value of NULL.
- *
- * The reason we need an "end node" representation is so that we
- * can delete a node VERY quickly.  What we do to delete a node
- * is actually copy the contents of the NEXT node onto THIS one and delete
- * the NEXT node.  This will simulate the effect of having deleted THIS
- * node, which is exactly what is wanted.  And since we always have the 
- * "next" node pointer available even in the LAST valid node, this
- * is very easy.  However, this would fail if the last node was being
- * deleted since there would be nothing past the last node.  To alleviate
- * this we ALWAYS maintain an "end node".  The "end node" holds NO data
- * and is ONLY a marker.
- */
-
-static inline boolean
-sll_end_node (sll_node_t *sln)
-{
-    return
-        (NULL == sln) || 
-        ((NULL == sln->next) && (NULL == sln->user_datum.pointer));
-}
-
-static inline boolean
-not_sll_end_node (sll_node_t *sln)
-{
-    return
-        sln && (NULL != sln->next) && (NULL != sln->user_datum.pointer);
-}
-
 static inline sll_node_t *
 new_sll_node (sll_object_t *sll, datum_t user_datum)
 {
@@ -70,19 +39,32 @@ new_sll_node (sll_object_t *sll, datum_t user_datum)
 }
 
 /*
- * always adds to head, it is soo much faster to do that
+ * add in ascending order based on the comparison function provided
  */
 static error_t
 thread_unsafe_sll_object_add (sll_object_t *sll,
 	datum_t user_datum)
 {
+    int result;
+    sll_node_t *cur, *prev;
     sll_node_t *node = new_sll_node(sll, user_datum);
 
-    if (NULL == node)
-	return ENOMEM;
-
-    node->next = sll->head;
-    sll->head = node;
+    if (NULL == node) return ENOMEM;
+    cur = sll->head;
+    prev = NULL;
+    while (not_sll_end_node(cur)) {
+        result = sll->cmpf(cur->user_datum, user_datum);
+        if (result >= 0) break;
+        prev = cur;
+        cur = cur->next;
+    }
+    if (prev) {
+        node->next = prev->next;
+        prev->next = node;
+    } else {
+        node->next = sll->head;
+        sll->head = node;
+    }
     sll->n++;
     return 0;
 }
@@ -93,20 +75,26 @@ thread_unsafe_sll_object_search (sll_object_t *sll,
 	datum_t *datum_found,
         sll_node_t **node_found)
 {
+    int result;
     sll_node_t *temp = sll->head;
 
     while (not_sll_end_node(temp)) {
 
-	if (sll->cmpf(temp->user_datum, searched_datum) == 0) {
+        result = sll->cmpf(temp->user_datum, searched_datum);
+
+        /* found exact match */
+	if (result == 0) {
 	    *datum_found = temp->user_datum;
             *node_found = temp;
 	    return 0;
 	}
 
         /*
-         * We CAN use the pointer here directly since we know this
-         * will not be the end node, since we checked it above
+         * all the nodes past here must have values greater so
+         * no point in continuing to search the rest of the list
          */
+        if (result > 0) break;
+
         temp = temp->next;
     }
 

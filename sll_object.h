@@ -66,6 +66,37 @@ typedef struct sll_object_s {
 } sll_object_t;
 
 /*
+ * We maintain an "end node" always in the list.  This is represented
+ * by setting its 'next' AND datum pointers to the value of NULL.
+ *
+ * The reason we need an "end node" representation is so that we
+ * can delete a node VERY quickly.  What we do to delete a node
+ * is actually copy the contents of the NEXT node onto THIS one and delete
+ * the NEXT node.  This will simulate the effect of having deleted THIS
+ * node, which is exactly what is wanted.  And since we always have the 
+ * "next" node pointer available even in the LAST valid node, this
+ * is very easy.  However, this would fail if the last node was being
+ * deleted since there would be nothing past the last node.  To alleviate
+ * this we ALWAYS maintain an "end node".  The "end node" holds NO data
+ * and is ONLY a marker.
+ */
+
+static inline boolean
+sll_end_node (sll_node_t *sln)
+{
+    return
+        (NULL == sln) || 
+        ((NULL == sln->next) && (NULL == sln->user_datum.pointer));
+}
+
+static inline boolean
+not_sll_end_node (sll_node_t *sln)
+{
+    return
+        sln && (NULL != sln->next) && (NULL != sln->user_datum.pointer);
+}
+
+/*
  * initializes the linked list object
  */
 extern error_t
