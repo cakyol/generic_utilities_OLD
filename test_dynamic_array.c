@@ -29,7 +29,7 @@ int main (int argc, char *argv[])
     printf("inserted data into dynamic array\n");
     fflush(stdout);
 
-    j = 0;
+    errors = j = 0;
     for (i = VALID_START - EXCESS; i <= (VALID_END + EXCESS); i++) {
         rv = dynamic_array_get(&dyn, i, (void**) &data);
         if ((i >= VALID_START) && (i <= VALID_END)) {
