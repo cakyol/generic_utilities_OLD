@@ -57,8 +57,11 @@
 #ifndef __DYNAMIC_ARRAY_H__
 #define __DYNAMIC_ARRAY_H__
 
-#include "utils_common.h"
+#include <errno.h>
+#include <assert.h>
+
 #include "lock_object.h"
+#include "mem_monitor.h"
 
 typedef struct dynamic_array_s {
 
@@ -68,42 +71,42 @@ typedef struct dynamic_array_s {
     int size;
     int n;
     int lowest, highest;
-    uint64 inserts, deletes;
-    datum_t *elements;
+    unsigned long long int inserts, deletes;
+    void **elements;
 
 } dynamic_array_t;
 
-extern error_t
+extern int
 dynamic_array_init (dynamic_array_t *datp,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	int initial_size,
         mem_monitor_t *parent_mem_monitor);
 
-extern error_t 
+extern int 
 dynamic_array_insert (dynamic_array_t *datp,
 	int index, 
-	datum_t value);
+	void *value);
 
 /*
  * if an entry is requested outside the array bounds, it is an error.
  * Similarly, if an entry is un-set, it is also considered an error
  * even if it resides within the valid array boundaries
  */
-extern error_t
+extern int
 dynamic_array_get (dynamic_array_t *datp,
 	int index, 
-	datum_t *returned_value);
+	void **returned_value);
 
 /*
  * cannot remove an entry which does not lie within boundaries
  * or is an unused slot
  */
-extern error_t
+extern int
 dynamic_array_remove (dynamic_array_t *datp,
 	int index,
-	datum_t *removed);
+	void **removed);
 
-extern datum_t *
+extern void **
 dynamic_array_get_all (dynamic_array_t *datp, int *count);
 
 extern void

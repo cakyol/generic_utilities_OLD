@@ -1,13 +1,17 @@
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 #include "lock_object.h"
 
 #define ARRAY_SIZE          100000000
 #define MAX_THREADS         256
-#define LOCK_COUNT          16
+#define LOCK_COUNT          4
 
 int array [ARRAY_SIZE];
 lock_obj_t lock;
-byte thread_complete_array [MAX_THREADS] = { 0 };
+char thread_complete_array [MAX_THREADS] = { 0 };
 
 void *thread_function (void *arg)
 {

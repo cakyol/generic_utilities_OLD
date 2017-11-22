@@ -1,19 +1,25 @@
 
-#include "queue_object.h"
+#include <stdio.h>
+#include <assert.h>
 
-#define QUEUE_SIZE	                7500000
-#define QUEUE_EXPANSION_INCREMENT       128
-#define ITER_COUNT                      (QUEUE_SIZE - 5)
+#include "pointer_manipulations.h"
+#include "queue_object.h"
+#include "timer_object.h"
+
+#define QUEUE_SIZE	                75000
+#define QUEUE_EXPANSION_INCREMENT       8000
+#define ITER_COUNT                      (QUEUE_SIZE * 5)
 
 int main (int argc, char *argv[])
 {
     queue_obj_t qobj;
     int i, j, n_stored;
-    int64 bytes;
+    long long int bytes;
     double mbytes;
     timer_obj_t timr;
+    void *pointer;
 
-    if (queue_obj_init(&qobj, true, QUEUE_SIZE, QUEUE_EXPANSION_INCREMENT, NULL)) {
+    if (queue_obj_init(&qobj, 1, QUEUE_SIZE, QUEUE_EXPANSION_INCREMENT, NULL)) {
 	fprintf(stderr, "queue_obj_init failed\n");
 	return -1;
     }
@@ -23,7 +29,8 @@ int main (int argc, char *argv[])
     printf("Populating the queue\n");
     fflush(stdout);
     for (i = 0; i < ITER_COUNT; i++) {
-        if (FAILED(queue_obj_queue_integer(&qobj, i))) {
+        pointer = integer2pointer(i);
+        if (queue_obj_queue(&qobj, pointer)) {
             fprintf(stderr, "queueing %d failed\n", i);
             return -1;
         }
@@ -38,7 +45,8 @@ int main (int argc, char *argv[])
     i = 0;
     printf("Now dequeuing & verifying\n");
     start_timer(&timr);
-    while (SUCCEEDED(queue_obj_dequeue_integer(&qobj, &j))) {
+    while (0 == queue_obj_dequeue(&qobj, &pointer)) {
+        j = pointer2integer(pointer);
         if (j == i) {
             // printf("queue data %d %d verified\n", i, j);
         } else {
@@ -53,7 +61,7 @@ int main (int argc, char *argv[])
     printf("\nqueue object is sane\n  capacity %d\n  expanded %d times\n"
             "  memory %lld bytes %f mbytes\n",
         qobj.maximum_size, qobj.expansion_count, bytes, mbytes);
-    return OK;
+    return 0;
 }
 
 

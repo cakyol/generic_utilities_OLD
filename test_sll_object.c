@@ -1,5 +1,10 @@
 
+#include <stdio.h>
+#include <assert.h>
+#include <unistd.h>
+
 #include "sll_object.h"
+#include "pointer_manipulations.h"
 
 #define START_INT   1
 #define END_INT     4000
@@ -15,15 +20,21 @@ flush (void)
     sleep(1);
 }
 
+int compare_pointers (void *ptr1, void *ptr2)
+{
+    return ((byte*) ptr1) - ((byte*) ptr2);
+}
+
 int main (int argc, char *argv[])
 {
-    error_t rv;
+    int rv;
     int result;
     int i, j, count;
     sll_object_t sll;
     sll_node_t *node;
+    void *value;
 
-    rv = sll_object_init(&sll, false, compare_ints, NULL);
+    rv = sll_object_init(&sll, 1, compare_pointers, NULL);
     if (rv) {
         fprintf(stderr, "sll_object_init failed: %d\n", rv);
         return rv;
@@ -33,16 +44,17 @@ int main (int argc, char *argv[])
     flush();
 
     for (i = START_INT; i <= END_INT; i++) {
-        rv = sll_object_add_once_integer(&sll, i);
+        value = integer2pointer(i);
+        rv = sll_object_add_once(&sll, value);
         if (rv) {
             fprintf(stderr, "adding %d failed\n", i);
         }
 	hashmap[i] = 1;
-        rv = sll_object_add_once_integer(&sll, i);
+        rv = sll_object_add_once(&sll, value);
         if (rv) {
             fprintf(stderr, "adding %d failed in 2nd attempt\n", i);
         }
-        rv = sll_object_add_once_integer(&sll, i);
+        rv = sll_object_add_once(&sll, value);
         if (rv) {
             fprintf(stderr, "adding %d failed in 3rd attempt\n", i);
         }
@@ -55,10 +67,10 @@ int main (int argc, char *argv[])
     node = sll.head;
     result = -1000;
     while (not_sll_end_node(node)) {
-        if (node->user_datum.integer < result) {
+        if (pointer2integer(node->user_data) < result) {
             fprintf(stderr, "list order incorrect, current: %lld expected: >= %d\n",
-                node->user_datum.integer, result);
-            result = node->user_datum.integer;
+                pointer2integer(node->user_data), result);
+            result = pointer2integer(node->user_data);
         }
         node = node->next;
     }
@@ -69,14 +81,14 @@ int main (int argc, char *argv[])
     flush();
 
     count = sll.n;
-    int s, d;
+    int *s, *d;
     for (i = END_INT; i >= START_INT; i--) {
 
-        rv = sll_object_delete_integer(&sll, i, &d);
+        rv = sll_object_delete(&sll, integer2pointer(i), (void**) &d);
         if (rv == 0) {
             count--;
             assert(count == sll.n);
-            assert(i == d);
+            assert(integer2pointer(i) == d);
 	    hashmap[i] = 0;
 
             /* 
@@ -85,10 +97,10 @@ int main (int argc, char *argv[])
              */
             for (j = START_INT; j <= END_INT; j++) {
 		if (hashmap[j]) {
-                    assert(sll_object_search_integer(&sll, j, &s) == 0);
-                    assert(j == s);
+                    assert(sll_object_search(&sll, integer2pointer(j), (void**)&s) == 0);
+                    assert(j == pointer2integer(s));
 		} else {
-                    assert(sll_object_search_integer(&sll, j, &s) == ENODATA);
+                    assert(sll_object_search(&sll, integer2pointer(j), (void**)&s) == ENODATA);
 		}
             }
         } else {

@@ -90,17 +90,22 @@
 #ifndef __GENERIC_OBJECT_DATABASE_H__
 #define __GENERIC_OBJECT_DATABASE_H__
 
+#include <stdio.h>
+#include <unistd.h>
+#include <assert.h>
+
+#include "pointer_manipulations.h"
+#include "table.h"
+#include "dynamic_array.h"
+#include "object_types.h"
+#include "event_types.h"
+
 /* 
  * This uses more memory for widespread attribute values
  * but is extremely fast.  If attribute id numbers are
  * kept consecutive, then it also uses much less memory
  */
 #define USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-
-#include "table.h"
-#include "dynamic_array.h"
-#include "event_types.h"
-#include "object_types.h"
 
 #define TYPICAL_NAME_SIZE			(64)
 
@@ -167,7 +172,7 @@ struct event_record_s {
     /* if the event involves an attribute, these are used */
     int attribute_id;
     int attribute_value_length;
-    int64 attribute_value_data;
+    long long int attribute_value_data;
     byte extra_data [0];
 };
 
@@ -219,7 +224,7 @@ struct attribute_value_s {
 
     attribute_value_t *next_attribute_value;
     int attribute_value_length;
-    int64 attribute_value_data;
+    long long int attribute_value_data;
 };
 
 struct attribute_instance_s {
@@ -340,7 +345,7 @@ struct object_database_s {
      *
      * This variable controls this situation.
      */
-    boolean processing_remote_event;
+    int processing_remote_event;
 
     // for spurious event suppression
     int blocked_events;
@@ -350,7 +355,7 @@ struct object_database_s {
 
 extern int
 database_initialize (object_database_t *obj_db,
-        boolean make_it_thread_safe,
+        int make_it_thread_safe,
         int db_id, event_handler_function evhf,
         mem_monitor_t *parent_mem_monitor);
 
@@ -374,17 +379,17 @@ object_attribute_add (object_database_t *obj_db,
 extern int
 object_attribute_add_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-        int64 simple_value);
+        long long int simple_value);
 
 extern int
 object_attribute_set_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	int64 simple_value);
+	long long int simple_value);
 
 extern int
 object_attribute_delete_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	int64 simple_value);
+	long long int simple_value);
 
 extern int
 object_attribute_add_complex_value (object_database_t *obj_db,

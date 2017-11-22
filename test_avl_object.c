@@ -1,31 +1,34 @@
 
+#include <stdio.h>
+
+#include "timer_object.h"
 #include "avl_tree_object.h"
 
 #define MAX_SZ		(50 * 1024 * 1024)
-#define EXTRA           (10 * MEGA)
+#define EXTRA           (10 * 1024 * 1024)
 
 int max_value_reached = 0;
 int data [MAX_SZ];
 avl_tree_t avlt;
 timer_obj_t timr;
 
-int int_compare (datum_t p1, datum_t p2)
+int int_compare (void *p1, void *p2)
 { 
-    int *i1 = p1.pointer;
-    int *i2 = p2.pointer;
+    int *i1 = p1;
+    int *i2 = p2;
     return *i1 - *i2;
 }
 
-void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
+void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 {
     int i, lo, hi, d, fail_search;
-    boolean rv;
+    int rv;
     int fine, not_fine;
     char *oddness = use_odd_numbers ? "odd" : "even";
     char *reverse = use_odd_numbers ? "even" : "odd";
-    uint64 bytes_used;
+    unsigned long long int bytes_used;
     double megabytes_used;
-    datum_t fwdata, searched, found, removed;
+    void *fwdata, *searched, *found, *removed;
 
     printf("size of ONE avl node is: %lu bytes\n",
             sizeof(avl_node_t));
@@ -39,7 +42,7 @@ void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
     d = use_odd_numbers ? 1 : 0;
     lo = 0; 
     hi = MAX_SZ - 1;
-    while (TRUE) {
+    while (1) {
 	data[lo++] = d;
 	d += 2;
 	data[hi--] = d;
@@ -52,15 +55,15 @@ void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
 	printf("max value recorded so far is %d\n", max_value_reached);
     }
 
-    avl_tree_init(avlt, true, int_compare, NULL);
+    avl_tree_init(avlt, 1, int_compare, NULL);
 
     /* enter all array data into avl tree */
     printf("now entering all %s number data into the avl tree\n", oddness);
     start_timer(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	fwdata.pointer = &data[i];
+	fwdata = &data[i];
 	rv = avl_tree_insert(avlt, fwdata, &found);
-	if (rv != ok) {
+	if (rv != 0) {
 	    printf("populate_data: avl_tree_insert error: %d failed\n", i);
 	}
     }
@@ -74,9 +77,9 @@ void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
     fine = not_fine = 0;
     start_timer(&timr);
     for (i = max_value_reached; i < (max_value_reached + EXTRA); i++) {
-	searched.pointer = &i;
+	searched = &i;
 	rv = avl_tree_search(avlt, searched, &found);
-	if ((rv == ok) || found.pointer) {
+	if ((rv == 0) || found) {
 	    not_fine++;
 	} else {
 	    fine++;
@@ -91,10 +94,10 @@ void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
     fine = not_fine = 0;
     start_timer(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	searched.pointer = &data[i];
+	searched = &data[i];
 	rv = avl_tree_search(avlt, searched, &found);
 
-	if ((rv != ok) || (data[i] != *((int*) found.pointer))) {
+	if ((rv != 0) || (data[i] != *((int*) found))) {
 	    not_fine++;
 	} else {
 	    fine++;
@@ -110,9 +113,9 @@ void perform_avl_tree_test (avl_tree_t *avlt, boolean use_odd_numbers)
     d = use_odd_numbers ? 0 : 1;
     start_timer(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	searched.pointer = &d;
+	searched = &d;
 	rv = avl_tree_search(avlt, searched, &found);
-	if ((rv == ok) || found.pointer) {
+	if ((rv == 0) || found) {
 	    not_fine++;
 	} else {
 	    fine++;
@@ -140,15 +143,15 @@ return;
     fine = not_fine = fail_search = 0;
     start_timer(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	searched.pointer =  &data[i];
+	searched =  &data[i];
 	rv = avl_tree_remove(avlt, searched, &removed);
-	if ((rv != 0) || (data[i] != *((int*) removed.pointer))) {
+	if ((rv != 0) || (data[i] != *((int*) removed))) {
 	    not_fine++;
 	} else {
 	    fine++;
 	}
 	rv = avl_tree_search(avlt, searched, &found);
-	if ((rv == ok) || found.pointer) {
+	if ((rv == 0) || found) {
 	    fail_search++;
 	}
     }
@@ -171,9 +174,9 @@ char *argv [];
 {
     avl_tree_t avlt;
 
-    perform_avl_tree_test(&avlt, TRUE);
+    perform_avl_tree_test(&avlt, 1);
     printf("\n\n");
-    perform_avl_tree_test(&avlt, FALSE);
+    perform_avl_tree_test(&avlt, 0);
     
     return 0;
 }

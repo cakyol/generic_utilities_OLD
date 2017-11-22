@@ -1,4 +1,5 @@
 
+#include "timer_object.h"
 #include "generic_object_database.h"
 
 // #define BY_NAME
@@ -16,12 +17,12 @@ int main (int argc, char *argv[])
     int ptype, pinstance;
     int type, instance;
     int num_elements;
-    int64 count;
+    long long int count;
     int i;
-    uint64 bytes_used;
+    unsigned long long int bytes_used;
     double megabytes_used;
 
-    database_initialize(&db, true, 1, NULL, NULL);
+    database_initialize(&db, 1, 1, NULL, NULL);
 
     /* create objects */
     count = 0;
@@ -31,7 +32,7 @@ int main (int argc, char *argv[])
     for (type = MAX_TYPES; type > 0; type--) {
 	for (instance = MAX_TYPES; instance > 0; instance--) {
 
-	    if (SUCCEEDED(object_create(&db, ptype, pinstance, type, instance))) {
+	    if (0 == object_create(&db, ptype, pinstance, type, instance)) {
                 count++;
             } else {
 		fprintf(stderr, "creating (%d, %d) failed\n",
@@ -83,7 +84,7 @@ int main (int argc, char *argv[])
     printf("deleting objects\n");
     for (type = MAX_TYPES; type > 0; type--) {
 	for (instance = MAX_TYPES; instance > 0; instance--) {
-	    if (FAILED(object_destroy(&db, type, instance))) {
+	    if (object_destroy(&db, type, instance)) {
 		fprintf(stderr, "deleting (%d, %d) failed\n",
 			type, instance);
 	    }

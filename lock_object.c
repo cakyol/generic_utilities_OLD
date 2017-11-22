@@ -26,15 +26,17 @@
 
 #include "lock_object.h"
 
-static boolean
+#define PUBLIC
+
+static int
 thread_got_the_write_lock (lock_obj_t *lck)
 {
     pthread_t tid;
-    boolean granted = false;
+    int granted = 0;
 
     /* if any current readers, we cannot get the write lock */
     if (lck->readers > 0) {
-        return false;
+        return 0;
     }
 
     /*
@@ -44,8 +46,8 @@ thread_got_the_write_lock (lock_obj_t *lck)
     tid = pthread_self();
     if (!lck->writer_thread_id_set) {
         lck->writer_thread_id = tid;
-	lck->writer_thread_id_set = true;
-        granted = true;
+	lck->writer_thread_id_set = 1;
+        granted = 1;
     } else {
         granted = pthread_equal(lck->writer_thread_id, tid);
     }
@@ -56,12 +58,12 @@ thread_got_the_write_lock (lock_obj_t *lck)
     return granted;
 }
 
-static boolean
+static int
 thread_got_the_read_lock (lock_obj_t *lck)
 {
     /* if there is a current writer, cannot grant read lock */
     if (lck->recursive_write_locks_granted > 0) {
-        return false;
+        return 0;
     }
 
     /* 
@@ -88,7 +90,7 @@ thread_got_the_read_lock (lock_obj_t *lck)
 #if 0 // see the argument above, let the write lock starve
 
     if (lck->write_lock_requests > 0) {
-        return false;
+        return 0;
     }
 
 #endif // 0
@@ -96,14 +98,14 @@ thread_got_the_read_lock (lock_obj_t *lck)
     /* the thread can get the read lock */
     lck->pending_read_locks--;
     lck->readers++;
-    return true;
+    return 1;
 }
 
 /*
  * Initialize a lock object.
  * Successfull execution returns 'OK'.
  */
-PUBLIC error_t 
+PUBLIC int 
 lock_obj_init (lock_obj_t *lck)
 {
     pthread_mutexattr_t mtxattr;
@@ -224,7 +226,7 @@ release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
     if (--lck->recursive_write_locks_granted <= 0) {
-        lck->writer_thread_id_set = false;
+        lck->writer_thread_id_set = 0;
     }
     pthread_mutex_unlock(&lck->mtx);
 }

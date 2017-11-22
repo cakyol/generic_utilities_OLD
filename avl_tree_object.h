@@ -27,8 +27,12 @@
 #ifndef __AVL_TREE_OBJECT_H__
 #define __AVL_TREE_OBJECT_H__
 
-#include "utils_common.h"
+#include <errno.h>
+#include <assert.h>
+
 #include "lock_object.h"
+#include "mem_monitor.h"
+#include "function_types.h"
 
 #ifdef USE_CHUNK_MANAGER
 #include "chunk_manager_object.h"
@@ -40,7 +44,7 @@ struct avl_node_s {
 
     avl_node_t *parent;		// parent of this node
     avl_node_t *left, *right;	// children
-    datum_t data;		// opaque user data
+    void *user_data;		// opaque user data
     int balance;
 };
 
@@ -68,80 +72,44 @@ avl_tree_size (avl_tree_t *tree)
 
 /**************************** Initialize *************************************/
 
-extern error_t 
+extern int 
 avl_tree_init (avl_tree_t *tree,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	comparison_function_t cmpf,
         mem_monitor_t *parent_mem_monitor);
 
 /**************************** Insert *****************************************/
 
-extern error_t 
+extern int 
 avl_tree_insert (avl_tree_t *tree,
-	datum_t datum_to_be_inserted,
-	datum_t *datum_already_present);
-
-error_t
-avl_tree_insert_integer (avl_tree_t *tree,
-        int integer_to_be_inserted,
-        int *integer_already_present);
-
-error_t
-avl_tree_insert_pointer (avl_tree_t *tree,
-        void *pointer_to_be_inserted,
-        void **pointer_already_present);
+	void *data_to_be_inserted,
+	void **data_already_present);
 
 /**************************** Search *****************************************/
 
-extern error_t 
+extern int 
 avl_tree_search (avl_tree_t *tree,
-	datum_t datum_to_be_searched,
-	datum_t *datum_found);
-
-error_t
-avl_tree_search_integer (avl_tree_t *tree,
-        int integer_to_be_searched,
-        int *integer_found);
-
-error_t
-avl_tree_search_pointer (avl_tree_t *tree,
-        void *pointer_to_be_searched,
-        void **pointer_found);
+	void *data_to_be_searched,
+	void **data_found);
 
 /**************************** Remove *****************************************/
 
-extern error_t 
+extern int 
 avl_tree_remove (avl_tree_t *tree,
-	datum_t datum_to_be_removed,
-	datum_t *datum_actually_removed);
-
-extern error_t
-avl_tree_remove_integer (avl_tree_t *tree,
-        int integer_to_be_removed,
-        int *integer_actually_removed);
-
-extern error_t
-avl_tree_remove_pointer (avl_tree_t *tree,
-        void *pointer_to_be_removed,
-        void **pointer_actually_removed);
+	void *data_to_be_removed,
+	void **data_actually_removed);
 
 /**************************** Get all entries ********************************/
 
-extern datum_t *
-avl_tree_get_all (avl_tree_t *tree, int *returned_count);
-
-extern int *
-avl_tree_get_all_integers (avl_tree_t *tree, int *returned_count);
-
 extern void **
-avl_tree_get_all_pointers (avl_tree_t *tree, int *returned_count);
+avl_tree_get_all (avl_tree_t *tree, int *returned_count);
 
 /**************************** Traverse ***************************************/
 
-extern error_t
+extern int
 avl_tree_traverse (avl_tree_t *tree,
 	traverse_function_t tfn,
-	datum_t p0, datum_t p1, datum_t p2, datum_t p3);
+	void *p0, void *p1, void *p2, void *p3);
 
 /**************************** Destroy ****************************************/
 

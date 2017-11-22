@@ -16,21 +16,29 @@ INCLUDES =	-I.
 
 LIBNAME =	utils_lib.a
 
-LIB_OBJS =	utils_common.o \
+LIB_OBJS =	timer_object.o \
+		mem_monitor.o \
 		lock_object.o \
 		stack_object.o \
 		queue_object.o \
 		sll_object.o \
-		chunk_manager_object.o \
 		index_object.o \
 		avl_tree_object.o \
 		table.o \
 		dynamic_array.o \
-		event_manager.o \
 		generic_object_database.o \
+		\
+		### utils_common.o \
+		### event_manager.o \
 		### trie_object.o
+		### chunk_manager_object.o \
 
-%.o:		%.c %.h event_types.h
+%.o:		%.c %.h \
+		pointer_manipulations.h \
+		function_types.h \
+		mem_monitor.h \
+		object_types.h \
+		event_types.h 
 		$(CC) -c $(CFLAGS) $<
 
 utils_lib.a:	$(LIB_OBJS)
@@ -91,14 +99,15 @@ TESTS =		test_lock_object \
 		test_stack_object \
 		test_sll_object \
 		test_queue_object \
-		test_chunk_object \
-		test_chunk_integrity \
-		test_malloc \
 		test_index_object \
 		test_avl_object \
 		test_dynamic_array \
 		test_db \
 		test_db_speed \
+		\
+		### test_chunk_object \
+		### test_chunk_integrity \
+		### test_malloc \
 
 tests:		$(TESTS)
 

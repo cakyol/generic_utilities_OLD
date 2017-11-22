@@ -46,8 +46,10 @@
 #ifndef __INDEX_OBJECT_H__
 #define __INDEX_OBJECT_H__
 
-#include "utils_common.h"
+#include <errno.h>
 #include "lock_object.h"
+#include "mem_monitor.h"
+#include "function_types.h"
 
 typedef struct index_obj_s {
 
@@ -59,15 +61,15 @@ typedef struct index_obj_s {
     int expansion_size;
     int expansion_count;
     int n;
-    datum_t *elements;
+    void **elements;
 
 } index_obj_t;
 
 /**************************** Initialize *************************************/
 
-extern error_t 
+extern int 
 index_obj_init (index_obj_t *idx,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	comparison_function_t cmpf,
 	int maximum_size,
 	int expansion_size,
@@ -75,72 +77,36 @@ index_obj_init (index_obj_t *idx,
 
 /**************************** Insert *****************************************/
 
-extern error_t 
+extern int 
 index_obj_insert (index_obj_t *idx,
-	datum_t datum_to_be_inserted,
-	datum_t *datum_already_present);
-
-extern error_t
-index_obj_insert_integer (index_obj_t *idx,
-        int integer_to_be_inserted, 
-        int *integer_already_present);
-
-extern error_t
-index_obj_insert_pointer (index_obj_t *idx,
-        void *pointer_to_be_inserted, 
-        void **pointer_already_present);
+	void *data_to_be_inserted,
+	void **data_already_present);
 
 /**************************** Search *****************************************/
 
-extern error_t 
+extern int 
 index_obj_search (index_obj_t *idx,
-	datum_t datum_to_be_searched,
-	datum_t *datum_found);
-
-extern error_t
-index_obj_search_integer (index_obj_t *idx,
-        int integer_to_be_searched,
-        int *integer_found);
-
-extern error_t
-index_obj_search_pointer (index_obj_t *idx,
-        void *pointer_to_be_searched,
-        void **pointer_found);
+	void *data_to_be_searched,
+	void **data_found);
 
 /**************************** Remove *****************************************/
 
-extern error_t 
+extern int 
 index_obj_remove (index_obj_t *idx,
-	datum_t datum_to_be_removed,
-	datum_t *datum_actually_removed);
-
-extern error_t
-index_obj_remove_integer (index_obj_t *idx,
-        int integer_to_be_removed,
-        int *integer_actually_removed);
-
-extern error_t
-index_obj_remove_pointer (index_obj_t *idx,
-        void *pointer_to_be_removed,
-        void **pointer_actually_removed);
+	void *data_to_be_removed,
+	void **data_actually_removed);
 
 /**************************** Get all entries ********************************/
 
-extern datum_t *
-index_obj_get_all (index_obj_t *idx, int *returned_count);
-
-extern int *
-index_obj_get_all_integers (index_obj_t *idx, int *returned_count);
-
 extern void **
-index_obj_get_all_pointers (index_obj_t *idx, int *returned_count);
+index_obj_get_all (index_obj_t *idx, int *returned_count);
 
 /**************************** Traverse ***************************************/
 
-extern error_t
+extern int
 index_obj_traverse (index_obj_t *idx,
 	traverse_function_t tfn,
-	datum_t p0, datum_t p1, datum_t p2, datum_t p3);
+	void *p0, void *p1, void *p2, void *p3);
 
 /**************************** Other ******************************************/
 

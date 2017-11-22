@@ -26,6 +26,8 @@
 
 #include "generic_object_database.h"
 
+#define PUBLIC
+
 /*
  * This flag signals that the parent field of an object
  * is not yet a pointer.  Instead it is represented 
@@ -49,15 +51,15 @@
  * uses much more memory.  If your database is relatively static after
  * it has been created (ie, it is mostly used for lookups rather than
  * continually being inserted into and deleted from), then this value
- * can be set to 'false'.  However if it is very dynamic, then set this
- * to 'true' if to get the best speed performance (but maximum memory
+ * can be set to '0'.  However if it is very dynamic, then set this
+ * to '1' if to get the best speed performance (but maximum memory
  * consumption).  Also, if memory conservation is the MOST important
- * consideration, then always set the avl usage variables to false.
+ * consideration, then always set the avl usage variables to 0.
  */
-static boolean use_avl_tree_for_database_object_index = true;
-static boolean use_avl_tree_for_object_children = true;
+static int use_avl_tree_for_database_object_index = 1;
+static int use_avl_tree_for_object_children = 1;
 #ifndef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-static boolean use_avl_tree_for_attribute_ids = true;
+static int use_avl_tree_for_attribute_ids = 1;
 #endif
 
 /*
@@ -77,21 +79,17 @@ notify_event (object_database_t *obj_db,
  */
 
 static int
-compare_objects (datum_t o1, datum_t o2)
+compare_objects (void *o1, void *o2)
 {
     int res;
-    object_t *obj1, *obj2;
 
-    obj1 = (object_t*) o1.pointer;
-    obj2 = (object_t*) o2.pointer;
-
-    res = obj1->object_type - obj2->object_type;
+    res = ((object_t*) o1)->object_type - ((object_t*) o2)->object_type;
     if (res) return res;
     return 
-	obj1->object_instance - obj2->object_instance;
+	((object_t*) o1)->object_instance - ((object_t*) o2)->object_instance;
 }
 
-static inline boolean
+static inline int
 object_is_root (object_t *obj)
 {
     return
@@ -103,7 +101,7 @@ get_object_pointer (object_database_t *obj_db,
         int object_type, int object_instance)
 {
     object_t searched;
-    datum_t searched_datum, found_datum;
+    void *found;
 
     if (object_type == ROOT_OBJECT_TYPE) {
 	return
@@ -112,9 +110,8 @@ get_object_pointer (object_database_t *obj_db,
 
     searched.object_type = object_type;
     searched.object_instance = object_instance;
-    searched_datum.pointer = &searched;
-    if (0 == table_search(&obj_db->object_index, searched_datum, &found_datum)) {
-        return found_datum.pointer;
+    if (0 == table_search(&obj_db->object_index, &searched, &found)) {
+        return found;
     }
     return NULL;
 }
@@ -135,22 +132,18 @@ get_parent_pointer (object_t *obj)
 static attribute_instance_t *
 get_attribute_instance_pointer (object_t *obj, int attribute_id)
 {
-    datum_t found_datum;
+    void *found;
 
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    if (dynamic_array_get(&obj->attributes, attribute_id, &found_datum) == 0) {
-	return 
-            found_datum.pointer;
+    if (dynamic_array_get(&obj->attributes, attribute_id, &found) == 0) {
+	return found;
     }
 #else
     attribute_instance_t searched;
-    datum_t searched_datum;
 
     searched.attribute_id = attribute_id;
-    searched_datum.pointer = &searched;
-    if (table_search(&obj->attributes, searched_datum, &found_datum) == 0) {
-	return 
-            found_datum.pointer;
+    if (table_search(&obj->attributes, &searched, &found) == 0) {
+	return found;
     }
 #endif
     return NULL;
@@ -196,11 +189,11 @@ restore_events (object_database_t *obj_db, int events)
  */
 static int
 get_matching_children_tfn (void *utility_object, void *utility_node,
-    datum_t user_data, datum_t d_matching_object_type, 
-    datum_t d_collector, datum_t d_index, datum_t d_limit)
+    void *user_data, void *v_matching_object_type, 
+    void *v_collector, void *v_index, void *v_limit)
 {
-    object_t *obj = user_data.pointer;
-    int matching_object_type = d_matching_object_type.integer;
+    object_t *obj = user_data;
+    int matching_object_type = pointer2integer(v_matching_object_type);
     object_representation_t *collector; 
     int *index;
 
@@ -212,22 +205,13 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
 	(matching_object_type != obj->object_type))
 	    return 0;
 
-    index = (int*) d_index.pointer;
-    if (*index >= d_limit.integer) return ENOSPC;
+    index = (int*) v_index;
+    if (*index >= pointer2integer(v_limit)) return ENOSPC;
     
-    collector = (object_representation_t*) d_collector.pointer;
+    collector = (object_representation_t*) v_collector;
     collector[*index].object_id.object_type = obj->object_type;
     collector[*index].object_id.object_instance = obj->object_instance;
     (*index)++;
-
-/*
- * Only process first level children, do not recursively 
- * go down to do grand children, grand grand children etc.
- */
-#if 0
-    table_traverse(&obj->children, get_matching_children_tfn,
-            d_object_type, d_collector, d_index, d_limit);
-#endif
 
     return 0;
 }
@@ -242,11 +226,11 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
  */
 static int
 get_matching_descendants_tfn (void *utility_object, void *utility_node,
-    datum_t user_data, datum_t d_matching_object_type, 
-    datum_t d_collector, datum_t d_index, datum_t d_limit)
+    void *user_data, void *v_matching_object_type, 
+    void *v_collector, void *v_index, void *v_limit)
 {
-    object_t *obj = user_data.pointer;
-    int matching_object_type = d_matching_object_type.integer;
+    object_t *obj = user_data;
+    int matching_object_type = pointer2integer(v_matching_object_type);
     object_representation_t *collector; 
     int *index;
 
@@ -258,16 +242,16 @@ get_matching_descendants_tfn (void *utility_object, void *utility_node,
 	(matching_object_type != obj->object_type))
 	    return 0;
 
-    index = (int*) d_index.pointer;
-    if (*index >= d_limit.integer) return ENOSPC;
+    index = (int*) v_index;
+    if (*index >= pointer2integer(v_limit)) return ENOSPC;
     
-    collector = (object_representation_t*) d_collector.pointer;
+    collector = (object_representation_t*) v_collector;
     collector[*index].object_ptr = obj;
     (*index)++;
 
     /* now get all the descendants too */
     table_traverse(&obj->children, get_matching_descendants_tfn,
-            d_matching_object_type, d_collector, d_index, d_limit);
+            v_matching_object_type, v_collector, v_index, v_limit);
 
     return 0;
 }
@@ -286,7 +270,7 @@ get_matching_descendants_tfn (void *utility_object, void *utility_node,
  * function to support that object
  */
 static int
-compare_attribute_ids (datum_t att1, datum_t att2)
+compare_attribute_ids (void *att1, void *att2)
 {
     return
 	((attribute_instance_t*) att1.pointer)->attribute_id -
@@ -296,7 +280,7 @@ compare_attribute_ids (datum_t att1, datum_t att2)
 #endif 
 
 static attribute_value_t *
-create_simple_attribute_value (mem_monitor_t *memp, int64 value)
+create_simple_attribute_value (mem_monitor_t *memp, long long int value)
 {
     attribute_value_t *avtp;
 
@@ -320,8 +304,8 @@ clone_simple_attribute_value (attribute_value_t *avtp)
         create_simple_attribute_value(NULL, avtp->attribute_value_data);
 }
 
-static boolean
-same_simple_attribute_values (attribute_value_t *avtp, int64 value)
+static int
+same_simple_attribute_values (attribute_value_t *avtp, long long int value)
 {
     return
 	(avtp->attribute_value_length == 0) &&
@@ -329,16 +313,16 @@ same_simple_attribute_values (attribute_value_t *avtp, int64 value)
 }
 
 static attribute_value_t *
-find_simple_attribute_value (attribute_instance_t *aitp, int64 value,
+find_simple_attribute_value (attribute_instance_t *aitp, long long int value,
 	attribute_value_t **previous_avtp)
 {
     attribute_value_t *avtp;
 
-    SAFE_POINTER_SET(previous_avtp, NULL);
+    safe_pointer_set(previous_avtp, NULL);
     avtp = aitp->avps;
     while (avtp) {
 	if (same_simple_attribute_values(avtp, value)) return avtp;
-	SAFE_POINTER_SET(previous_avtp, avtp);
+	safe_pointer_set(previous_avtp, avtp);
 	avtp = avtp->next_attribute_value;
     }
     return NULL;
@@ -351,9 +335,9 @@ create_complex_attribute_value (mem_monitor_t *memp,
     attribute_value_t *avtp;
     int size = sizeof(attribute_value_t);
 
-    /* adjust for stream whose length > sizeof(int64) */
-    if (complex_value_data_length > sizeof(int64)) {
-	size = size + complex_value_data_length - sizeof(int64);
+    /* adjust for stream whose length > sizeof(long long int) */
+    if (complex_value_data_length > sizeof(long long int)) {
+	size = size + complex_value_data_length - sizeof(long long int);
     }
 
     /* allocate enuf space */
@@ -382,7 +366,7 @@ clone_complex_attribute_value (attribute_value_t *avtp)
             avtp->attribute_value_length);
 }
 
-static boolean
+static int
 same_complex_attribute_values (attribute_value_t *avtp, 
     byte *complex_value_data, int complex_value_data_length)
 {
@@ -400,12 +384,12 @@ find_complex_attribute_value (attribute_instance_t *aitp,
 {
     attribute_value_t *avtp;
 
-    SAFE_POINTER_SET(previous_avtp, NULL);
+    safe_pointer_set(previous_avtp, NULL);
     avtp = aitp->avps;
     while (avtp) {
 	if (same_complex_attribute_values(avtp,
                     complex_value_data, complex_value_data_length)) return avtp;
-	SAFE_POINTER_SET(previous_avtp, avtp);
+	safe_pointer_set(previous_avtp, avtp);
 	avtp = avtp->next_attribute_value;
     }
     return NULL;
@@ -493,7 +477,7 @@ destroy_all_attribute_values_except (attribute_instance_t *aitp,
 
 static attribute_value_t *
 attribute_add_simple_value_engine (attribute_instance_t *aitp,
-    int64 value)
+    long long int value)
 {
     attribute_value_t *avtp;
     object_t *obj;
@@ -518,17 +502,17 @@ attribute_add_simple_value_engine (attribute_instance_t *aitp,
 
 static int
 attribute_add_simple_value (attribute_instance_t *aitp, 
-    int64 value)
+    long long int value)
 {
     attribute_value_t *avtp;
         
     avtp = attribute_add_simple_value_engine(aitp, value);
-    return avtp ? ok : error;
+    return avtp ? 0 : -1;
 }
 
 static int
 attribute_set_simple_value (attribute_instance_t *aitp,
-    int64 value)
+    long long int value)
 {
     attribute_value_t *avtp;
 
@@ -542,7 +526,7 @@ attribute_set_simple_value (attribute_instance_t *aitp,
 
 static int
 attribute_delete_simple_value (attribute_instance_t *aitp, 
-	int64 value)
+	long long int value)
 {
     attribute_value_t *avtp, *prev_avtp;
     object_t *obj;
@@ -597,7 +581,7 @@ attribute_add_complex_value (attribute_instance_t *aitp,
 
     avtp = attribute_add_complex_value_engine(aitp,
                 complex_value_data, complex_value_data_length);
-    return avtp ? ok : error;
+    return avtp ? 0 : -1;
 }
 
 static int
@@ -641,7 +625,7 @@ attribute_instance_destroy (attribute_instance_t *aitp)
 {
     object_t *obj = aitp->object;
     object_database_t *obj_db = obj->obj_db;
-    datum_t removed_datum;
+    void *removed_data;
     int events;
 
     events = allow_event_if_not_already_blocked(obj_db, 
@@ -652,11 +636,11 @@ attribute_instance_destroy (attribute_instance_t *aitp)
 
     /* now delete the instance itself */
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    dynamic_array_remove(&obj->attributes, aitp->attribute_id, &removed_datum);
+    dynamic_array_remove(&obj->attributes, aitp->attribute_id, &removed_data);
 #else
-    table_remove(&obj->attributes, aitp, &removed_datum);
+    table_remove(&obj->attributes, aitp, &removed_data);
 #endif
-    assert(aitp == removed_datum.pointer);
+    assert(aitp == removed_data);
 
     notify_event(obj->obj_db, ATTRIBUTE_INSTANCE_DELETED, 
 	    obj, NULL, aitp->attribute_id, NULL);
@@ -671,18 +655,18 @@ static void
 object_indexes_init (mem_monitor_t *memp, object_t *obj)
 {
     assert(0 == table_init(&obj->children, 
-                    false, compare_objects, memp,
+                    0, compare_objects, memp,
                     use_avl_tree_for_object_children));
 
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
 
     assert(0 == dynamic_array_init(&obj->attributes,
-                    false, 4, memp));
+                    0, 4, memp));
 
 #else // !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
 
     assert(0 == table_init(&obj->attributes,
-                    false, compare_attribute_ids, memp,
+                    0, compare_attribute_ids, memp,
 		    use_avl_tree_for_attribute_ids));
 
 #endif // !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
@@ -727,10 +711,10 @@ object_attributes_delete_all (object_t *obj)
  * This variable controls that.
  */
 static void 
-object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
+object_destroy_engine (object_t *obj, int leave_parent_consistent)
 {
-    datum_t obj_datum, removed_obj_datum;
-    datum_t *all_its_children;
+    void *removed_obj;
+    void **all_its_children;
     object_database_t *obj_db = obj->obj_db;
     object_t *parent;
     int child_count, i;
@@ -743,9 +727,6 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
      */ 
     events = allow_event_if_not_already_blocked(obj_db, 0);
 
-    /* prepare object pointer */
-    obj_datum.pointer = obj;
-
     parent = get_parent_pointer(obj);
 
     /*
@@ -753,19 +734,19 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
      * but only if full & consistent cleanup is required.
      */ 
     if (leave_parent_consistent && parent) {
-	table_remove(&parent->children, obj_datum, &removed_obj_datum);
+	table_remove(&parent->children, obj, &removed_obj);
     }
 
     /*
      * destroy all its children recursively.  Since *THIS* object is
      * also being destroyed, all its children can be destroyed without
      * having to keep their parent/child relationship consistent,
-     * hence passing 'false' to the function below.
+     * hence passing '0' to the function below.
      */ 
     all_its_children = table_get_all(&obj->children, &child_count);
     if (child_count && all_its_children) {
         for (i = 0; i < child_count; i++) {
-            object_destroy_engine((object_t*) all_its_children[i].pointer, false);
+            object_destroy_engine((object_t*) all_its_children[i], 0);
         }
         free(all_its_children);
     }
@@ -785,9 +766,8 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
     }
 
     /* take object out of the main object index */
-    assert(0 == table_remove(&obj_db->object_index,
-		obj_datum, &removed_obj_datum));
-    assert(removed_obj_datum.pointer == obj_datum.pointer);
+    assert(0 == table_remove(&obj_db->object_index, obj, &removed_obj));
+    assert(removed_obj == obj);
 
     /* free up its index objects */
     table_destroy(&obj->children);
@@ -807,12 +787,12 @@ object_destroy_engine (object_t *obj, boolean leave_parent_consistent)
 
 static object_t *
 object_create_engine (object_database_t *obj_db,
-	boolean parent_must_exist,
+	int parent_must_exist,
 	int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
 {
     object_t *obj, *parent;
-    datum_t obj_datum, exists_datum;
+    void *exists;
 
     /* 
      * Obtain parent pointer.
@@ -843,7 +823,6 @@ object_create_engine (object_database_t *obj_db,
     }
     obj->object_type = child_object_type;
     obj->object_instance = child_object_instance;
-    obj_datum.pointer = obj;
 
     /*
      * if object already exists and looks reasonable (parents
@@ -852,13 +831,13 @@ object_create_engine (object_database_t *obj_db,
      * then the user is probably making an erroneous
      * creation, so return an error.
      */
-    assert(0 == table_insert(&obj_db->object_index, obj_datum, &exists_datum));
-    if (exists_datum.pointer) {
+    assert(0 == table_insert(&obj_db->object_index, obj, &exists));
+    if (exists) {
 
 	/* it already exists, we dont need the new one */
         MEM_MONITOR_FREE(obj_db, obj);
 
-        obj = exists_datum.pointer;
+        obj = exists;
 	if (parent) {
 	    if (obj->parent.object_ptr == parent) return obj;
 
@@ -872,7 +851,7 @@ object_create_engine (object_database_t *obj_db,
 
     /* make sure this object is added as a child of the parent */
     if (parent) {
-	assert(0 == table_insert(&parent->children, obj_datum, &exists_datum));
+	assert(0 == table_insert(&parent->children, obj, &exists));
     }
 
     /* initialize the children and attribute indexes */
@@ -898,14 +877,13 @@ static attribute_instance_t *
 attribute_instance_add (object_t *obj, int attribute_id)
 {
     attribute_instance_t *aitp;
-    datum_t aitp_datum;
-    datum_t found_datum;
+    void *found;
 
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
 
     /* if already there, just return the existing one */
-    if (dynamic_array_get(&obj->attributes, attribute_id, &found_datum) == 0) {
-	return found_datum.pointer;
+    if (dynamic_array_get(&obj->attributes, attribute_id, &found) == 0) {
+	return found;
     }
     
     /* create the new attribute */
@@ -914,8 +892,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
 
     /* add it to object */
     aitp->attribute_id = attribute_id;
-    aitp_datum.pointer = aitp;
-    if (dynamic_array_insert(&obj->attributes, attribute_id, aitp_datum) != 0) {
+    if (dynamic_array_insert(&obj->attributes, attribute_id, aitp) != 0) {
 	MEM_MONITOR_FREE(obj->obj_db, aitp);
 	return NULL;
     }
@@ -928,11 +905,10 @@ attribute_instance_add (object_t *obj, int attribute_id)
 
     /* if already there, just free up the new one & return */
     aitp->attribute_id = attribute_id;
-    aitp_datum.pointer = aitp;
-    if (table_insert(&obj->attributes, aitp_datum, &found_datum) == 0) {
-	if (found.pointer) {
+    if (table_insert(&obj->attributes, aitp, &found) == 0) {
+	if (found) {
 	    MEM_MONITOR_FREE(obj->obj_db, aitp);
-	    return found.pointer;
+	    return found;
 	}
     }
 
@@ -953,7 +929,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
 
 static int
 __object_attribute_add_simple_value (object_t *obj, int attribute_id, 
-    int64 simple_value)
+    long long int simple_value)
 {
     attribute_instance_t *aitp;
 
@@ -967,7 +943,7 @@ __object_attribute_add_simple_value (object_t *obj, int attribute_id,
 
 static int
 __object_attribute_set_simple_value (object_t *obj, int attribute_id, 
-    int64 simple_value)
+    long long int simple_value)
 {
     attribute_instance_t *aitp;
 
@@ -981,7 +957,7 @@ __object_attribute_set_simple_value (object_t *obj, int attribute_id,
 
 static int
 __object_attribute_delete_simple_value (object_t *obj, int attribute_id, 
-    int64 simple_value)
+    long long int simple_value)
 {
     attribute_instance_t *aitp;
 
@@ -1051,19 +1027,12 @@ __object_get_matching_children (object_t *parent,
 	object_representation_t *found_objects, int limit)
 {
     int index = 0;
-    datum_t d_object_type;
-    datum_t d_found_objects;
-    datum_t d_index;
-    datum_t d_limit;
-
-    d_object_type.integer = matching_object_type;
-    d_found_objects.pointer = found_objects;
-    d_index.pointer = &index;
-    d_limit.integer = limit;
+    void *v_object_type = integer2pointer(matching_object_type);
+    void *v_limit = integer2pointer(limit);
 
     table_traverse(&parent->children, 
 	get_matching_children_tfn,
-	d_object_type, d_found_objects, d_index, d_limit);
+	v_object_type, found_objects, &index, v_limit);
 
     return index;
 }
@@ -1074,19 +1043,12 @@ __object_get_matching_descendants (object_t *parent,
 	object_representation_t *found_objects, int limit)
 {
     int index = 0;
-    datum_t d_object_type;
-    datum_t d_found_objects;
-    datum_t d_index;
-    datum_t d_limit;
-
-    d_object_type.integer = matching_object_type;
-    d_found_objects.pointer = found_objects;
-    d_index.pointer = &index;
-    d_limit.integer = limit;
+    void *v_object_type = integer2pointer(matching_object_type);
+    void *v_limit = integer2pointer(limit);
 
     table_traverse(&parent->children, 
 	get_matching_descendants_tfn,
-	d_object_type, d_found_objects, d_index, d_limit);
+	v_object_type, found_objects, &index, v_limit);
 
     return index;
 }
@@ -1119,7 +1081,7 @@ process_object_created_event (object_database_t *obj_db,
 {
     object_t *obj;
 
-    obj = object_create_engine(obj_db, true,
+    obj = object_create_engine(obj_db, 1,
 		evrp->related_object_type, evrp->related_object_instance,
 		evrp->object_type, evrp->object_instance);
     return obj ? 0 : -1;
@@ -1134,7 +1096,7 @@ process_object_destroyed_event (object_database_t *obj_db,
     obj = get_object_pointer(obj_db, 
 		evrp->object_type, evrp->object_instance);
     if (obj) {
-	object_destroy_engine(obj, true);
+	object_destroy_engine(obj, 1);
     }
     return 0;
 }
@@ -1149,7 +1111,7 @@ process_attribute_added_event (object_database_t *obj_db,
     get_both_objects(obj_db, evrp, &obj, NULL);
     if (obj) {
 	aitp = attribute_instance_add(obj, evrp->attribute_id);
-	return aitp ? ok : error;
+	return aitp ? 0 : -1;
     }
     return -1;
 }
@@ -1222,14 +1184,14 @@ database_find (int database_id)
 /* static */ int
 process_incoming_event (event_record_t *evrp)
 {
-    int rv = error;
+    int rv = -1;
     object_database_t *obj_db;
 
     /* for all other events, the database object IS needed */
     obj_db = database_find(evrp->database_id);
     if (NULL == obj_db)
 	return -1;
-    obj_db->processing_remote_event = true;
+    obj_db->processing_remote_event = 1;
 
     if (evrp->event & OBJECT_CREATED) {
 	rv = process_object_created_event(obj_db, evrp);
@@ -1251,9 +1213,75 @@ process_incoming_event (event_record_t *evrp)
     }
 
     // remote event processing has finished. so restore this back
-    obj_db->processing_remote_event = false;
+    obj_db->processing_remote_event = 0;
 
     return rv;
+}
+
+/*
+ * maximum tolarable times a read or a write call can consecutively fail
+ */
+#define MAX_CONSECUTIVE_FAILURES_ALLOWED        64
+
+/*
+ * makes sure it reads/writes all the requested size.  It will not
+ * give up until it completes every single byte, unless too many 
+ * consecutive number of read/write errors have occured.
+ *
+ * If reading & writing into a pipe or a socket, 'can_block' should
+ * be specified as 'true/1'.
+ */
+static int 
+relentless_read_write (int perform_read,
+        int fd, void *buffer, int size, int can_block)
+{
+    int total, rc, failed;
+
+    total = failed = 0;
+    while (size > 0) {
+
+        /* read/write maximum requested amount if it can */
+        if (perform_read) {
+            rc = read(fd, &((char*) buffer)[total], size);
+        } else {
+            rc = write(fd, &((char*) buffer)[total], size);
+        }
+
+        /* process the read/written amount */
+	if (rc > 0) {
+	    total += rc;
+	    size -= rc;
+            failed = 0;
+	    continue;
+	}
+
+        /* operation failed; has it failed consecutively many times ? */
+        if (++failed >= MAX_CONSECUTIVE_FAILURES_ALLOWED) {
+            return -1;
+        }
+
+        /*
+         * these errors may occur rarely and should be recovered from,
+         * unless they keep on happening consecutively
+         */
+        if ((can_block && (EWOULDBLOCK == errno)) ||
+            (EINTR == errno) || (EAGAIN == errno)) {
+                continue;
+        }
+
+        /* an unacceptable error occured, cannot continue */
+        return -1;
+    }
+
+    /* everything finished ok */
+    return 0;
+}
+
+static int
+read_exact_size (int fd, void *buffer, int size, int can_block)
+{
+    return
+        relentless_read_write(1, fd, buffer, size, can_block);
 }
 
 /*
@@ -1268,11 +1296,11 @@ read_event_record (int fd, event_record_t *evrp)
     int extra_length;
 
     // read the basic event record information
-    if (read_exact_size(fd, evrp, to_read, true) == 0) {
+    if (read_exact_size(fd, evrp, to_read, 1) == 0) {
 	extra_length = evrp->total_length - to_read;
 	if (extra_length > 0) {
 	    return
-		read_exact_size(fd, &evrp->extra_data, extra_length, true);
+		read_exact_size(fd, &evrp->extra_data, extra_length, 1);
 	}
 	return 0;
     }
@@ -1299,7 +1327,7 @@ create_event_record (object_database_t *obj_db,
 	    size += related_attribute_value->attribute_value_length;
 
 	    // first 8 bytes of a complex attribute will fit here
-	    size -= sizeof(int64);
+	    size -= sizeof(long long int);
 	}
     }
 
@@ -1422,7 +1450,7 @@ notify_event (object_database_t *obj_db,
 
 PUBLIC int
 database_initialize (object_database_t *obj_db,
-        boolean make_it_thread_safe,
+        int make_it_thread_safe,
         int database_id, event_handler_function evhf,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -1434,7 +1462,7 @@ database_initialize (object_database_t *obj_db,
     MEM_MONITOR_SETUP(obj_db);
 
     // memset to 0 already does this but just making a point
-    obj_db->processing_remote_event = false;
+    obj_db->processing_remote_event = 0;
     obj_db->blocked_events = 0;
 
     root_obj = &obj_db->root_object;
@@ -1444,8 +1472,8 @@ database_initialize (object_database_t *obj_db,
     root_obj->object_instance = ROOT_OBJECT_INSTANCE;
 
     /* initialize object lookup indexes */
-    assert(ok == table_init(&obj_db->object_index,
-                    false, 
+    assert(0 == table_init(&obj_db->object_index,
+                    0, 
                     compare_objects,
                     obj_db->mem_mon_p,
                     use_avl_tree_for_database_object_index));
@@ -1481,7 +1509,7 @@ object_create (object_database_t *obj_db,
     object_t *obj;
 
     WRITE_LOCK(obj_db);
-    obj = object_create_engine(obj_db, true,
+    obj = object_create_engine(obj_db, 1,
 		parent_object_type, parent_object_instance,
 		child_object_type, child_object_instance);
     rv = (obj ? 0 : EFAULT);
@@ -1524,7 +1552,7 @@ object_attribute_add (object_database_t *obj_db,
 PUBLIC int
 object_attribute_add_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-        int64 simple_value)
+        long long int simple_value)
 {
     int rv;
     object_t *obj;
@@ -1544,7 +1572,7 @@ object_attribute_add_simple_value (object_database_t *obj_db,
 PUBLIC int
 object_attribute_set_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-        int64 simple_value)
+        long long int simple_value)
 {
     int rv;
     object_t *obj;
@@ -1564,7 +1592,7 @@ object_attribute_set_simple_value (object_database_t *obj_db,
 PUBLIC int
 object_attribute_delete_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-        int64 simple_value)
+        long long int simple_value)
 {
     int rv;
     object_t *obj;
@@ -1734,7 +1762,7 @@ object_destroy (object_database_t *obj_db,
         rv = ENODATA;
     } else {
         rv = 0;
-        object_destroy_engine(obj, true);
+        object_destroy_engine(obj, 1);
     }
     WRITE_UNLOCK(obj_db);
     return rv;
@@ -1893,12 +1921,12 @@ database_write_one_attribute (FILE *fp, void *vattr)
 
 static int
 database_write_one_object_tfn (void *utility_object, void *utility_node,
-	datum_t object_datum, datum_t d_FILE, 
-        datum_t p1, datum_t p2, datum_t p3)
+	void *v_object, void *v_FILE, 
+        void *p1, void *p2, void *p3)
 {
-    object_t *obj = (object_t*) object_datum.pointer;
-    FILE *fp = d_FILE.pointer;
-    datum_t *attributes = NULL;
+    object_t *obj = (object_t*) v_object;
+    FILE *fp = v_FILE;
+    void **attributes = NULL;
     int attr_count = 0;
 
     /* ignore root object, we do not store this */
@@ -1917,7 +1945,7 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
 #endif
     if (attributes && attr_count) {
 	while (--attr_count >= 0) {
-	    database_write_one_attribute(fp, attributes[attr_count].pointer);
+	    database_write_one_attribute(fp, attributes[attr_count]);
 	}
 	free(attributes);
     }
@@ -1986,8 +2014,7 @@ database_store (object_database_t *obj_db)
     char database_name [TYPICAL_NAME_SIZE];
     char backup_db_name [TYPICAL_NAME_SIZE];
     char backup_db_tmp [TYPICAL_NAME_SIZE];
-    datum_t d_FILE;
-    datum_t unused;
+    void *unused;
 
     READ_LOCK(obj_db);
 
@@ -2005,9 +2032,8 @@ database_store (object_database_t *obj_db)
         READ_UNLOCK(obj_db);
         return -1;
     }
-    d_FILE.pointer = fp;
     table_traverse(&obj_db->object_index, database_write_one_object_tfn,
-	d_FILE, unused, unused, unused);
+	fp, unused, unused, unused);
 
     /* close up the file */
     fprintf(fp, "\n");
@@ -2037,7 +2063,7 @@ load_object (object_database_t *obj_db, FILE *fp,
                 &parent_type, &parent_instance, 
 		&object_type, &object_instance);
     if (4 != count) return -1;
-    *objp = object_create_engine(obj_db, false,
+    *objp = object_create_engine(obj_db, 0,
 		parent_type, parent_instance,
 		object_type, object_instance);
     return *objp ? 0 : -1;
@@ -2065,7 +2091,7 @@ static int
 load_simple_attribute_value (object_database_t *obj_db, FILE *fp,
     attribute_instance_t *aitp)
 {
-    int64 value;
+    long long int value;
 
     /* we should NOT have a NULL attribute id at this point */
     if (NULL == aitp) return -1;
@@ -2129,7 +2155,7 @@ database_load (int database_id, object_database_t *obj_db)
     if (NULL == fp) return -1;
 
     database_destroy(obj_db);
-    if (database_initialize(obj_db, true, database_id, NULL, NULL) != ok) {
+    if (database_initialize(obj_db, 1, database_id, NULL, NULL) != 0) {
         return -1;
     }
 

@@ -26,31 +26,33 @@
 
 #include "dynamic_array.h"
 
-static error_t
+#define PUBLIC
+
+static int
 dynamic_array_expand (dynamic_array_t *datp, int index)
 {
     int i, j, new_size;
-    boolean reverse_copy;
-    datum_t *new_elements;
+    int reverse_copy;
+    void **new_elements;
 
     if (index < datp->lowest) {
         new_size = datp->highest - index + 1;
         datp->lowest = index;
-        reverse_copy = true;
+        reverse_copy = 1;
     } else if (index > datp->highest) {
         new_size = index - datp->lowest + 1;
         datp->highest = index;
-        reverse_copy = false;
+        reverse_copy = 0;
     } else {
         /* we should NEVER be here */
         assert(0);
     }
 
     new_elements = 
-	(datum_t*) MEM_MONITOR_ALLOC(datp, new_size * sizeof(datum_t));
+	(void**) MEM_MONITOR_ALLOC(datp, new_size * sizeof(void*));
     if (NULL == new_elements)
 	return ENOMEM;
-    for (i = 0; i < new_size; i++) NULLIFY_DATUM(new_elements[i]);
+    for (i = 0; i < new_size; i++) new_elements[i] = NULL;
 
     /* copy existing data over */
     if (reverse_copy) {
@@ -77,14 +79,14 @@ dynamic_array_expand (dynamic_array_t *datp, int index)
 static void
 dynamic_array_shrink (dynamic_array_t *datp)
 {
-    datum_t *new_elements;
+    void **new_elements;
     int i, j, start_unused_entries, end_unused_entries;
     int new_size;
 
     /* see how many unused consecutive entries at the beginning */
     start_unused_entries = 0;
     for (i = 0; i < datp->size; i++) {
-        if (DATUM_IS_NULL(datp->elements[i]))
+        if (NULL == datp->elements[i])
             start_unused_entries++;
         else
             break;
@@ -93,7 +95,7 @@ dynamic_array_shrink (dynamic_array_t *datp)
     /* now find how many unused consecutive entries at the end */
     end_unused_entries = 0;
     for (i = datp->size - 1; i >= 0; i--) {
-	if (DATUM_IS_NULL(datp->elements[i]))
+	if (NULL == datp->elements[i])
             end_unused_entries++;
         else
             break;
@@ -110,8 +112,8 @@ dynamic_array_shrink (dynamic_array_t *datp)
 
     /* allocate the new smaller array */
     new_size = datp->size - start_unused_entries - end_unused_entries;
-    new_elements = (datum_t*)
-	MEM_MONITOR_ALLOC(datp, new_size * sizeof(datum_t));
+    new_elements = (void**)
+	MEM_MONITOR_ALLOC(datp, new_size * sizeof(void*));
     if (NULL == new_elements) return;
 
     /* copy the valid data from the old into the new array */
@@ -151,7 +153,7 @@ dynamic_array_attempt_to_shrink_memory (dynamic_array_t *datp)
     }
 }
 
-static inline boolean
+static inline int
 valid_index (dynamic_array_t *datp, int index)
 {
     return
@@ -161,9 +163,9 @@ valid_index (dynamic_array_t *datp, int index)
 
 /***********************************************************************/
 
-PUBLIC error_t
+PUBLIC int
 dynamic_array_init (dynamic_array_t *datp,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	int initial_size,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -179,10 +181,10 @@ dynamic_array_init (dynamic_array_t *datp,
     LOCK_SETUP(datp);
     MEM_MONITOR_SETUP(datp);
     datp->elements = 
-	MEM_MONITOR_ALLOC(datp, (initial_size * sizeof(datum_t*)));
+	MEM_MONITOR_ALLOC(datp, (initial_size * sizeof(void**)));
     if (NULL == datp->elements)
 	return ENOMEM;
-    for (i = 0; i < initial_size; i++) NULLIFY_DATUM(datp->elements[i]);
+    for (i = 0; i < initial_size; i++) datp->elements[i] = NULL;
     datp->size = initial_size;
     datp->n = 0;
     datp->inserts = datp->deletes = 0;
@@ -191,10 +193,10 @@ dynamic_array_init (dynamic_array_t *datp,
     return 0;
 }
 
-static error_t 
+static int 
 thread_unsafe_dynamic_array_insert (dynamic_array_t *datp,
 	int index,
-	datum_t data)
+	void *data)
 {
     /* the first entry sets midpoint and all boundaries */
     if (datp->n <= 0) {
@@ -215,7 +217,7 @@ thread_unsafe_dynamic_array_insert (dynamic_array_t *datp,
     }
 
     /* if we are here, we must be out of bounds, so expand */
-    if (FAILED(dynamic_array_expand(datp, index))) {
+    if (dynamic_array_expand(datp, index)) {
 	return ENOMEM;
     }
 
@@ -224,12 +226,12 @@ thread_unsafe_dynamic_array_insert (dynamic_array_t *datp,
 	thread_unsafe_dynamic_array_insert(datp, index, data);
 }
 
-PUBLIC error_t
+PUBLIC int
 dynamic_array_insert (dynamic_array_t *datp,
 	int index,
-	datum_t data)
+	void *data)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(datp);
     rv = thread_unsafe_dynamic_array_insert(datp, index, data);
@@ -240,31 +242,31 @@ dynamic_array_insert (dynamic_array_t *datp,
 /*
  * if an entry is requested outside the array bounds, it is an error.
  */
-static error_t
+static int
 thread_unsafe_dynamic_array_get (dynamic_array_t *datp,
 	int index, 
-	datum_t *returned)
+	void **returned)
 {
-    datum_t found;
+    void *found;
 
-    SAFE_NULLIFY_DATUMP(returned);
+    *returned = NULL;
     if (valid_index(datp, index)) {
 	found = datp->elements[index - datp->lowest];
-	if (DATUM_IS_NULL(found)) {
+	if (NULL == found) {
             return ENODATA;
         }
-        SAFE_DATUMP_SET(returned, found);
+        *returned = found;
         return 0;
     }
     return ENODATA;
 }
 
-PUBLIC error_t
+PUBLIC int
 dynamic_array_get (dynamic_array_t *datp,
 	int index,
-	datum_t *returned)
+	void **returned)
 {
-    error_t rv;
+    int rv;
 
     READ_LOCK(datp);
     rv = thread_unsafe_dynamic_array_get(datp, index, returned);
@@ -275,21 +277,21 @@ dynamic_array_get (dynamic_array_t *datp,
 /*
  * cannot remove an entry which does not lie within boundaries
  */
-static error_t
+static int
 thread_unsafe_dynamic_array_remove (dynamic_array_t *datp,
 	int index,
-	datum_t *removed)
+	void **removed)
 {
-    datum_t found;
+    void *found;
 
-    SAFE_NULLIFY_DATUMP(removed);
+    *removed = NULL;
     if (valid_index(datp, index)) {
 	found = datp->elements[index - datp->lowest];
-	if (DATUM_IS_NULL(found)) {
+	if (NULL == found) {
 	    return ENODATA;
 	}
-	SAFE_DATUMP_SET(removed, found);
-	NULLIFY_DATUM(datp->elements[index - datp->lowest]);
+	*removed = found;
+	datp->elements[index - datp->lowest] = NULL;
 	datp->n--;
 	datp->deletes++;
 	dynamic_array_attempt_to_shrink_memory(datp);
@@ -298,12 +300,12 @@ thread_unsafe_dynamic_array_remove (dynamic_array_t *datp,
     return EINVAL;
 }
 
-PUBLIC error_t
+PUBLIC int
 dynamic_array_remove (dynamic_array_t *datp,
 	int index,
-	datum_t *removed)
+	void **removed)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(datp);
     rv = thread_unsafe_dynamic_array_remove(datp, index, removed);
@@ -311,18 +313,18 @@ dynamic_array_remove (dynamic_array_t *datp,
     return rv;
 }
 
-PUBLIC datum_t *
+PUBLIC void **
 dynamic_array_get_all (dynamic_array_t *datp, int *count)
 {
     int i, valid;
-    datum_t *assembled;
+    void **assembled;
 
     *count = 0;
-    assembled = (datum_t*) malloc(datp->n * sizeof(datum_t));
+    assembled = (void**) malloc(datp->n * sizeof(void*));
     if (NULL == assembled) return NULL;
 
     for (i = 0, valid = 0; i < datp->size; i++) {
-	if (DATUM_NOT_NULL(datp->elements[i])) {
+	if (datp->elements[i]) {
 	    assembled[valid++] = datp->elements[i];
 	    if (valid >= datp->n) break;
 	}

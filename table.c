@@ -26,12 +26,14 @@
 
 #include "table.h"
 
-PUBLIC error_t
+#define PUBLIC
+
+PUBLIC int
 table_init (table_t *tablep,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	comparison_function_t cmpf, 
         mem_monitor_t *parent_mem_monitor,
-	boolean use_avl_tree)
+	int use_avl_tree)
 {
     tablep->use_avl_tree = use_avl_tree;
     if (use_avl_tree) {
@@ -44,22 +46,22 @@ table_init (table_t *tablep,
                 make_it_thread_safe, cmpf, 128, 128, parent_mem_monitor);
 }
 
-PUBLIC error_t
+PUBLIC int
 table_insert (table_t *tablep,
-	datum_t to_be_inserted,
-	datum_t *returned)
+	void *to_be_inserted,
+	void **returned)
 {
     if (tablep->use_avl_tree) {
-	assert(ok == avl_tree_insert(&tablep->u.avl, to_be_inserted, returned));
+	assert(0 == avl_tree_insert(&tablep->u.avl, to_be_inserted, returned));
     } else {
-	assert(ok == index_obj_insert(&tablep->u.idx, to_be_inserted, returned));
+	assert(0 == index_obj_insert(&tablep->u.idx, to_be_inserted, returned));
     }
     return 0;
 }
 
-PUBLIC error_t
+PUBLIC int
 table_search (table_t *tablep,
-	datum_t searched, datum_t *returned)
+	void *searched, void **returned)
 {
     if (tablep->use_avl_tree) {
 	return
@@ -69,10 +71,10 @@ table_search (table_t *tablep,
 	index_obj_search(&tablep->u.idx, searched, returned);
 }
 
-PUBLIC error_t
+PUBLIC int
 table_remove (table_t *tablep,
-	datum_t to_be_removed,
-	datum_t *removed)
+	void *to_be_removed,
+	void **removed)
 {
     if (tablep->use_avl_tree) {
 	return
@@ -82,9 +84,9 @@ table_remove (table_t *tablep,
 	index_obj_remove(&tablep->u.idx, to_be_removed, removed);
 }
 
-PUBLIC error_t
+PUBLIC int
 table_traverse (table_t *tablep, traverse_function_t tfn,
-    datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+    void *p0, void *p1, void *p2, void *p3)
 {
     if (tablep->use_avl_tree) {
 	return
@@ -95,7 +97,7 @@ table_traverse (table_t *tablep, traverse_function_t tfn,
 	index_obj_traverse(&tablep->u.idx, tfn, p0, p1, p2, p3);
 }
 
-PUBLIC datum_t *
+PUBLIC void **
 table_get_all (table_t *tablep, int *returned_count)
 {
     if (tablep->use_avl_tree) {
@@ -114,10 +116,10 @@ table_member_count (table_t *tablep)
 	    tablep->u.avl.n : tablep->u.idx.n;
 }
 
-PUBLIC uint64
+PUBLIC unsigned long long int
 table_memory_usage (table_t *tablep, double *mega_bytes)
 {
-    int64 size;
+    unsigned long long int size;
     
     if (tablep->use_avl_tree) {
         OBJECT_MEMORY_USAGE(&tablep->u.avl, size, *mega_bytes);

@@ -26,11 +26,13 @@
 
 #include "queue_object.h"
 
-static error_t
+#define PUBLIC
+
+static int
 thread_unsafe_queue_expand (queue_obj_t *qobj)
 {
     int new_size;
-    datum_t *new_elements;
+    void **new_elements;
     int w;
 
     /* q is defined to be of fixed size, not allowed to expand */
@@ -38,7 +40,7 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
 
     /* expand the elements */
     new_size = qobj->maximum_size + qobj->expansion_increment;
-    new_elements = MEM_MONITOR_ALLOC(qobj, (new_size * sizeof(datum_t)));
+    new_elements = MEM_MONITOR_ALLOC(qobj, (new_size * sizeof(void*)));
     if (NULL == new_elements) return ENOMEM;
 
     /* copy all unread events/data to new queue elements array */
@@ -61,11 +63,11 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
     return 0;
 }
 
-static error_t
+static int
 thread_unsafe_queue_obj_queue (queue_obj_t *qobj, 
-	datum_t data)
+	void *data)
 {
-    error_t rv;
+    int rv;
 
     /* do we have space */
     if (qobj->n < qobj->maximum_size) {
@@ -77,7 +79,7 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
 
     /* no space, can we expand */
     rv = thread_unsafe_queue_expand(qobj);
-    if (SUCCEEDED(rv)) {
+    if (0 == rv) {
         return
             thread_unsafe_queue_obj_queue(qobj, data);
     }
@@ -86,9 +88,9 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
     return rv;
 }
 
-static error_t
+static int
 thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
-	datum_t *returned_data)
+	void **returned_data)
 {
     if (qobj->n > 0) {
 	*returned_data = qobj->elements[qobj->read_idx];
@@ -96,19 +98,19 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
 	qobj->read_idx = (qobj->read_idx + 1) % qobj->maximum_size;
 	return 0;
     }
-    returned_data->pointer = NULL;
+    *returned_data = NULL;
     return ENODATA;
 }
 
 /************************ public functions ************************/
 
-PUBLIC error_t
+PUBLIC int
 queue_obj_init (queue_obj_t *qobj,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	int maximum_size, int expansion_increment,
         mem_monitor_t *parent_mem_monitor)
 {
-    error_t rv = 0;
+    int rv = 0;
 
     if (maximum_size < 1) {
 	return EINVAL;
@@ -124,8 +126,8 @@ queue_obj_init (queue_obj_t *qobj,
     qobj->read_idx = qobj->write_idx = 0;
 
     /* allocate its queue element storage */
-    qobj->elements = (datum_t*) MEM_MONITOR_ALLOC(qobj,
-            (maximum_size * sizeof(datum_t)));
+    qobj->elements = (void**) MEM_MONITOR_ALLOC(qobj,
+            (maximum_size * sizeof(void*)));
     if (NULL == qobj->elements) {
 	rv = ENOMEM;
     }
@@ -133,11 +135,11 @@ queue_obj_init (queue_obj_t *qobj,
     return rv;
 }
 
-PUBLIC error_t
+PUBLIC int
 queue_obj_queue (queue_obj_t *qobj,
-	datum_t data)
+	void *data)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(qobj);
     rv = thread_unsafe_queue_obj_queue(qobj, data);
@@ -145,11 +147,11 @@ queue_obj_queue (queue_obj_t *qobj,
     return rv;
 }
 
-PUBLIC error_t
+PUBLIC int
 queue_obj_dequeue (queue_obj_t *qobj,
-	datum_t *returned_data)
+	void **returned_data)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(qobj);
     rv = thread_unsafe_queue_obj_dequeue(qobj, returned_data);
@@ -166,53 +168,6 @@ queue_obj_destroy (queue_obj_t *qobj)
     LOCK_OBJ_DESTROY(qobj);
     memset(qobj, 0, sizeof(queue_obj_t));
 }
-
-PUBLIC error_t
-queue_obj_queue_integer (queue_obj_t *qobj,
-	int integer)
-{
-    datum_t data;
-
-    data.integer = integer;
-    return
-	queue_obj_queue(qobj, data);
-}
-
-PUBLIC error_t
-queue_obj_dequeue_integer (queue_obj_t *qobj,
-	int *returned_integer)
-{
-    datum_t data;
-    error_t rv;
-
-    rv = queue_obj_dequeue(qobj, &data);
-    *returned_integer = data.integer;
-    return rv;
-}
-
-PUBLIC error_t
-queue_obj_queue_pointer (queue_obj_t *qobj,
-	void *pointer)
-{
-    datum_t data;
-
-    data.pointer = pointer;
-    return
-	queue_obj_queue(qobj, data);
-}
-
-PUBLIC error_t
-queue_obj_dequeue_pointer (queue_obj_t *qobj,
-	void **returned_pointer)
-{
-    datum_t data;
-    error_t rv;
-
-    rv = queue_obj_dequeue(qobj, &data);
-    *returned_pointer = data.pointer;
-    return rv;
-}
-
 
 
 

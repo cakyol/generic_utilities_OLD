@@ -26,14 +26,16 @@
 
 #include "sll_object.h"
 
+#define PUBLIC
+
 static inline sll_node_t *
-new_sll_node (sll_object_t *sll, datum_t user_datum)
+new_sll_node (sll_object_t *sll, void *user_data)
 {
     sll_node_t *node = MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
 
     if (node) {
 	node->next = NULL;
-	node->user_datum = user_datum;
+	node->user_data = user_data;
     }
     return node;
 }
@@ -41,19 +43,19 @@ new_sll_node (sll_object_t *sll, datum_t user_datum)
 /*
  * add in ascending order based on the comparison function provided
  */
-static error_t
+static int
 thread_unsafe_sll_object_add (sll_object_t *sll,
-	datum_t user_datum)
+	void *user_data)
 {
     int result;
     sll_node_t *cur, *prev;
-    sll_node_t *node = new_sll_node(sll, user_datum);
+    sll_node_t *node = new_sll_node(sll, user_data);
 
     if (NULL == node) return ENOMEM;
     cur = sll->head;
     prev = NULL;
     while (not_sll_end_node(cur)) {
-        result = sll->cmpf(cur->user_datum, user_datum);
+        result = sll->cmpf(cur->user_data, user_data);
         if (result >= 0) break;
         prev = cur;
         cur = cur->next;
@@ -69,10 +71,10 @@ thread_unsafe_sll_object_add (sll_object_t *sll,
     return 0;
 }
 
-static error_t
+static int
 thread_unsafe_sll_object_search (sll_object_t *sll,
-	datum_t searched_datum, 
-	datum_t *datum_found,
+	void *searched_data, 
+	void **data_found,
         sll_node_t **node_found)
 {
     int result;
@@ -80,11 +82,11 @@ thread_unsafe_sll_object_search (sll_object_t *sll,
 
     while (not_sll_end_node(temp)) {
 
-        result = sll->cmpf(temp->user_datum, searched_datum);
+        result = sll->cmpf(temp->user_data, searched_data);
 
         /* found exact match */
 	if (result == 0) {
-	    *datum_found = temp->user_datum;
+	    *data_found = temp->user_data;
             *node_found = temp;
 	    return 0;
 	}
@@ -102,20 +104,20 @@ thread_unsafe_sll_object_search (sll_object_t *sll,
     return ENODATA;
 }
 
-static error_t
+static int
 thread_unsafe_sll_object_add_once (sll_object_t *sll,
-	datum_t user_datum)
+	void *user_data)
 {
-    datum_t found_datum;
+    void *found_data;
     sll_node_t *found_node;
 
-    if (thread_unsafe_sll_object_search(sll, user_datum, 
-            &found_datum, &found_node) == 0) {
-                /* datum is already in the list */
+    if (thread_unsafe_sll_object_search(sll, user_data, 
+            &found_data, &found_node) == 0) {
+                /* data is already in the list */
                 return 0;
     }
     return
-	thread_unsafe_sll_object_add(sll, user_datum);
+	thread_unsafe_sll_object_add(sll, user_data);
 }
 
 /*
@@ -131,7 +133,7 @@ thread_unsafe_sll_object_add_once (sll_object_t *sll,
  * (which is never NULL), this algorithm works even for 
  * deleting the last node in the list.
  */
-static error_t
+static int
 thread_unsafe_sll_node_delete (sll_object_t *sll,
         sll_node_t *node_tobe_deleted)
 {
@@ -149,10 +151,10 @@ thread_unsafe_sll_node_delete (sll_object_t *sll,
     return 0;
 }
 
-static error_t
+static int
 thread_unsafe_sll_object_delete (sll_object_t *sll,
-	datum_t to_be_deleted, 
-	datum_t *actual_data_deleted)
+	void *to_be_deleted, 
+	void **actual_data_deleted)
 {
     sll_node_t *node_tobe_deleted;
 
@@ -166,14 +168,14 @@ thread_unsafe_sll_object_delete (sll_object_t *sll,
 
 /**************************** Initialize *************************************/
 
-PUBLIC error_t
+PUBLIC int
 sll_object_init (sll_object_t *sll,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	comparison_function_t cmpf,
 	mem_monitor_t *parent_mem_monitor)
 {
     sll_node_t *node;
-    error_t rv = 0;
+    int rv = 0;
 
     LOCK_SETUP(sll);
     MEM_MONITOR_SETUP(sll);
@@ -182,7 +184,7 @@ sll_object_init (sll_object_t *sll,
     node = (sll_node_t*) MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
     if (node) {
         node->next = NULL;
-        node->user_datum.pointer = NULL;
+        node->user_data = NULL;
         sll->head = node;
         sll->n = 0;
         sll->cmpf = cmpf;
@@ -196,121 +198,53 @@ sll_object_init (sll_object_t *sll,
 
 /**************************** Insert/add *************************************/
 
-PUBLIC error_t
-sll_object_add (sll_object_t *sll, datum_t user_datum)
+PUBLIC int
+sll_object_add (sll_object_t *sll, void *user_data)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_add(sll, user_datum);
+    rv = thread_unsafe_sll_object_add(sll, user_data);
     WRITE_UNLOCK(sll);
     return rv;
 }
 
-PUBLIC error_t
-sll_object_add_integer (sll_object_t *sll, int integer)
+PUBLIC int
+sll_object_add_once (sll_object_t *sll, void *user_data)
 {
-    datum_t d;
-
-    d.integer = integer;
-    return
-        sll_object_add(sll, d);
-}
-
-PUBLIC error_t
-sll_object_add_pointer (sll_object_t *sll, void *pointer)
-{
-    datum_t d;
-
-    d.pointer = pointer;
-    return
-        sll_object_add(sll, d);
-}
-
-PUBLIC error_t
-sll_object_add_once (sll_object_t *sll, datum_t user_datum)
-{
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_add_once(sll, user_datum);
+    rv = thread_unsafe_sll_object_add_once(sll, user_data);
     WRITE_UNLOCK(sll);
     return rv;
-}
-
-PUBLIC error_t
-sll_object_add_once_integer (sll_object_t *sll, int integer)
-{
-    datum_t d;
-
-    d.integer = integer;
-    return
-        sll_object_add_once(sll, d);
-}
-
-PUBLIC error_t
-sll_object_add_once_pointer (sll_object_t *sll, void *pointer)
-{
-    datum_t d;
-
-    d.pointer = pointer;
-    return
-        sll_object_add_once(sll, d);
 }
 
 /**************************** Search *****************************************/
 
-PUBLIC error_t
+PUBLIC int
 sll_object_search (sll_object_t *sll,
-	datum_t searched_datum,
-	datum_t *datum_found)
+	void *searched_data,
+	void **data_found)
 {
-    error_t rv;
+    int rv;
     sll_node_t *node_found;
 
     WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_search(sll, searched_datum, 
-            datum_found, &node_found);
+    rv = thread_unsafe_sll_object_search(sll, searched_data, 
+            data_found, &node_found);
     WRITE_UNLOCK(sll);
-    return rv;
-}
-
-PUBLIC error_t
-sll_object_search_integer (sll_object_t *sll, 
-        int searched_integer,
-        int *found_integer)
-{
-    error_t rv;
-    datum_t ds, df;
-
-    ds.integer = searched_integer;
-    rv = sll_object_search(sll, ds, &df);
-    *found_integer = df.integer;
-    return rv;
-}
-
-PUBLIC error_t
-sll_object_search_pointer (sll_object_t *sll, 
-        void *searched_pointer,
-        void **found_pointer)
-{
-    error_t rv;
-    datum_t ds, df;
-
-    ds.pointer = searched_pointer;
-    rv = sll_object_search(sll, ds, &df);
-    *found_pointer = df.pointer;
     return rv;
 }
 
 /**************************** Remove/delete **********************************/ 
 
-PUBLIC error_t
+PUBLIC int
 sll_object_delete (sll_object_t *sll,
-	datum_t to_be_deleted,
-	datum_t *actual_data_deleted)
+	void *to_be_deleted,
+	void **actual_data_deleted)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(sll);
     rv = thread_unsafe_sll_object_delete(sll, to_be_deleted, actual_data_deleted);
@@ -318,45 +252,17 @@ sll_object_delete (sll_object_t *sll,
     return rv;
 }
 
-PUBLIC error_t
-sll_object_delete_integer (sll_object_t *sll,
-        int int_to_be_deleted,
-        int *actual_int_deleted)
-{
-    error_t rv;
-    datum_t ds, df;
-
-    ds.integer = int_to_be_deleted;
-    rv = sll_object_delete(sll, ds, &df);
-    *actual_int_deleted = df.integer;
-    return rv;
-}
-
-PUBLIC error_t
-sll_object_delete_pointer (sll_object_t *sll,
-        void *pointer_to_be_deleted,
-        void **actual_pointer_deleted)
-{
-    error_t rv;
-    datum_t ds, df;
-
-    ds.pointer = pointer_to_be_deleted;
-    rv = sll_object_delete(sll, ds, &df);
-    *actual_pointer_deleted = df.pointer;
-    return rv;
-}
-
 /**************************** Traverse/iterate *******************************/ 
 
-PUBLIC error_t
+PUBLIC int
 sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
-        datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+        void *p0, void *p1, void *p2, void *p3)
 {
-    error_t rv;
+    int rv;
     sll_node_t *iter = sll->head;
 
     while (not_sll_end_node(iter)) {
-        rv = tfn(sll, iter, iter->user_datum, p0, p1, p2, p3);
+        rv = tfn(sll, iter, iter->user_data, p0, p1, p2, p3);
         if (rv) return rv;
         iter = iter->next;
     }

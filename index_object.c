@@ -26,11 +26,13 @@
 
 #include "index_object.h"
 
+#define PUBLIC
+
 /*
  * Handles overlapping copies
  */
 static inline void
-copy_index_elements (datum_t *src, datum_t *dst, int count)
+copy_index_elements (void **src, void **dst, int count)
 {
     if (dst < src)
 	while (count-- > 0) *dst++ = *src++;
@@ -41,12 +43,12 @@ copy_index_elements (datum_t *src, datum_t *dst, int count)
     }
 }
 
-static error_t
+static int
 index_resize (index_obj_t *idx, int new_size)
 {
-    datum_t *new_elements;
+    void **new_elements;
 
-    new_elements = MEM_MONITOR_ALLOC(idx, new_size * sizeof(datum_t));
+    new_elements = MEM_MONITOR_ALLOC(idx, new_size * sizeof(void*));
     if (NULL == new_elements) return ENOMEM;
     copy_index_elements(idx->elements, new_elements, idx->n);
     MEM_MONITOR_FREE(idx, idx->elements);
@@ -60,7 +62,7 @@ index_resize (index_obj_t *idx, int new_size)
 */
 static int 
 index_find_position (index_obj_t *idx,
-	datum_t searched_data, 
+	void *searched_data, 
 	int *insertion_point)
 {
     register int mid, diff, lo, hi;
@@ -86,18 +88,18 @@ index_find_position (index_obj_t *idx,
     ** inserted, in case it was required to be put into 
     ** the array.
     */
-    SAFE_POINTER_SET(insertion_point, (diff > 0 ? (mid + 1) : mid));
+    *insertion_point = diff > 0 ? (mid + 1) : mid;
     return -1;
 }
 
-static error_t
+static int
 thread_unsafe_index_obj_insert (index_obj_t *idx,
-	datum_t data,
-        datum_t *exists)
+	void *data,
+        void **exists)
 {
     int insertion_point = 0;	/* shut the -Werror up */
     int size, i;
-    datum_t *source;
+    void **source;
 
     /*
     ** see if element is already there and if not,
@@ -107,7 +109,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
     /* key/data already in index */
     if (i >= 0) {
-        SAFE_POINTER_SET(exists, idx->elements[i]);
+        *exists = idx->elements[i];
         return 0;
     }
 
@@ -115,7 +117,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     ** if we are here, key/data pair is NOT in the index
     ** and we are attempting to insert it for the first time
     */
-    SAFE_NULLIFY_DATUMP(exists);
+    *exists = NULL;
 
     /* if index is full, attempt to expand by specified expansion_size */
     if (idx->n >= idx->maximum_size) {
@@ -126,7 +128,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 	}
 
 	/* tried to expand but failed */
-	if (FAILED(index_resize(idx, idx->maximum_size + idx->expansion_size))) {
+	if (index_resize(idx, idx->maximum_size + idx->expansion_size)) {
 	    return ENOMEM;
 	}
 
@@ -151,47 +153,47 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     return 0;
 }
 
-static error_t 
+static int 
 thread_unsafe_index_obj_search (index_obj_t *idx,
-	datum_t search_key,
-	datum_t *found)
+	void *search_key,
+	void **found)
 {
-    int i;
+    int i, dummy;
 
-    i = index_find_position(idx, search_key, NULL);
+    i = index_find_position(idx, search_key, &dummy);
 
     /* not found */
     if (i < 0) {
-        SAFE_NULLIFY_DATUMP(found);
+        *found = NULL;
 	return ENODATA;
     }
 
-    SAFE_POINTER_SET(found, idx->elements[i]);
+    *found = idx->elements[i];
     return 0;
 }
 
-static error_t
+static int
 thread_unsafe_index_obj_remove (index_obj_t *idx,
-	datum_t data_to_be_removed,
-	datum_t *actual_data_removed)
+	void *data_to_be_removed,
+	void **actual_data_removed)
 {
-    int i, size;
+    int i, size, dummy;
 
     /* first see if it is there */
-    i = index_find_position(idx, data_to_be_removed, NULL);
+    i = index_find_position(idx, data_to_be_removed, &dummy);
 
     /* not in table */
     if (i < 0) {
-        SAFE_NULLIFY_DATUMP(actual_data_removed);
+        *actual_data_removed = NULL;
 	return ENODATA;
     }
 
-    SAFE_POINTER_SET(actual_data_removed, idx->elements[i]);
+    *actual_data_removed = idx->elements[i];
     idx->n--;
 
     /* pull the elements AFTER "index" to the left by one */
     if ((size = idx->n - i) > 0) {
-	datum_t *source = &idx->elements[i+1];
+	void **source = &idx->elements[i+1];
 	copy_index_elements(source, (source - 1), size);
     }
 
@@ -200,15 +202,15 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
 /**************************** Initialize *************************************/
 
-PUBLIC error_t
+PUBLIC int
 index_obj_init (index_obj_t *idx,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	comparison_function_t cmpf,
 	int maximum_size,
 	int expansion_size,
         mem_monitor_t *parent_mem_monitor)
 {
-    error_t rv = 0;
+    int rv = 0;
 
     if ((maximum_size <= 1) || (expansion_size < 0)) {
 	return EINVAL;
@@ -222,7 +224,7 @@ index_obj_init (index_obj_t *idx,
     idx->n = 0;
 
     MEM_MONITOR_SETUP(idx);
-    idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(datum_t) * maximum_size);
+    idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
 	rv = EINVAL;
     }
@@ -232,178 +234,56 @@ index_obj_init (index_obj_t *idx,
 
 /**************************** Insert *****************************************/
 
-PUBLIC error_t
+PUBLIC int
 index_obj_insert (index_obj_t *idx,
-	datum_t datum_to_be_inserted,
-	datum_t *datum_already_present)
+	void *data_to_be_inserted,
+	void **data_already_present)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(idx);
     rv = thread_unsafe_index_obj_insert(idx, 
-            datum_to_be_inserted, datum_already_present);
+            data_to_be_inserted, data_already_present);
     WRITE_UNLOCK(idx);
-    return rv;
-}
-
-PUBLIC error_t
-index_obj_insert_integer (index_obj_t *idx,
-        int integer_to_be_inserted, 
-        int *integer_already_present)
-{
-    error_t rv;
-    datum_t d, f;
-
-    d.integer = integer_to_be_inserted;
-    rv = index_obj_insert(idx, d, &f);
-    *integer_already_present = f.integer;
-    return rv;
-}
-
-PUBLIC error_t
-index_obj_insert_pointer (index_obj_t *idx,
-        void *pointer_to_be_inserted, 
-        void **pointer_already_present)
-{
-    error_t rv;
-    datum_t d, f;
-
-    d.pointer = pointer_to_be_inserted;
-    rv = index_obj_insert(idx, d, &f);
-    *pointer_already_present = f.pointer;
     return rv;
 }
 
 /**************************** Search *****************************************/
 
-PUBLIC error_t
+PUBLIC int
 index_obj_search (index_obj_t *idx,
-	datum_t datum_to_be_inserted,
-	datum_t *datum_found)
+	void *data_to_be_inserted,
+	void **data_found)
 {
-    error_t rv;
+    int rv;
 
     READ_LOCK(idx);
     rv = thread_unsafe_index_obj_search(idx, 
-            datum_to_be_inserted, datum_found);
+            data_to_be_inserted, data_found);
     READ_UNLOCK(idx);
-    return rv;
-}
-
-PUBLIC error_t
-index_obj_search_integer (index_obj_t *idx,
-        int integer_to_be_inserted,
-        int *integer_found)
-{
-    error_t rv;
-    datum_t d, f;
-
-    d.integer = integer_to_be_inserted;
-    rv = index_obj_search(idx, d, &f);
-    *integer_found = f.integer;
-    return rv;
-}
-
-PUBLIC error_t
-index_obj_search_pointer (index_obj_t *idx,
-        void *pointer_to_be_inserted,
-        void **pointer_found)
-{
-    error_t rv;
-    datum_t d, f;
-
-    d.pointer = pointer_to_be_inserted;
-    rv = index_obj_search(idx, d, &f);
-    *pointer_found = f.pointer;
     return rv;
 }
 
 /**************************** Remove *****************************************/
 
-PUBLIC error_t
+PUBLIC int
 index_obj_remove (index_obj_t *idx,
-	datum_t datum_to_be_removed,
-	datum_t *datum_actually_removed)
+	void *data_to_be_removed,
+	void **data_actually_removed)
 {
-    error_t rv;
+    int rv;
     
     WRITE_LOCK(idx);
     rv = thread_unsafe_index_obj_remove(idx,
-		datum_to_be_removed, datum_actually_removed);
+		data_to_be_removed, data_actually_removed);
     WRITE_UNLOCK(idx);
-    return rv;
-}
-
-PUBLIC error_t
-index_obj_remove_integer (index_obj_t *idx,
-        int integer_to_be_removed,
-        int *integer_actually_removed)
-{
-    error_t rv;
-    datum_t d, f;
-
-    d.integer = integer_to_be_removed;
-    rv = index_obj_remove(idx, d, &f);
-    *integer_actually_removed = f.integer;
-    return rv;
-}
-
-PUBLIC error_t
-index_obj_remove_pointer (index_obj_t *idx,
-        void *pointer_to_be_removed,
-        void **pointer_actually_removed)
-{
-    error_t rv;
-    datum_t d, f;
-
-    d.pointer = pointer_to_be_removed;
-    rv = index_obj_remove(idx, d, &f);
-    *pointer_actually_removed = f.pointer;
     return rv;
 }
 
 /**************************** Get all entries ********************************/
 
-PUBLIC datum_t *
-index_obj_get_all (index_obj_t *idx, int *returned_count)
-{
-    int i;
-    datum_t *storage_area;
-
-    READ_LOCK(idx);
-    storage_area = MEM_MONITOR_ALLOC(idx, (idx->n + 1) * sizeof(datum_t));
-    if (NULL == storage_area) {
-	*returned_count = 0;
-	READ_UNLOCK(idx);
-	return NULL;
-    }
-    for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i];
-    *returned_count = i;
-    READ_UNLOCK(idx);
-    return storage_area;
-}
-
-PUBLIC int *
-index_obj_get_all_integers (index_obj_t *idx, int *returned_count)
-{
-    int i;
-    int *storage_area;
-
-    READ_LOCK(idx);
-    storage_area = MEM_MONITOR_ALLOC(idx, (idx->n + 1) * sizeof(int));
-    if (NULL == storage_area) {
-	*returned_count = 0;
-	READ_UNLOCK(idx);
-	return NULL;
-    }
-    for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i].integer;
-    *returned_count = i;
-    READ_UNLOCK(idx);
-    return storage_area;
-}
-
 PUBLIC void **
-index_obj_get_all_pointers (index_obj_t *idx, int *returned_count)
+index_obj_get_all (index_obj_t *idx, int *returned_count)
 {
     int i;
     void **storage_area;
@@ -415,7 +295,7 @@ index_obj_get_all_pointers (index_obj_t *idx, int *returned_count)
 	READ_UNLOCK(idx);
 	return NULL;
     }
-    for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i].pointer;
+    for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i];
     *returned_count = i;
     READ_UNLOCK(idx);
     return storage_area;
@@ -423,18 +303,18 @@ index_obj_get_all_pointers (index_obj_t *idx, int *returned_count)
 
 /**************************** Traverse ***************************************/
 
-PUBLIC error_t
+PUBLIC int
 index_obj_traverse (index_obj_t *idx,
         traverse_function_t tfn,
-        datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+        void *p0, void *p1, void *p2, void *p3)
 {
     int i;
-    error_t rv = 0;
+    int rv = 0;
 
     READ_LOCK(idx);
     for (i = 0; i < idx->n; i++) {
 	if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
-	    p0, p1, p2, p3) != ok) {
+	    p0, p1, p2, p3) != 0) {
 		rv = EFAULT;
 		break;
 	}

@@ -26,6 +26,8 @@
 
 #include "avl_tree_object.h"
 
+#define PUBLIC
+
 static inline avl_node_t *
 get_first (avl_node_t *node)
 {
@@ -42,7 +44,7 @@ get_last (avl_node_t *node)
 
 static inline void 
 set_child (avl_node_t *child, avl_node_t *parent, 
-    boolean left)
+    int left)
 {
     if (left)
 	parent->left = child;
@@ -128,20 +130,20 @@ rotate_right (avl_node_t *node, avl_tree_t *tree)
 
 static avl_node_t *
 avl_lookup_engine (avl_tree_t *tree,
-	datum_t searched,
+	void *searched,
 	avl_node_t **pparent, avl_node_t **unbalanced, 
-        boolean *is_left)
+        int *is_left)
 {
     avl_node_t *node = tree->root_node;
     int res = 0;
 
     *pparent = NULL;
     *unbalanced = node;
-    *is_left = FALSE;
+    *is_left = 0;
 
     while (node) {
 	if (node->balance) *unbalanced = node;
-	res = (tree->cmpf)(searched, node->data);
+	res = (tree->cmpf)(searched, node->user_data);
 	if (res == 0) return node;
 	*pparent = node;
 	if ((*is_left = (res < 0))) {
@@ -165,7 +167,7 @@ free_avl_node (avl_tree_t *tree, avl_node_t *node)
 }
 
 static inline avl_node_t *
-new_avl_node (avl_tree_t *tree, datum_t data)
+new_avl_node (avl_tree_t *tree, void *user_data)
 {
     avl_node_t *node;
 
@@ -177,7 +179,7 @@ new_avl_node (avl_tree_t *tree, datum_t data)
     if (node) {
         node->parent = node->left = node->right = NULL;
         node->balance = 0;
-        node->data = data;
+        node->user_data = user_data;
         tree->n++;
     }
     return node;
@@ -189,7 +191,7 @@ new_avl_node (avl_tree_t *tree, datum_t data)
 static void 
 avl_node_destroy_nodes (avl_tree_t *tree,
 	avl_node_t *node, 
-	boolean leave_parent_consistent)
+	int leave_parent_consistent)
 {
     avl_node_t *parent, *left, *right;
 
@@ -224,31 +226,31 @@ avl_node_destroy_nodes (avl_tree_t *tree,
     // nodes, there is no need to leave the parent's
     // pointers consistent.
     //
-    avl_node_destroy_nodes(tree, left, false);
-    avl_node_destroy_nodes(tree, right, false);
+    avl_node_destroy_nodes(tree, left, 0);
+    avl_node_destroy_nodes(tree, right, 0);
 }
 
-static error_t 
+static int 
 thread_unsafe_avl_tree_insert (avl_tree_t *tree,
-    datum_t datum_to_be_inserted,
-    datum_t *datum_already_present)
+    void *data_to_be_inserted,
+    void **data_already_present)
 {
     avl_node_t *found, *parent, *unbalanced, *node;
-    boolean is_left;
+    int is_left;
 
     // assume the entry is not present initially
-    NULLIFY_DATUMP(datum_already_present);
+    *data_already_present = NULL;
 
-    found = avl_lookup_engine(tree, datum_to_be_inserted,
+    found = avl_lookup_engine(tree, data_to_be_inserted,
 		&parent, &unbalanced, &is_left);
 
     if (found) {
-        *datum_already_present = found->data;
+        *data_already_present = found->user_data;
 	return 0;
     }
 
     /* get a new node */
-    node = new_avl_node(tree, datum_to_be_inserted);
+    node = new_avl_node(tree, data_to_be_inserted);
     if (NULL == node) {
 	return ENOMEM;
     }
@@ -345,17 +347,17 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     return 0;
 }
 
-static error_t 
+static int 
 thread_unsafe_avl_tree_remove (avl_tree_t *tree,
-	datum_t data_to_be_removed,
-	datum_t *actual_data_removed)
+	void *data_to_be_removed,
+	void **actual_data_removed)
 {
     avl_node_t *node, *to_be_deleted;
     avl_node_t *parent, *unbalanced;
     avl_node_t *left;
     avl_node_t *right;
     avl_node_t *next;
-    boolean is_left;
+    int is_left;
 
     /* find the matching node first */
     node = avl_lookup_engine(tree, data_to_be_removed,
@@ -363,12 +365,12 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
 
     /* not there */
     if (!node) {
-        SAFE_NULLIFY_DATUMP(actual_data_removed);
+        *actual_data_removed = NULL;
 	return ENODATA;
     }
 
     /* if we are here, we found it */
-    SAFE_DATUMP_SET(actual_data_removed, node->data);
+    *actual_data_removed = node->user_data;
 
     /* cache it for later freeing */
     to_be_deleted = node;
@@ -406,12 +408,12 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
 	    parent->left = node;
 	    next->right = right;
 	    right->parent = next;
-	    is_left = TRUE;
+	    is_left = 1;
 	} else {
 	    next->parent = parent;
 	    parent = next;
 	    node = parent->right;
-	    is_left = FALSE;
+	    is_left = 0;
 	}
 	assert(parent != NULL);
     } else
@@ -521,12 +523,12 @@ END_OF_DELETE:
  * using recursion and without stack.  No extra storage
  * is needed, therefore it is frugal in memory usage.
  */
-error_t
+int
 thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_t tfn,
-        datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+        void *p0, void *p1, void *p2, void *p3)
 {
-    error_t rv;
+    int rv;
     avl_node_t *current;
 
     /* if the starting root is NULL, start from top of tree */
@@ -536,7 +538,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 
     while (root) {
         if (root->left == NULL) {
-            rv = tfn(tree, root, root->data, p0, p1, p2, p3);
+            rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
             if (rv) return rv;
             root = root->right;
         } else {
@@ -549,7 +551,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
                 current->right = NULL;
                 root = root->right;
             } else {
-                rv = tfn(tree, root, root->data, p0, p1, p2, p3);
+                rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
                 if (rv) return rv;
                 current->right = root;
                 root = root->left;
@@ -561,9 +563,9 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 
 /**************************** Initialize *************************************/
 
-PUBLIC error_t
+PUBLIC int
 avl_tree_init (avl_tree_t *tree,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	comparison_function_t cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -574,7 +576,7 @@ avl_tree_init (avl_tree_t *tree,
 
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_init(&tree->nodes, 
-        false, 
+        0, 
         sizeof(avl_node_t), 256, 256, tree->memp);
 #endif // USE_CHUNK_MANAGER
 
@@ -587,165 +589,81 @@ avl_tree_init (avl_tree_t *tree,
 
 /**************************** Insert *****************************************/
 
-PUBLIC error_t
+PUBLIC int
 avl_tree_insert (avl_tree_t *tree,
-	datum_t datum_to_be_inserted,
-	datum_t *datum_already_present)
+	void *data_to_be_inserted,
+	void **data_already_present)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(tree);
     rv = thread_unsafe_avl_tree_insert(tree,
-            datum_to_be_inserted, datum_already_present);
+            data_to_be_inserted, data_already_present);
     WRITE_UNLOCK(tree);
-    return rv;
-}
-
-PUBLIC error_t
-avl_tree_insert_integer (avl_tree_t *tree,
-        int integer_to_be_inserted,
-        int *integer_already_present)
-{
-    error_t rv;
-    datum_t datum_to_be_inserted, datum_already_present;
-
-    datum_to_be_inserted.integer = integer_to_be_inserted;
-    rv = avl_tree_insert(tree, datum_to_be_inserted, &datum_already_present);
-    *integer_already_present = datum_already_present.integer;
-    return rv;
-}
-
-PUBLIC error_t
-avl_tree_insert_pointer (avl_tree_t *tree,
-        void *pointer_to_be_inserted,
-        void **pointer_already_present)
-{
-    error_t rv;
-    datum_t datum_to_be_inserted, datum_already_present;
-
-    datum_to_be_inserted.pointer = pointer_to_be_inserted;
-    rv = avl_tree_insert(tree, datum_to_be_inserted, &datum_already_present);
-    *pointer_already_present = datum_already_present.pointer;
     return rv;
 }
 
 /**************************** Search *****************************************/
 
-PUBLIC error_t 
+PUBLIC int 
 avl_tree_search (avl_tree_t *tree, 
-	datum_t datum_to_be_searched,
-	datum_t *datum_found)
+	void *data_to_be_searched,
+	void **data_found)
 {
-    error_t rv;
+    int rv;
     avl_node_t *parent, *unbalanced, *node;
-    boolean is_left;
+    int is_left;
 
     READ_LOCK(tree);
-    node = avl_lookup_engine(tree, datum_to_be_searched, 
+    node = avl_lookup_engine(tree, data_to_be_searched, 
                 &parent, &unbalanced, &is_left);
     if (node) {
-        *datum_found = node->data;
+        *data_found = node->user_data;
 	rv = 0;
     } else {
-	NULLIFY_DATUMP(datum_found);
+	*data_found = NULL;
 	rv = ENODATA;
     }
     READ_UNLOCK(tree);
     return rv;
 }
 
-PUBLIC error_t
-avl_tree_search_integer (avl_tree_t *tree,
-        int integer_to_be_searched,
-        int *integer_found)
-{
-    error_t rv;
-    datum_t datum_to_be_searched, datum_found;
-
-    datum_to_be_searched.integer = integer_to_be_searched;
-    rv = avl_tree_search(tree, datum_to_be_searched, &datum_found);
-    *integer_found = datum_found.integer;
-    return rv;
-}
-
-PUBLIC error_t
-avl_tree_search_pointer (avl_tree_t *tree,
-        void *pointer_to_be_searched,
-        void **pointer_found)
-{
-    error_t rv;
-    datum_t datum_to_be_searched, datum_found;
-
-    datum_to_be_searched.pointer = pointer_to_be_searched;
-    rv = avl_tree_search(tree, datum_to_be_searched, &datum_found);
-    *pointer_found = datum_found.pointer;
-    return rv;
-}
-
 /**************************** Remove *****************************************/
 
-PUBLIC error_t
+PUBLIC int
 avl_tree_remove (avl_tree_t *tree,
-	datum_t datum_to_be_removed,
-	datum_t *datum_actually_removed)
+	void *data_to_be_removed,
+	void **data_actually_removed)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(tree);
     rv = thread_unsafe_avl_tree_remove(tree,
-		datum_to_be_removed, datum_actually_removed);
+		data_to_be_removed, data_actually_removed);
     WRITE_UNLOCK(tree);
-    return rv;
-}
-
-PUBLIC error_t
-avl_tree_remove_integer (avl_tree_t *tree,
-        int integer_to_be_removed,
-        int *integer_actually_removed)
-{
-    error_t rv;
-    datum_t datum_to_be_removed, datum_actually_removed;
-
-    datum_to_be_removed.integer = integer_to_be_removed;
-    rv = avl_tree_remove(tree, datum_to_be_removed, &datum_actually_removed);
-    *integer_actually_removed = datum_actually_removed.integer;
-    return rv;
-}
-
-PUBLIC error_t
-avl_tree_remove_pointer (avl_tree_t *tree,
-        void *pointer_to_be_removed,
-        void **pointer_actually_removed)
-{
-    error_t rv;
-    datum_t datum_to_be_removed, datum_actually_removed;
-
-    datum_to_be_removed.pointer = pointer_to_be_removed;
-    rv = avl_tree_remove(tree, datum_to_be_removed, &datum_actually_removed);
-    *pointer_actually_removed = datum_actually_removed.pointer;
     return rv;
 }
 
 /**************************** Get all entries ********************************/
 
 ///// static void
-///// avl_node_get_all (avl_node_t *node, datum_t *storage_area, int *index)
+///// avl_node_get_all (avl_node_t *node, void **storage_area, int *index)
 ///// {
 /////     if (NULL == node) return;
-/////     storage_area[*index] = node->data;
+/////     storage_area[*index] = node->user_data;
 /////     (*index)++;
 /////     avl_node_get_all(node->left, storage_area, index);
 /////     avl_node_get_all(node->right, storage_area, index);
 ///// }
 ///// 
-///// PUBLIC datum_t *
+///// PUBLIC void **
 ///// avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 ///// {
-/////     datum_t *storage_area;
+/////     void **storage_area;
 /////     int index = 0;
 ///// 
 /////     READ_LOCK(tree);
-/////     storage_area = malloc((tree->n + 1) * sizeof(datum_t));
+/////     storage_area = malloc((tree->n + 1) * sizeof(void*));
 /////     if (NULL == storage_area) {
 ///// 	*returned_count = 0;
 /////     } else {
@@ -759,15 +677,15 @@ avl_tree_remove_pointer (avl_tree_t *tree,
 /*
  * This is much faster & more efficient with morris traverse
  */
-PUBLIC datum_t *
+PUBLIC void **
 avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 {
-    datum_t *storage_area;
+    void **storage_area;
     int index;
     avl_node_t *root, *current;
 
     READ_LOCK(tree);
-    storage_area = malloc((tree->n + 1) * sizeof(datum_t));
+    storage_area = malloc((tree->n + 1) * sizeof(void*));
     if (NULL == storage_area) {
         *returned_count = 0;
         READ_UNLOCK(tree);
@@ -778,7 +696,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
     root = tree->root_node;
     while (root) {
         if (root->left == NULL) {
-            storage_area[index++] = root->data;
+            storage_area[index++] = root->user_data;
             root = root->right;
         } else {
             current = root->left;
@@ -789,7 +707,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
                 current->right = NULL;
                 root = root->right;
             } else {
-                storage_area[index++] = root->data;
+                storage_area[index++] = root->user_data;
                 current->right = root;
                 root = root->left;
             }
@@ -801,34 +719,20 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
     return storage_area;
 }
 
-PUBLIC int *
-avl_tree_get_all_integers (avl_tree_t *tree, int *returned_count)
-{
-    *returned_count = 0;
-    return NULL;
-}
-
-PUBLIC void **
-avl_tree_get_all_pointers (avl_tree_t *tree, int *returned_count)
-{
-    *returned_count = 0;
-    return NULL;
-}
-
 /**************************** Traverse ***************************************/
 
-///// static error_t
+///// static int
 ///// thread_unsafe_recursive_traverse (avl_tree_t *tree,
 ///// 	avl_node_t *node,
 ///// 	traverse_function_t tfn,
-///// 	datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+///// 	void *p0, void *p1, void *p2, void *p3)
 ///// {
 /////     // end of branch
 /////     if (NULL == node)
 ///// 	return 0;
 ///// 
 /////     // apply traverse function to current node
-/////     if (FAILED((tfn)(tree, node, node->data, p0, p1, p2, p3))) 
+/////     if (FAILED((tfn)(tree, node, node->user_data, p0, p1, p2, p3))) 
 ///// 	return EFAULT;
 ///// 
 /////     // traverse recursively left subtree
@@ -842,12 +746,12 @@ avl_tree_get_all_pointers (avl_tree_t *tree, int *returned_count)
 ///// 
 ///// }
 ///// 
-///// PUBLIC error_t
+///// PUBLIC int
 ///// avl_tree_recursive_traverse (avl_tree_t *tree,
 ///// 	traverse_function_t tfn,
-///// 	datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+///// 	void *p0, void *p1, void *p2, void *p3)
 ///// {
-/////     error_t rv;
+/////     int rv;
 ///// 
 /////     READ_LOCK(tree);
 /////     rv = thread_unsafe_recursive_traverse(tree, tree->root_node,
@@ -856,12 +760,12 @@ avl_tree_get_all_pointers (avl_tree_t *tree, int *returned_count)
 /////     return rv;
 ///// }
 
-PUBLIC error_t
+PUBLIC int
 avl_tree_traverse (avl_tree_t *tree,
 	traverse_function_t tfn,
-	datum_t p0, datum_t p1, datum_t p2, datum_t p3)
+	void *p0, void *p1, void *p2, void *p3)
 {
-    error_t rv;
+    int rv;
 
     READ_LOCK(tree);
     rv = thread_unsafe_morris_traverse(tree, tree->root_node,
@@ -876,7 +780,7 @@ PUBLIC void
 avl_tree_destroy (avl_tree_t *tree)
 {
     WRITE_LOCK(tree);
-    avl_node_destroy_nodes(tree, tree->root_node, false);
+    avl_node_destroy_nodes(tree, tree->root_node, 0);
     assert(tree->n == 0);
     tree->root_node = tree->first_node = tree->last_node = NULL;
     tree->cmpf = NULL;

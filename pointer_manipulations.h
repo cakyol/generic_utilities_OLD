@@ -5,16 +5,16 @@
 *******************************************************************************
 *******************************************************************************
 **
-** Author: Cihangir Metin Akyol (gee.akyol@gmail.com, gee_akyol@yahoo.com)
-** Copyright: Cihangir Metin Akyol, March 2016
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com
+** Copyright: Cihangir Metin Akyol, March 2016, November 2017
 **
 ** This code is developed by and belongs to Cihangir Metin Akyol.  
 ** It is NOT owned by any company or consortium.  It is the sole
 ** property and work of one individual.
 **
 ** It can be used by ANYONE or ANY company for ANY purpose as long 
-** as NO ownership and/or patent claims are made to it by such persons 
-** or companies.
+** as ownership and/or patent claims are NOT made to it by ANYONE
+** or any ANY ENTITY.
 **
 ** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
 **
@@ -24,46 +24,36 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __STACK_OBJECT_H__
-#define __STACK_OBJECT_H__
+#ifndef __POINTER_MANIPULATIONS_H__
+#define __POINTER_MANIPULATIONS_H__
 
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include "lock_object.h"
-#include "mem_monitor.h"
+typedef unsigned char byte;
 
-typedef struct stack_obj_s {
+/*
+ * Sets a pointer to an integer value.  This can be directly done when
+ * a pointer is the same size as an integer but is usually complained 
+ * about by most compilers otherwise.  This little trick solves that.
+ */
+static inline void *
+integer2pointer (long long int value)
+{
+    byte *ptr = 0;
+    ptr += value;
+    return ptr;
+}
 
-    LOCK_VARIABLES;
-    MEM_MON_VARIABLES;
+static inline long long int
+pointer2integer (void *ptr)
+{
+    byte *zero = 0;
+    return ((byte*) ptr) - zero;
+}
 
-    int maximum_size;
-    int expansion_size;
-    int expansion_count;
-    int n;
-    void **elements;
+#define safe_pointer_set(ptr, value) \
+    if (ptr) *(ptr) = (value)
 
-} stack_obj_t;
+#endif // __POINTER_MANIPULATIONS_H__
 
-extern int
-stack_obj_init (stack_obj_t *stk,
-	int make_it_thread_safe,
-	int maximum_size,
-	int expansion_size,
-        mem_monitor_t *parent_mem_monitor);
 
-extern int
-stack_obj_push (stack_obj_t *stk,
-	void *data);
-
-extern int
-stack_obj_pop (stack_obj_t *stk,
-	void **returned_data);
-
-extern void
-stack_obj_destroy (stack_obj_t *stk);
-
-#endif // __STACK_OBJECT_H__
 
 

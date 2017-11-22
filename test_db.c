@@ -90,7 +90,7 @@ int main (int argc, char *argv[])
     int child_type, child_instance;
     int count;
 
-    database_initialize(&db, true, 1, notify_event, NULL);
+    database_initialize(&db, 1, 1, notify_event, NULL);
 
     printf("creating objects\n");
     count = 0;
@@ -102,9 +102,9 @@ int main (int argc, char *argv[])
 
     for (child_type = MAX_TYPES; child_type > 0; child_type--) {
 	for (child_instance = child_type; child_instance > 0; child_instance--) {
-	    if (FAILED(object_create(&db,
+	    if (object_create(&db,
                             parent_type, parent_instance,
-                            child_type, child_instance)))
+                            child_type, child_instance))
             {
                 fprintf(stderr, "object %d,%d creation with parent %d,%d failed\n",
                         child_type, child_instance,
