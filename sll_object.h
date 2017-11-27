@@ -27,6 +27,10 @@
 #ifndef __SLL_OBJECT_H__
 #define __SLL_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include "lock_object.h"
 #include "mem_monitor.h"
@@ -163,6 +167,10 @@ sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
 
 extern void
 sll_object_destroy (sll_object_t *sll);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __SLL_OBJECT_H__
 

@@ -40,6 +40,12 @@
 
 #include "trie_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define PUBLIC
+
 static trie_node_t *
 trie_new_child (trie_t *triep, int value)
 {
@@ -605,3 +611,9 @@ ntrie_destroy (ntrie_t *ntp)
 {
     // LATER
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
+
+

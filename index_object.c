@@ -26,6 +26,10 @@
 
 #include "index_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 /*
@@ -351,6 +355,10 @@ index_obj_trim (index_obj_t *idx)
     }
     return trimmed;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 

@@ -56,6 +56,10 @@
 #ifndef __LOCK_OBJ_H__
 #define __LOCK_OBJ_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <string.h>
 #include <pthread.h>
 
@@ -150,6 +154,10 @@ lock_obj_destroy (lock_obj_t *lck);
     #define LOCK_OBJ_DESTROY(obj)           do { } while (0)
 
 #endif // !LOCKABILITY_REQUIRED
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __LOCK_OBJ_H__
 

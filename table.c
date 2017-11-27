@@ -26,6 +26,10 @@
 
 #include "table.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 PUBLIC int
@@ -139,5 +143,9 @@ table_destroy (table_t *tablep)
 	index_obj_destroy(&tablep->u.idx);
     }
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 

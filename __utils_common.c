@@ -26,6 +26,10 @@
 
 #include "utils_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define STRING_SIZE	64
 
 /*
@@ -406,5 +410,9 @@ filecopy_finished:
 
     return rv;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 

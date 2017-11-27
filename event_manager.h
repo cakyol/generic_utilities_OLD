@@ -27,6 +27,10 @@
 #ifndef __EVENT_MANAGER_H__
 #define __EVENT_MANAGER_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "utils_common.h"
 #include "lock_object.h"
 #include "sll_object.h"
@@ -140,6 +144,10 @@ un_register_from_attribute_events (event_manager_t *evrp,
 
 extern void
 event_manager_destroy (event_manager_t *evrp);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __EVENT_MANAGER_H__
 

@@ -26,6 +26,10 @@
 
 #include "avl_tree_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 static inline avl_node_t *
@@ -787,5 +791,10 @@ avl_tree_destroy (avl_tree_t *tree)
     WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
+
 
 

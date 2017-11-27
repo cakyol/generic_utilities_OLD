@@ -27,6 +27,10 @@
 #ifndef __EVENT_TYPES_H__
 #define __EVENT_TYPES_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * These are *ALL* the possible events which can happen
  * These definitions are typically used with the event
@@ -63,6 +67,10 @@ is_an_attribute_value_event (int event)
 static inline int
 is_an_attribute_event (int event)
 { return (event & ATTRIBUTE_EVENTS); }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __EVENT_TYPES_H__
 

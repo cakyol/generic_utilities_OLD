@@ -46,6 +46,10 @@
 #ifndef __INDEX_OBJECT_H__
 #define __INDEX_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include "lock_object.h"
 #include "mem_monitor.h"
@@ -125,6 +129,10 @@ index_obj_trim (index_obj_t *idx);
 
 extern void
 index_obj_destroy (index_obj_t *idx);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __INDEX_OBJECT_H__
 

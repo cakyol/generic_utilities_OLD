@@ -45,6 +45,10 @@
 #ifndef __CHUNK_MANAGER_OBJECT_H__
 #define __CHUNK_MANAGER_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "utils_common.h"
 #include "lock_object.h"
 
@@ -120,6 +124,10 @@ chunk_manager_destroy (chunk_manager_t *cmgr);
 
 extern void
 chunk_manager_destroy (chunk_manager_t *cmgr);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __CHUNK_MANAGER_OBJECT_H__
 

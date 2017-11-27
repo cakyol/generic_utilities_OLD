@@ -41,6 +41,10 @@
 #ifndef __TRIE_OBJECT_H__
 #define __TRIE_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "utils_common.h"
 #include "lock_object.h"
 
@@ -191,6 +195,10 @@ ntrie_reset (ntrie_t *ntp);
 
 extern void 
 ntrie_destroy (ntrie_t *ntp);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __TRIE_OBJECT_H__
 

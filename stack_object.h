@@ -27,6 +27,10 @@
 #ifndef __STACK_OBJECT_H__
 #define __STACK_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -63,6 +67,10 @@ stack_obj_pop (stack_obj_t *stk,
 
 extern void
 stack_obj_destroy (stack_obj_t *stk);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __STACK_OBJECT_H__
 

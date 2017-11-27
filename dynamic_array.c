@@ -26,6 +26,10 @@
 
 #include "dynamic_array.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 static int
@@ -342,6 +346,10 @@ dynamic_array_destroy (dynamic_array_t *datp)
     LOCK_OBJ_DESTROY(datp);
     memset(datp, 0, sizeof(dynamic_array_t));
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 

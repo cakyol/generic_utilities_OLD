@@ -22,6 +22,10 @@
 #ifndef __MEM_MONITOR_H__
 #define __MEM_MONITOR_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -71,6 +75,10 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
             (objp)->mem_mon_p->bytes_used)); \
         size_in_megabytes = ((double) size_in_bytes / (double) (1024 * 1024)); \
     } while (0)
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __MEM_MONITOR_H__
 

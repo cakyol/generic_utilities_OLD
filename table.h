@@ -41,6 +41,10 @@
 #ifndef __TABLE_H__
 #define __TABLE_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "avl_tree_object.h"
 #include "index_object.h"
 
@@ -88,6 +92,10 @@ table_memory_usage (table_t *tablep, double *mega_bytes);
 
 extern void 
 table_destroy (table_t *tablep);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __TABLE_H__
 

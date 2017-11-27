@@ -17,6 +17,10 @@
 
 #include "mem_monitor.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
 mem_monitor_init (mem_monitor_t *memp)
 {
@@ -83,4 +87,9 @@ mem_monitor_reallocate (mem_monitor_t *memp, void *ptr, int newsize)
     }
     return NULL;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
+
 

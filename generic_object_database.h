@@ -90,6 +90,10 @@
 #ifndef __GENERIC_OBJECT_DATABASE_H__
 #define __GENERIC_OBJECT_DATABASE_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <assert.h>
@@ -525,6 +529,10 @@ database_load (int database_id, object_database_t *obj_db);
 
 extern void
 database_destroy (object_database_t *obj_db);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __GENERIC_OBJECT_DATABASE_H__
 

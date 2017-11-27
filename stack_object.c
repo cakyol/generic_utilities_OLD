@@ -26,6 +26,10 @@
 
 #include "stack_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 static int
@@ -137,6 +141,11 @@ stack_obj_destroy (stack_obj_t *stk)
     memset(stk, 0, sizeof(stack_obj_t));
 
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
+
 
 
 

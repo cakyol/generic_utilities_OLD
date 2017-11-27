@@ -26,6 +26,10 @@
 
 #include "event_manager.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * determines whether the two processes passed in as params
  * are 'considered' to be equal
@@ -254,6 +258,11 @@ PUBLIC void
 event_manager_destroy (event_manager_t *evrp)
 {
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
+
 
 
 

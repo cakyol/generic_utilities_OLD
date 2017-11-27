@@ -16,6 +16,10 @@
 #ifndef __TIMER_OBJ_H__
 #define __TIMER_OBJ_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/time.h>
 #include <time.h>
 
@@ -53,6 +57,10 @@ end_timer (timer_obj_t *tp)
 
 extern 
 void report_timer (timer_obj_t *tp, long long int iterations);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __TIMER_OBJ_H__
 

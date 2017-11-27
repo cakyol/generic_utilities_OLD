@@ -26,6 +26,10 @@
 
 #include "generic_object_database.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 /*
@@ -2198,6 +2202,10 @@ database_load (int database_id, object_database_t *obj_db)
 
     return rv;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 

@@ -26,6 +26,10 @@
 
 #include "lock_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 static int
@@ -237,6 +241,10 @@ lock_obj_destroy (lock_obj_t *lck)
     pthread_mutex_destroy(&lck->mtx);
     memset(lck, 0, sizeof(lock_obj_t));
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 

@@ -27,6 +27,10 @@
 #ifndef __QUEUE_OBJECT_H__
 #define __QUEUE_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include <string.h>
 #include "lock_object.h"
@@ -72,6 +76,10 @@ queue_obj_dequeue (queue_obj_t *qobj,
 
 extern void
 queue_obj_destroy (queue_obj_t *qobj);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __QUEUE_OBJECT_H__
 

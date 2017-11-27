@@ -27,6 +27,10 @@
 #ifndef __OBJECT_TYPES_H__
 #define __OBJECT_TYPES_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * All objects are uniquely identified by a tuple of object type
  * and an object instance number. Zeros are reserved for the
@@ -41,6 +45,10 @@
 #define ALL_OBJECT_TYPES                ROOT_OBJECT_TYPE
 #define ROOT_OBJECT_INSTANCE		0
 #define ALL_OBJECT_INSTANCES            ROOT_OBJECT_INSTANCE
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __OBJECT_TYPES_H__
 

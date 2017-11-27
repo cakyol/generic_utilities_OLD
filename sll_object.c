@@ -26,6 +26,10 @@
 
 #include "sll_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 static inline sll_node_t *
@@ -291,6 +295,10 @@ sll_object_destroy (sll_object_t *sll)
     WRITE_UNLOCK(sll);
     LOCK_OBJ_DESTROY(sll);
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 

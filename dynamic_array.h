@@ -57,6 +57,10 @@
 #ifndef __DYNAMIC_ARRAY_H__
 #define __DYNAMIC_ARRAY_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include <assert.h>
 
@@ -111,6 +115,10 @@ dynamic_array_get_all (dynamic_array_t *datp, int *count);
 
 extern void
 dynamic_array_destroy (dynamic_array_t *datp);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __DYNAMIC_ARRAY_H__
 

@@ -27,6 +27,10 @@
 #ifndef __POINTER_MANIPULATIONS_H__
 #define __POINTER_MANIPULATIONS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef unsigned char byte;
 
 /*
@@ -51,6 +55,10 @@ pointer2integer (void *ptr)
 
 #define safe_pointer_set(ptr, value) \
     if (ptr) *(ptr) = (value)
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __POINTER_MANIPULATIONS_H__
 

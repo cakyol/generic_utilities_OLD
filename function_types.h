@@ -1,6 +1,35 @@
 
+/******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+**
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com
+** Copyright: Cihangir Metin Akyol, March 2016, November 2017
+**
+** This code is developed by and belongs to Cihangir Metin Akyol.  
+** It is NOT owned by any company or consortium.  It is the sole
+** property and work of one individual.
+**
+** It can be used by ANYONE or ANY company for ANY purpose as long 
+** as ownership and/or patent claims are NOT made to it by ANYONE
+** or any ANY ENTITY.
+**
+** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+**
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+******************************************************************************/
+
 #ifndef __FUNCTION_TYPES_H__
 #define __FUNCTION_TYPES_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * A generic type for defining a pointer to a function which
@@ -37,6 +66,10 @@ typedef int (*traverse_function_t)
      void *extra_parameter_1,
      void *extra_parameter_2,
      void *extra_parameter_3);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __FUNCTION_TYPES_H__
 

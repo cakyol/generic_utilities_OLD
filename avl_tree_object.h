@@ -27,6 +27,10 @@
 #ifndef __AVL_TREE_OBJECT_H__
 #define __AVL_TREE_OBJECT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <errno.h>
 #include <assert.h>
 
@@ -115,6 +119,10 @@ avl_tree_traverse (avl_tree_t *tree,
 
 extern void 
 avl_tree_destroy (avl_tree_t *tree);
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __AVL_TREE_OBJECT_H__
 

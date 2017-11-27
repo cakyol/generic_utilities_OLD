@@ -27,6 +27,10 @@
 #ifndef __UTILS_COMMON_H__
 #define __UTILS_COMMON_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // #define _GNU_SOURCE
 
 #include <sys/types.h>
@@ -491,6 +495,10 @@ bitlist_set (byte *bytes, int bit_number)
 static inline void
 bitlist_clear (byte *bytes, int bit_number)
 { bytes[bit_number >> 3] &= (~(1 << (bit_number % 8))); }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 #endif // __UTILS_COMMON_H__
 

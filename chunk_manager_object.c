@@ -26,6 +26,10 @@
 
 #include "chunk_manager_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static error_t
 chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
 {
@@ -143,6 +147,10 @@ PUBLIC void
 chunk_manager_destroy (chunk_manager_t *cmgr)
 {
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 

@@ -26,6 +26,10 @@
 
 #include "queue_object.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PUBLIC
 
 static int
@@ -168,6 +172,10 @@ queue_obj_destroy (queue_obj_t *qobj)
     LOCK_OBJ_DESTROY(qobj);
     memset(qobj, 0, sizeof(queue_obj_t));
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif 
 
 
 
