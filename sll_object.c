@@ -262,15 +262,18 @@ PUBLIC int
 sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
-    int rv;
-    sll_node_t *iter = sll->head;
+    int rv = 0;
+    sll_node_t *iter;
 
+    READ_LOCK(sll);
+    iter = sll->head;
     while (not_sll_end_node(iter)) {
         rv = tfn(sll, iter, iter->user_data, p0, p1, p2, p3);
-        if (rv) return rv;
+        if (rv) break;
         iter = iter->next;
     }
-    return 0;
+    READ_UNLOCK(sll);
+    return rv;
 }
 
 /**************************** Destroy ****************************************/ 
