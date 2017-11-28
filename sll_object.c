@@ -285,12 +285,18 @@ sll_object_destroy (sll_object_t *sll)
 
     WRITE_LOCK(sll);
     iter = sll->head;
+
+    /* destroy all user elements */
     while (not_sll_end_node(iter)) {
         next = iter->next;
         MEM_MONITOR_FREE(sll, iter);
         iter = next;
     }
+
+    /* now destroy the end marker */
     MEM_MONITOR_FREE(sll, sll->head);
+
+    /* clear everything */
     sll->n = 0;
     sll->head = NULL;
     sll->mem_mon_p = NULL;
