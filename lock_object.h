@@ -141,7 +141,11 @@ lock_obj_destroy (lock_obj_t *lck);
 
     #define LOCK_VARIABLES
 
-    #define LOCK_SETUP(obj)
+    /*
+     * if LOCKABILITY_REQUIRED is not specified in the build,
+     * we cannot support an object to be thread safe.
+     */
+    #define LOCK_SETUP(obj)     if (make_it_thread_safe) return EINVAL
 
     #define READ_LOCK(obj) 
 
@@ -151,7 +155,7 @@ lock_obj_destroy (lock_obj_t *lck);
 
     #define WRITE_UNLOCK(obj)
 
-    #define LOCK_OBJ_DESTROY(obj)           do { } while (0)
+    #define LOCK_OBJ_DESTROY(obj)
 
 #endif // !LOCKABILITY_REQUIRED
 

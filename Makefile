@@ -1,10 +1,10 @@
 
 CC =		gcc
 
-# CFLAGS = 	-O3 -Wall -Werror -Wno-uninitialized
-CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED -Wno-uninitialized
-# CFLAGS = 	-O3 -DUSE_CHUNK_MANAGER -Wall -Werror -Wno-uninitialized
-# CFLAGS = 	-g -Wall -Werror -Wno-uninitialized
+## for debugging with gdb
+CFLAGS = 	-g -Wall -Werror
+
+CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread

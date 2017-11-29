@@ -2018,7 +2018,7 @@ database_store (object_database_t *obj_db)
     char database_name [TYPICAL_NAME_SIZE];
     char backup_db_name [TYPICAL_NAME_SIZE];
     char backup_db_tmp [TYPICAL_NAME_SIZE];
-    void *unused;
+    void *unused = NULL;    // shut the compiler up
 
     READ_LOCK(obj_db);
 
