@@ -260,10 +260,10 @@ struct object_identifier_s {
  * and pointers are safe to use.  So, this one type can be used both 
  * for user facing APIs as well as internal uses.
  */
-typedef union object_representation_s {
+typedef union {
     object_identifier_t object_id;
     object_t *object_ptr;
-} object_representation_t;
+} object_representation_u;
 
 struct object_s {
 
@@ -282,7 +282,7 @@ struct object_s {
      * Unless it is the root object, its parent
      * Root object's parent is NULL.
      */ 
-    object_representation_t parent;
+    object_representation_u parent;
 
     /* Can have many children; no limit */
     table_t children;
@@ -430,7 +430,7 @@ object_attribute_destroy (object_database_t *obj_db,
  * the specified type.
  * Returns in the form of object identification (type, instance).
  */
-extern object_representation_t *
+extern object_representation_u *
 object_get_matching_children (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int matching_object_type, int *returned_count);
@@ -439,7 +439,7 @@ object_get_matching_children (object_database_t *obj_db,
  * Returns ALL of the FIRST level children objects.
  * Returns in the form of object identification (type, instance).
  */
-extern object_representation_t *
+extern object_representation_u *
 object_get_children (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
 	int *returned_count);
@@ -450,7 +450,7 @@ object_get_children (object_database_t *obj_db,
  * Returns ALL LEVELS of children objects MATCHING ONLY the specified type.
  * Returns in the form of object pointer.
  */
-extern object_representation_t *
+extern object_representation_u *
 object_get_matching_descendants (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int matching_object_type, int *returned_count);
@@ -461,7 +461,7 @@ object_get_matching_descendants (object_database_t *obj_db,
  * Returns ALL LEVELS of children of ALL objects of the parent.
  * Returns in the form of object pointer.
  */
-extern object_representation_t *
+extern object_representation_u *
 object_get_descendants (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int *returned_count);
