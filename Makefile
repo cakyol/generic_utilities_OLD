@@ -21,7 +21,7 @@ LIB_OBJS =	timer_object.o \
 		lock_object.o \
 		stack_object.o \
 		queue_object.o \
-		sll_object.o \
+		linkedlist.o \
 		index_object.o \
 		avl_tree_object.o \
 		table.o \
@@ -53,9 +53,9 @@ test_stack_object:	test_stack_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_stack_object.c \
 			    -o test_stack_object $(LIBNAME) $(STATIC_LIBS)
 
-test_sll_object:	test_sll_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_sll_object.c \
-			    -o test_sll_object $(LIBNAME) $(STATIC_LIBS)
+test_linkedlist:	test_linkedlist.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_linkedlist.c \
+			    -o test_linkedlist $(LIBNAME) $(STATIC_LIBS)
 
 test_queue_object:	test_queue_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_queue_object.c \
@@ -97,7 +97,7 @@ test_db_speed:		test_db_speed.c $(LIBNAME)
 
 TESTS =		test_lock_object \
 		test_stack_object \
-		test_sll_object \
+		test_linkedlist \
 		test_queue_object \
 		test_index_object \
 		test_avl_object \

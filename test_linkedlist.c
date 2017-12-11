@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "sll_object.h"
+#include "linkedlist.h"
 #include "pointer_manipulations.h"
 
 #define START_INT   1
@@ -30,13 +30,13 @@ int main (int argc, char *argv[])
     int rv;
     int result;
     int i, j, count;
-    sll_object_t sll;
-    sll_node_t *node;
+    linkedlist_t sll;
+    linkedlist_node_t *node;
     void *value;
 
-    rv = sll_object_init(&sll, 1, compare_pointers, NULL);
+    rv = linkedlist_init(&sll, 1, compare_pointers, NULL);
     if (rv) {
-        fprintf(stderr, "sll_object_init failed: %d\n", rv);
+        fprintf(stderr, "linkedlist_init failed: %d\n", rv);
         return rv;
     } else {
         printf("list initialized\n");
@@ -45,16 +45,16 @@ int main (int argc, char *argv[])
 
     for (i = START_INT; i <= END_INT; i++) {
         value = integer2pointer(i);
-        rv = sll_object_add_once(&sll, value);
+        rv = linkedlist_add_once(&sll, value);
         if (rv) {
             fprintf(stderr, "adding %d failed\n", i);
         }
 	hashmap[i] = 1;
-        rv = sll_object_add_once(&sll, value);
+        rv = linkedlist_add_once(&sll, value);
         if (rv) {
             fprintf(stderr, "adding %d failed in 2nd attempt\n", i);
         }
-        rv = sll_object_add_once(&sll, value);
+        rv = linkedlist_add_once(&sll, value);
         if (rv) {
             fprintf(stderr, "adding %d failed in 3rd attempt\n", i);
         }
@@ -66,7 +66,7 @@ int main (int argc, char *argv[])
     printf("checking that the list is ordered\n");
     node = sll.head;
     result = -1000;
-    while (not_sll_end_node(node)) {
+    while (not_endof_linkedlist(node)) {
         if (pointer2integer(node->user_data) < result) {
             fprintf(stderr, "list order incorrect, current: %lld expected: >= %d\n",
                 pointer2integer(node->user_data), result);
@@ -84,7 +84,7 @@ int main (int argc, char *argv[])
     int *s, *d;
     for (i = END_INT; i >= START_INT; i--) {
 
-        rv = sll_object_delete(&sll, integer2pointer(i), (void**) &d);
+        rv = linkedlist_delete(&sll, integer2pointer(i), (void**) &d);
         if (rv == 0) {
             count--;
             assert(count == sll.n);
@@ -97,14 +97,14 @@ int main (int argc, char *argv[])
              */
             for (j = START_INT; j <= END_INT; j++) {
 		if (hashmap[j]) {
-                    assert(sll_object_search(&sll, integer2pointer(j), (void**)&s) == 0);
+                    assert(linkedlist_search(&sll, integer2pointer(j), (void**)&s) == 0);
                     assert(j == pointer2integer(s));
 		} else {
-                    assert(sll_object_search(&sll, integer2pointer(j), (void**)&s) == ENODATA);
+                    assert(linkedlist_search(&sll, integer2pointer(j), (void**)&s) == ENODATA);
 		}
             }
         } else {
-            fprintf(stderr, "sll_object_delete for %d failed\n", i);
+            fprintf(stderr, "linkedlist_delete for %d failed\n", i);
         }
     }
     assert(sll.n == 0);

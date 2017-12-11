@@ -24,7 +24,7 @@
 *******************************************************************************
 ******************************************************************************/
 
-#include "sll_object.h"
+#include "linkedlist.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,10 +32,10 @@ extern "C" {
 
 #define PUBLIC
 
-static inline sll_node_t *
-new_sll_node (sll_object_t *sll, void *user_data)
+static inline linkedlist_node_t *
+new_linkedlist_node (linkedlist_t *listp, void *user_data)
 {
-    sll_node_t *node = MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
+    linkedlist_node_t *node = MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));
 
     if (node) {
 	node->next = NULL;
@@ -48,18 +48,18 @@ new_sll_node (sll_object_t *sll, void *user_data)
  * add in ascending order based on the comparison function provided
  */
 static int
-thread_unsafe_sll_object_add (sll_object_t *sll,
+thread_unsafe_linkedlist_add (linkedlist_t *listp,
 	void *user_data)
 {
     int result;
-    sll_node_t *cur, *prev;
-    sll_node_t *node = new_sll_node(sll, user_data);
+    linkedlist_node_t *cur, *prev;
+    linkedlist_node_t *node = new_linkedlist_node(listp, user_data);
 
     if (NULL == node) return ENOMEM;
-    cur = sll->head;
+    cur = listp->head;
     prev = NULL;
-    while (not_sll_end_node(cur)) {
-        result = sll->cmpf(cur->user_data, user_data);
+    while (not_endof_linkedlist(cur)) {
+        result = listp->cmpf(cur->user_data, user_data);
         if (result >= 0) break;
         prev = cur;
         cur = cur->next;
@@ -68,25 +68,25 @@ thread_unsafe_sll_object_add (sll_object_t *sll,
         node->next = prev->next;
         prev->next = node;
     } else {
-        node->next = sll->head;
-        sll->head = node;
+        node->next = listp->head;
+        listp->head = node;
     }
-    sll->n++;
+    listp->n++;
     return 0;
 }
 
 static int
-thread_unsafe_sll_object_search (sll_object_t *sll,
+thread_unsafe_linkedlist_search (linkedlist_t *listp,
 	void *searched_data, 
 	void **data_found,
-        sll_node_t **node_found)
+        linkedlist_node_t **node_found)
 {
     int result;
-    sll_node_t *temp = sll->head;
+    linkedlist_node_t *temp = listp->head;
 
-    while (not_sll_end_node(temp)) {
+    while (not_endof_linkedlist(temp)) {
 
-        result = sll->cmpf(temp->user_data, searched_data);
+        result = listp->cmpf(temp->user_data, searched_data);
 
         /* found exact match */
 	if (result == 0) {
@@ -109,19 +109,19 @@ thread_unsafe_sll_object_search (sll_object_t *sll,
 }
 
 static int
-thread_unsafe_sll_object_add_once (sll_object_t *sll,
+thread_unsafe_linkedlist_add_once (linkedlist_t *listp,
 	void *user_data)
 {
     void *found_data;
-    sll_node_t *found_node;
+    linkedlist_node_t *found_node;
 
-    if (thread_unsafe_sll_object_search(sll, user_data, 
+    if (thread_unsafe_linkedlist_search(listp, user_data, 
             &found_data, &found_node) == 0) {
                 /* data is already in the list */
                 return 0;
     }
     return
-	thread_unsafe_sll_object_add(sll, user_data);
+	thread_unsafe_linkedlist_add(listp, user_data);
 }
 
 /*
@@ -138,34 +138,34 @@ thread_unsafe_sll_object_add_once (sll_object_t *sll,
  * deleting the last node in the list.
  */
 static int
-thread_unsafe_sll_node_delete (sll_object_t *sll,
-        sll_node_t *node_tobe_deleted)
+thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
+        linkedlist_node_t *node_tobe_deleted)
 {
     void *to_free;
 
     /* should not delete end node, NEVER */
-    if (sll_end_node(node_tobe_deleted))
+    if (endof_linkedlist(node_tobe_deleted))
         return EINVAL;
 
     to_free = node_tobe_deleted->next;
     *node_tobe_deleted = *(node_tobe_deleted->next);
-    MEM_MONITOR_FREE(sll, to_free);
-    sll->n--;
+    MEM_MONITOR_FREE(listp, to_free);
+    listp->n--;
 
     return 0;
 }
 
 static int
-thread_unsafe_sll_object_delete (sll_object_t *sll,
+thread_unsafe_linkedlist_delete (linkedlist_t *listp,
 	void *to_be_deleted, 
 	void **actual_data_deleted)
 {
-    sll_node_t *node_tobe_deleted;
+    linkedlist_node_t *node_tobe_deleted;
 
-    if (thread_unsafe_sll_object_search(sll, to_be_deleted, 
+    if (thread_unsafe_linkedlist_search(listp, to_be_deleted, 
             actual_data_deleted, &node_tobe_deleted) == 0) {
                 return
-                    thread_unsafe_sll_node_delete(sll, node_tobe_deleted);
+                    thread_unsafe_linkedlist_node_delete(listp, node_tobe_deleted);
     }
     return ENODATA;
 }
@@ -173,29 +173,29 @@ thread_unsafe_sll_object_delete (sll_object_t *sll,
 /**************************** Initialize *************************************/
 
 PUBLIC int
-sll_object_init (sll_object_t *sll,
+linkedlist_init (linkedlist_t *listp,
 	int make_it_thread_safe,
 	comparison_function_t cmpf,
 	mem_monitor_t *parent_mem_monitor)
 {
-    sll_node_t *node;
+    linkedlist_node_t *node;
     int rv = 0;
 
-    LOCK_SETUP(sll);
-    MEM_MONITOR_SETUP(sll);
+    LOCK_SETUP(listp);
+    MEM_MONITOR_SETUP(listp);
 
     /* create the permanent "end" node */
-    node = (sll_node_t*) MEM_MONITOR_ALLOC(sll, sizeof(sll_node_t));
+    node = (linkedlist_node_t*) MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));
     if (node) {
         node->next = NULL;
         node->user_data = NULL;
-        sll->head = node;
-        sll->n = 0;
-        sll->cmpf = cmpf;
+        listp->head = node;
+        listp->n = 0;
+        listp->cmpf = cmpf;
     } else {
         rv = ENOMEM;
     }
-    WRITE_UNLOCK(sll);
+    WRITE_UNLOCK(listp);
 
     return rv;
 }
@@ -203,106 +203,106 @@ sll_object_init (sll_object_t *sll,
 /**************************** Insert/add *************************************/
 
 PUBLIC int
-sll_object_add (sll_object_t *sll, void *user_data)
+linkedlist_add (linkedlist_t *listp, void *user_data)
 {
     int rv;
 
-    WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_add(sll, user_data);
-    WRITE_UNLOCK(sll);
+    WRITE_LOCK(listp);
+    rv = thread_unsafe_linkedlist_add(listp, user_data);
+    WRITE_UNLOCK(listp);
     return rv;
 }
 
 PUBLIC int
-sll_object_add_once (sll_object_t *sll, void *user_data)
+linkedlist_add_once (linkedlist_t *listp, void *user_data)
 {
     int rv;
 
-    WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_add_once(sll, user_data);
-    WRITE_UNLOCK(sll);
+    WRITE_LOCK(listp);
+    rv = thread_unsafe_linkedlist_add_once(listp, user_data);
+    WRITE_UNLOCK(listp);
     return rv;
 }
 
 /**************************** Search *****************************************/
 
 PUBLIC int
-sll_object_search (sll_object_t *sll,
+linkedlist_search (linkedlist_t *listp,
 	void *searched_data,
 	void **data_found)
 {
     int rv;
-    sll_node_t *node_found;
+    linkedlist_node_t *node_found;
 
-    WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_search(sll, searched_data, 
+    WRITE_LOCK(listp);
+    rv = thread_unsafe_linkedlist_search(listp, searched_data, 
             data_found, &node_found);
-    WRITE_UNLOCK(sll);
+    WRITE_UNLOCK(listp);
     return rv;
 }
 
 /**************************** Remove/delete **********************************/ 
 
 PUBLIC int
-sll_object_delete (sll_object_t *sll,
+linkedlist_delete (linkedlist_t *listp,
 	void *to_be_deleted,
 	void **actual_data_deleted)
 {
     int rv;
 
-    WRITE_LOCK(sll);
-    rv = thread_unsafe_sll_object_delete(sll, to_be_deleted, actual_data_deleted);
-    WRITE_UNLOCK(sll);
+    WRITE_LOCK(listp);
+    rv = thread_unsafe_linkedlist_delete(listp, to_be_deleted, actual_data_deleted);
+    WRITE_UNLOCK(listp);
     return rv;
 }
 
 /**************************** Traverse/iterate *******************************/ 
 
 PUBLIC int
-sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
+linkedlist_iterate (linkedlist_t *listp, traverse_function_t tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
     int rv = 0;
-    sll_node_t *iter;
+    linkedlist_node_t *iter;
 
-    READ_LOCK(sll);
-    iter = sll->head;
-    while (not_sll_end_node(iter)) {
-        rv = tfn(sll, iter, iter->user_data, p0, p1, p2, p3);
+    READ_LOCK(listp);
+    iter = listp->head;
+    while (not_endof_linkedlist(iter)) {
+        rv = tfn(listp, iter, iter->user_data, p0, p1, p2, p3);
         if (rv) break;
         iter = iter->next;
     }
-    READ_UNLOCK(sll);
+    READ_UNLOCK(listp);
     return rv;
 }
 
 /**************************** Destroy ****************************************/ 
 
 PUBLIC void
-sll_object_destroy (sll_object_t *sll)
+linkedlist_destroy (linkedlist_t *listp)
 {
-    sll_node_t *next, *iter;
+    linkedlist_node_t *next, *iter;
 
-    WRITE_LOCK(sll);
-    iter = sll->head;
+    WRITE_LOCK(listp);
+    iter = listp->head;
 
     /* destroy all user elements */
-    while (not_sll_end_node(iter)) {
+    while (not_endof_linkedlist(iter)) {
         next = iter->next;
-        MEM_MONITOR_FREE(sll, iter);
+        MEM_MONITOR_FREE(listp, iter);
         iter = next;
     }
 
     /* now destroy the end marker */
-    MEM_MONITOR_FREE(sll, sll->head);
+    MEM_MONITOR_FREE(listp, listp->head);
 
     /* clear everything */
-    sll->n = 0;
-    sll->head = NULL;
-    sll->mem_mon_p = NULL;
-    sll->cmpf = NULL;
-    WRITE_UNLOCK(sll);
-    LOCK_OBJ_DESTROY(sll);
+    listp->n = 0;
+    listp->head = NULL;
+    listp->mem_mon_p = NULL;
+    listp->cmpf = NULL;
+    WRITE_UNLOCK(listp);
+    LOCK_OBJ_DESTROY(listp);
 }
 
 #ifdef __cplusplus

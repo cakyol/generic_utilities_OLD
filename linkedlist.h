@@ -24,8 +24,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __SLL_OBJECT_H__
-#define __SLL_OBJECT_H__
+#ifndef __LINKEDLIST_H__
+#define __LINKEDLIST_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,10 +46,10 @@ extern "C" {
  * the fact that the LAST node is ONLY a marker and NOT
  * real data.
  */
-typedef struct sll_node_s sll_node_t;
-struct sll_node_s {
+typedef struct linkedlist_node_s linkedlist_node_t;
+struct linkedlist_node_s {
 
-    sll_node_t *next;
+    linkedlist_node_t *next;
     void *user_data;
 };
 
@@ -60,16 +60,16 @@ struct sll_node_s {
  * specified in the delete function.  If they match,
  * node is taken off the list and freed up.
  */
-typedef struct sll_object_s {
+typedef struct linkedlist_s {
 
     LOCK_VARIABLES;
     MEM_MON_VARIABLES;
 
-    sll_node_t *head;
+    linkedlist_node_t *head;
     comparison_function_t cmpf;
     int n;
 
-} sll_object_t;
+} linkedlist_t;
 
 /*
  * We maintain an "end node" always in the list.  This is represented
@@ -88,7 +88,7 @@ typedef struct sll_object_s {
  */
 
 static inline int
-sll_end_node (sll_node_t *sln)
+endof_linkedlist (linkedlist_node_t *sln)
 {
     return
         (NULL == sln) || 
@@ -96,7 +96,7 @@ sll_end_node (sll_node_t *sln)
 }
 
 static inline int
-not_sll_end_node (sll_node_t *sln)
+not_endof_linkedlist (linkedlist_node_t *sln)
 {
     return
         sln && (NULL != sln->next) && (NULL != sln->user_data);
@@ -106,7 +106,7 @@ not_sll_end_node (sll_node_t *sln)
  * initializes the linked list object
  */
 extern int
-sll_object_init (sll_object_t *sll,
+linkedlist_init (linkedlist_t *listp,
 	int make_it_thread_safe,
 	comparison_function_t cmpf,
 	mem_monitor_t *parent_mem_monitor);
@@ -119,7 +119,7 @@ sll_object_init (sll_object_t *sll,
  * since it is so much faster to do so.
  */
 extern int
-sll_object_add (sll_object_t *sll,
+linkedlist_add (linkedlist_t *listp,
 	void *user_data);
 
 /*
@@ -131,7 +131,7 @@ sll_object_add (sll_object_t *sll,
  * list object.
  */
 extern int
-sll_object_add_once (sll_object_t *sll,
+linkedlist_add_once (linkedlist_t *listp,
 	void *user_data);
 
 /*
@@ -144,7 +144,7 @@ sll_object_add_once (sll_object_t *sll,
  * to NULL.
  */
 extern int
-sll_object_search (sll_object_t *sll,
+linkedlist_search (linkedlist_t *listp,
 	void *searched_data, void **data_found);
 
 /*
@@ -153,7 +153,7 @@ sll_object_search (sll_object_t *sll,
  * was found, else ENODATA and NULL otherwise.
  */
 extern int 
-sll_object_delete (sll_object_t *sll,
+linkedlist_delete (linkedlist_t *listp,
 	void *to_be_deleted, void **actual_data_deleted);
 
 /*
@@ -162,17 +162,38 @@ sll_object_delete (sll_object_t *sll,
  * change anything in the list itself.
  */
 extern int
-sll_object_iterate (sll_object_t *sll, traverse_function_t tfn,
+linkedlist_iterate (linkedlist_t *listp, traverse_function_t tfn,
         void *p0, void *p1, void *p2, void *p3);
 
 extern void
-sll_object_destroy (sll_object_t *sll);
+linkedlist_destroy (linkedlist_t *listp);
+
+/*
+ * Some convenient macros to iterate thru the list one node at a time.
+ */
+
+#define FOR_ALL_LINKEDLIST_ELEMENTS(list, obj_ptr) \
+        for (linkedlist_node_t *__n__ = list->head; \
+             not_linkedlist_end_node(__n__) && \
+             (obj_ptr = (__typeof__(obj_ptr))(__n__->user_data)); \
+             __n__ = __n__->next)
+
+/*
+ * Used for self depleting lists, ie at every iteration, the
+ * head element is EXPECTED to be removed by the iteration body.
+ * If that is not done, infinite loops may result.
+ */
+#define WHILE_LINKEDLIST_NOT_EMPTY(list, obj_ptr) \
+        for (linkedlist_node_t *__n__ = list->head; \
+             not_linkedlist_end_node(__n__) && \
+             (obj_ptr = (__typeof__(obj_ptr))(__n__->user_data)); \
+             __n__ = list->head)
 
 #ifdef __cplusplus
 } // extern C
 #endif 
 
-#endif // __SLL_OBJECT_H__
+#endif // __LINKEDLIST_H__
 
 
 
