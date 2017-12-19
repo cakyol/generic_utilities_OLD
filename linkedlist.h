@@ -5,18 +5,37 @@
 *******************************************************************************
 *******************************************************************************
 **
-** Author: Cihangir Metin Akyol (gee.akyol@gmail.com, gee_akyol@yahoo.com)
-** Copyright: Cihangir Metin Akyol, March 2016, 2017
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com, gee_akyol@yahoo.com
+** Copyright: Cihangir Metin Akyol, April 2014 -> ....
 **
-** This code is developed by and belongs to Cihangir Metin Akyol.  
-** It is NOT owned by any company or consortium.  It is the sole
-** property and work of one individual.
+** All this code has been personally developed by and belongs to 
+** Mr. Cihangir Metin Akyol.  It has been developed in his own 
+** personal time using his own personal resources.  Therefore,
+** it is NOT owned by any establishment, group, company or 
+** consortium.  It is the sole property and work of the named
+** individual.
 **
-** It can be used by ANYONE or ANY company for ANY purpose as long 
-** as NO ownership and/or patent claims are made to it by such persons 
-** or companies.
+** It CAN be used by ANYONE or ANY company for ANY purpose as long 
+** as ownership and/or patent claims are NOT made to it by ANYONE
+** or ANY ENTITY.
 **
 ** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+**
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+******************************************************************************/
+
+/******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+**
+** Singly linked list object, with very fast deletion provided you
+** know the node that you want to delete.  You do NOT have to know
+** the 'previous' node.
 **
 *******************************************************************************
 *******************************************************************************
@@ -34,7 +53,10 @@ extern "C" {
 #include <errno.h>
 #include "lock_object.h"
 #include "mem_monitor.h"
-#include "function_types.h"
+
+typedef int (*comparison_function_t) (void *v1, void *v2);
+typedef struct linkedlist_s linkedlist_t;
+typedef struct linkedlist_node_s linkedlist_node_t;
 
 /*
  * Users should be aware that the list is terminated with an
@@ -46,30 +68,37 @@ extern "C" {
  * the fact that the LAST node is ONLY a marker and NOT
  * real data.
  */
-typedef struct linkedlist_node_s linkedlist_node_t;
 struct linkedlist_node_s {
 
+    /* what list I belong to */
+    linkedlist_t *list;
+
+    /* next node */
     linkedlist_node_t *next;
+
+    /* user opaque data */
     void *user_data;
 };
 
 /*
  * singly linked list object.
- * comparison function is used while deleting data.
- * The data in the node is compared against the data 
- * specified in the delete function.  If they match,
- * node is taken off the list and freed up.
+ * comparison function is used to test ranking/ordering of list elements.
  */
-typedef struct linkedlist_s {
+struct linkedlist_s {
 
     LOCK_VARIABLES;
     MEM_MON_VARIABLES;
 
+    /* start of list */
     linkedlist_node_t *head;
-    comparison_function_t cmpf;
+
+    /* comparison function used *ONLY* for equality */
+    comparison_function_t cmp_fn;
+
+    /* number of elements in the list */
     int n;
 
-} linkedlist_t;
+};
 
 /*
  * We maintain an "end node" always in the list.  This is represented
@@ -88,18 +117,18 @@ typedef struct linkedlist_s {
  */
 
 static inline int
-endof_linkedlist (linkedlist_node_t *sln)
+endof_linkedlist (linkedlist_node_t *llnp)
 {
     return
-        (NULL == sln) || 
-        ((NULL == sln->next) && (NULL == sln->user_data));
+        (NULL == llnp) || 
+        ((NULL == llnp->next) && (NULL == llnp->user_data));
 }
 
 static inline int
-not_endof_linkedlist (linkedlist_node_t *sln)
+not_endof_linkedlist (linkedlist_node_t *llnp)
 {
     return
-        sln && (NULL != sln->next) && (NULL != sln->user_data);
+        llnp && (NULL != llnp->next) && (NULL != llnp->user_data);
 }
 
 /*
@@ -107,32 +136,39 @@ not_endof_linkedlist (linkedlist_node_t *sln)
  */
 extern int
 linkedlist_init (linkedlist_t *listp,
-	int make_it_thread_safe,
-	comparison_function_t cmpf,
-	mem_monitor_t *parent_mem_monitor);
+        int make_it_thread_safe,
+        comparison_function_t cmp_fn,
+        mem_monitor_t *parent_mem_monitor);
 
 /*
  * adds a node containing the specified data to the list.
- * Always added, ragardless of whether the data is already 
+ * ALWAYS added, regardless of whether the data is already 
  * in the list or not.  So, multiple copies WILL be added
  * if not controlled.  Addition is always done to the head
  * since it is so much faster to do so.
+ * If only one copy needs to be added, use 'linkedlist_add_once'
+ * function defined below instead.
+ * Return value is 0 for success.  Failure may occur if out
+ * of memory.
  */
 extern int
-linkedlist_add (linkedlist_t *listp,
-	void *user_data);
+linkedlist_add (linkedlist_t *listp, void *user_data);
 
 /*
  * same as adding data but the data is added only once.
- * If it is already there, it will not be added again but
- * this will not be treated as an error.  Datum will be
- * checked as being available or not by applying the user
- * supplied comparison function at initialization of the
- * list object.
+ * If it is already there, it will not be added again and
+ * 'data_found' will be updated with what is already
+ * found in the list.  If data was not already in the list,
+ * 'data_found' will be set to NULL.  This mechanism
+ * always gives the user the knowledge of whether the
+ * data being inserted was in the list in the first place.
+ * An error (non zero) is returned only when memory
+ * allocation fails.  It is NOT considered an error if
+ * the data already exists in the list.
  */
 extern int
-linkedlist_add_once (linkedlist_t *listp,
-	void *user_data);
+linkedlist_add_once (linkedlist_t *listp, void *user_data, 
+        void **data_found);
 
 /*
  * searches the first occurence of the matching data.
@@ -140,31 +176,41 @@ linkedlist_add_once (linkedlist_t *listp,
  * out whether a match has occured.
  * Function return value will be 0 if found and 'data_found'
  * will be set to the found data.  If not found,
- * ENODATA will be returned and 'data_found' will be set 
+ * non 0 will be returned and 'data_found' will be set 
  * to NULL.
  */
 extern int
-linkedlist_search (linkedlist_t *listp,
-	void *searched_data, void **data_found);
+linkedlist_search (linkedlist_t *listp, void *searched_data, 
+        void **data_found);
 
 /*
- * deletes the node in which 'to_be_deleted' matches.
- * Returns 0 and the actual data that was deleted if it
- * was found, else ENODATA and NULL otherwise.
+ * Removes the entry in the list matching user data specified
+ * by 'to_be_deleted'.  If data was in the list, it will be
+ * removed, 0 will be returned and 'data_deleted' will be set to
+ * what was found in the list.  Otherwise, non 0 will be returned
+ * and 'data_deleted' will be set to NULL.
  */
 extern int 
-linkedlist_delete (linkedlist_t *listp,
-	void *to_be_deleted, void **actual_data_deleted);
+linkedlist_delete (linkedlist_t *listp, void *to_be_deleted,
+        void **data_deleted);
 
 /*
- * Execute the function 'tfn' with appropriate parameters
- * on all elements of the list.  Ensure that tfn does NOT
- * change anything in the list itself.
+ * Frees up the actual linked list node in the list.  0 will be
+ * returned if succeeded.  It will fail if 'node_to_be_deleted'
+ * does not belong to the list or it happens to be the list
+ * end marker node.
  */
 extern int
-linkedlist_iterate (linkedlist_t *listp, traverse_function_t tfn,
-        void *p0, void *p1, void *p2, void *p3);
+linkedlist_delete_node (linkedlist_t *listp, 
+        linkedlist_node_t *node_to_be_deleted);
 
+/*
+ * frees up all the nodes of the list and cleans it out.
+ * The list must be re-initialized properly if it needs to be
+ * re-used.  Note that only the list elements are removed.
+ * The actual user data pointers stored in those nodes are
+ * not touched in any way.
+ */
 extern void
 linkedlist_destroy (linkedlist_t *listp);
 
@@ -172,22 +218,22 @@ linkedlist_destroy (linkedlist_t *listp);
  * Some convenient macros to iterate thru the list one node at a time.
  */
 
-#define FOR_ALL_LINKEDLIST_ELEMENTS(list, obj_ptr) \
-        for (linkedlist_node_t *__n__ = list->head; \
-             not_linkedlist_end_node(__n__) && \
-             (obj_ptr = (__typeof__(obj_ptr))(__n__->user_data)); \
+#define FOR_ALL_LINKEDLIST_ELEMENTS(listp, objp) \
+        for (linkedlist_node_t *__n__ = listp->head; \
+             not_endof_linkedlist(__n__) && \
+             (objp = (__typeof__(objp))(__n__->user_data)); \
              __n__ = __n__->next)
 
 /*
  * Used for self depleting lists, ie at every iteration, the
  * head element is EXPECTED to be removed by the iteration body.
- * If that is not done, infinite loops may result.
+ * If that is not done, infinite loops WILL result.
  */
-#define WHILE_LINKEDLIST_NOT_EMPTY(list, obj_ptr) \
-        for (linkedlist_node_t *__n__ = list->head; \
-             not_linkedlist_end_node(__n__) && \
-             (obj_ptr = (__typeof__(obj_ptr))(__n__->user_data)); \
-             __n__ = list->head)
+#define WHILE_LINKEDLIST_NOT_EMPTY(listp, objp) \
+        for (linkedlist_node_t *__n__ = listp->head; \
+             not_endof_linkedlist(__n__) && \
+             (objp = (__typeof__(objp))(__n__->user_data)); \
+             __n__ = listp->head)
 
 #ifdef __cplusplus
 } // extern C

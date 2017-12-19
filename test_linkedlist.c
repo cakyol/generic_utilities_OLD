@@ -33,6 +33,7 @@ int main (int argc, char *argv[])
     linkedlist_t sll;
     linkedlist_node_t *node;
     void *value;
+    void *found;
 
     rv = linkedlist_init(&sll, 1, compare_pointers, NULL);
     if (rv) {
@@ -45,16 +46,16 @@ int main (int argc, char *argv[])
 
     for (i = START_INT; i <= END_INT; i++) {
         value = integer2pointer(i);
-        rv = linkedlist_add_once(&sll, value);
+        rv = linkedlist_add_once(&sll, value, &found);
         if (rv) {
             fprintf(stderr, "adding %d failed\n", i);
         }
 	hashmap[i] = 1;
-        rv = linkedlist_add_once(&sll, value);
+        rv = linkedlist_add_once(&sll, value, &found);
         if (rv) {
             fprintf(stderr, "adding %d failed in 2nd attempt\n", i);
         }
-        rv = linkedlist_add_once(&sll, value);
+        rv = linkedlist_add_once(&sll, value, &found);
         if (rv) {
             fprintf(stderr, "adding %d failed in 3rd attempt\n", i);
         }
@@ -67,6 +68,7 @@ int main (int argc, char *argv[])
     node = sll.head;
     result = -1000;
     while (not_endof_linkedlist(node)) {
+        printf("%lld ", pointer2integer(node->user_data));
         if (pointer2integer(node->user_data) < result) {
             fprintf(stderr, "list order incorrect, current: %lld expected: >= %d\n",
                 pointer2integer(node->user_data), result);
@@ -74,7 +76,9 @@ int main (int argc, char *argv[])
         }
         node = node->next;
     }
-
+    printf("\n");
+    fflush(stdout);
+    fflush(stdout);
 
     /* now delete one at a time and make sure everything is consistent */
     printf("now deleting and verifying one at a time\n");
