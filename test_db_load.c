@@ -6,6 +6,8 @@ object_database_t db;
 int main (int argc, char *argv[])
 {
     int rv;
+    long long int bsize;
+    double dsize;
 
     printf("loading database .. ");
     fflush(stdout);
@@ -17,6 +19,8 @@ int main (int argc, char *argv[])
     } else {
         fprintf(stderr, "FAILED\n");
     }
+    OBJECT_MEMORY_USAGE(&db, bsize, dsize);
+    printf("db size id %lld bytes, %f megabytes\n", bsize, dsize);
     return rv;
 }
 
