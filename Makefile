@@ -2,9 +2,9 @@
 CC =		gcc
 
 ## for debugging with gdb
-CFLAGS = 	-g -Wall -Werror
+CFLAGS = 	-g -Wall -Werror -DLOCKABILITY_REQUIRED
 
-CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
+###CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
@@ -91,6 +91,10 @@ test_db:		test_db.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_db.c -o test_db \
 		    		$(LIBNAME) $(STATIC_LIBS)
 
+test_db_load:		test_db_load.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_db_load.c -o test_db_load \
+		    		$(LIBNAME) $(STATIC_LIBS)
+
 test_db_speed:		test_db_speed.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c -o test_db_speed \
 		    		$(LIBNAME) $(STATIC_LIBS)
@@ -103,6 +107,7 @@ TESTS =		test_lock_object \
 		test_avl_object \
 		test_dynamic_array \
 		test_db \
+		test_db_load \
 		test_db_speed \
 		\
 		### test_chunk_object \

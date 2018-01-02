@@ -562,7 +562,6 @@ attribute_add_complex_value_engine (attribute_instance_t *aitp,
 	add_attribute_value_to_list(aitp, avtp);
 	notify_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
 	    NULL, aitp->attribute_id, avtp);
-	return 0;
     }
     return avtp;
 }
@@ -1988,7 +1987,7 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
  * Since both these passes use iterative methods (morris traverse),
  * we will never run out of stack, even for very large databases.
  * But we will consume more time.  Increasing execution time is a valid
- * solution but crashing dus to stack overflow is not.
+ * solution but crashing due to stack overflow is not.
  */
 
 PUBLIC int
@@ -2123,6 +2122,41 @@ load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
     return err;
 }
 
+/*
+ * This function is called on every object and resolves its parent
+ * pointer if it is not already in the form of a pointer.
+ */
+static int
+resolve_parent_tfn (void *utility_object, void *utility_node,
+    void *user_data, void *v_obj_db,
+    void *v_1, void *v_2, void *v_3)
+{
+    object_database_t *obj_db;
+    object_t *obj, *parent;
+
+    obj_db = (object_database_t*) v_obj_db;
+    obj = (object_t*) user_data;
+    if (!(obj->parent.is_pointer)) {
+        parent = get_object_pointer(obj_db,
+                    obj->parent.u.object_id.object_type,
+                    obj->parent.u.object_id.object_instance);
+        assert(NULL != parent);
+        obj->parent.is_pointer = 1;
+        obj->parent.u.object_ptr = parent;
+    }
+    return 0;
+}
+
+static int
+database_resolve_all_parents (object_database_t *obj_db)
+{
+    void *unused = 0;
+
+    table_traverse(&obj_db->object_index, resolve_parent_tfn, obj_db, 
+        unused, unused, unused);
+    return 0;
+}
+
 PUBLIC int
 database_load (int database_id, object_database_t *obj_db)
 {
@@ -2138,7 +2172,7 @@ database_load (int database_id, object_database_t *obj_db)
     fp = fopen(database_name, "r");
     if (NULL == fp) return -1;
 
-    database_destroy(obj_db);
+    //database_destroy(obj_db);
     if (database_initialize(obj_db, 1, database_id, NULL, NULL) != 0) {
         return -1;
     }
@@ -2177,8 +2211,14 @@ database_load (int database_id, object_database_t *obj_db)
     }
     fclose(fp);
 
-    /* TO DO */
-    /* DO THE SECOND PASS HERE TO RESOLVE ALL PARENTS */
+    /*
+     * now perform a second pass over the database 
+     * to resolve all un-resolved parent pointers
+     */
+    if (0 == rv) {
+        return
+            database_resolve_all_parents(obj_db);
+    }
 
     return rv;
 }
