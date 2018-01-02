@@ -90,6 +90,8 @@ int main (int argc, char *argv[])
     int child_type, child_instance;
     int count;
 
+    printf("size of one object is %ld bytes\n", sizeof(object_t));
+
     database_initialize(&db, 1, 1, notify_event, NULL);
 
     printf("creating objects\n");

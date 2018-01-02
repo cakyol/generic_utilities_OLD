@@ -32,21 +32,6 @@ extern "C" {
 
 #define PUBLIC
 
-/*
- * This flag signals that the parent field of an object
- * is not yet a pointer.  Instead it is represented 
- * as (type, instance).  This is the 'object_identifier_t'
- * in the union of 'object_representation_u'.  This is
- * done when a database is first loaded from the disk.
- * Since all objects have not yet been resolved, the
- * parent will be represented as 'object_identifier_t'.
- * After the 2nd pass of the database load funtions,
- * this will be resolved and will therefater be represented
- * as a pointer.  This flag denotes what state the
- * parent representation is in.
- */
-#define UNRESOLVED_PARENT		(0x1)
-
 /******************************************************************************
  *
  * global variables which control whether an avl tree or the index
@@ -123,14 +108,15 @@ get_object_pointer (object_database_t *obj_db,
 static object_t *
 get_parent_pointer (object_t *obj)
 {
-    if (obj->private_flags & UNRESOLVED_PARENT) {
-	return
-	    get_object_pointer(obj->obj_db,
-		obj->parent.object_id.object_type,
-		obj->parent.object_id.object_instance);
+    if (obj->parent.is_pointer) {
+        return
+            obj->parent.u.object_ptr;
     }
+	
     return
-	obj->parent.object_ptr;
+        get_object_pointer(obj->obj_db,
+            obj->parent.u.object_id.object_type,
+            obj->parent.u.object_id.object_instance);
 }
 
 static attribute_instance_t *
@@ -198,7 +184,8 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
 {
     object_t *obj = user_data;
     int matching_object_type = pointer2integer(v_matching_object_type);
-    object_representation_u *collector; 
+    object_representation_t *collector; 
+    object_representation_t *rep;
     int *index;
 
     /* end of iteration */
@@ -212,9 +199,11 @@ get_matching_children_tfn (void *utility_object, void *utility_node,
     index = (int*) v_index;
     if (*index >= pointer2integer(v_limit)) return ENOSPC;
     
-    collector = (object_representation_u*) v_collector;
-    collector[*index].object_id.object_type = obj->object_type;
-    collector[*index].object_id.object_instance = obj->object_instance;
+    collector = (object_representation_t*) v_collector;
+    rep = &collector[*index];
+    rep->is_pointer = 0;
+    rep->u.object_id.object_type = obj->object_type;
+    rep->u.object_id.object_instance = obj->object_instance;
     (*index)++;
 
     return 0;
@@ -235,7 +224,7 @@ get_matching_descendants_tfn (void *utility_object, void *utility_node,
 {
     object_t *obj = user_data;
     int matching_object_type = pointer2integer(v_matching_object_type);
-    object_representation_u *collector; 
+    object_representation_t *collector; 
     int *index;
 
     /* end of iteration */
@@ -249,8 +238,9 @@ get_matching_descendants_tfn (void *utility_object, void *utility_node,
     index = (int*) v_index;
     if (*index >= pointer2integer(v_limit)) return ENOSPC;
     
-    collector = (object_representation_u*) v_collector;
-    collector[*index].object_ptr = obj;
+    collector = (object_representation_t*) v_collector;
+    collector[*index].is_pointer = 1;
+    collector[*index].u.object_ptr = obj;
     (*index)++;
 
     /* now get all the descendants too */
@@ -818,39 +808,26 @@ object_create_engine (object_database_t *obj_db,
     assert(obj != NULL);
     obj->obj_db = obj_db;
     if (parent) {
-	obj->parent.object_ptr = parent;
-	obj->private_flags &= (~UNRESOLVED_PARENT);
+        obj->parent.is_pointer = 1;
+	obj->parent.u.object_ptr = parent;
     } else {
-	obj->parent.object_id.object_type = parent_object_type;
-	obj->parent.object_id.object_instance = parent_object_instance;
-	obj->private_flags |= UNRESOLVED_PARENT;
+        obj->parent.is_pointer = 0;
+	obj->parent.u.object_id.object_type = parent_object_type;
+	obj->parent.u.object_id.object_instance = parent_object_instance;
     }
     obj->object_type = child_object_type;
     obj->object_instance = child_object_instance;
 
     /*
-     * if object already exists and looks reasonable (parents
-     * match) simply return the already existing object.
-     * But if it exists AND its parent is DIFFERENT, 
-     * then the user is probably making an erroneous
-     * creation, so return an error.
+     * if the object already exists simply return that.
      */
     assert(0 == table_insert(&obj_db->object_index, obj, &exists));
     if (exists) {
 
-	/* it already exists, we dont need the new one */
+	/* it already exists, we dont need the new one we just created */
         MEM_MONITOR_FREE(obj_db, obj);
 
-        obj = exists;
-	if (parent) {
-	    if (obj->parent.object_ptr == parent) return obj;
-
-	    /* parents dont match, something wrong */
-	    return NULL;
-	}
-
-	/* parent pointer not yet resolved, we cant check parent integrity */
-	return obj;
+        return exists;
     }
 
     /* make sure this object is added as a child of the parent */
@@ -1028,7 +1005,7 @@ __object_attribute_instance_destroy (object_t *obj, int attribute_id)
 static int
 __object_get_matching_children (object_t *parent,
         int matching_object_type, 
-	object_representation_u *found_objects, int limit)
+	object_representation_t *found_objects, int limit)
 {
     int index = 0;
     void *v_object_type = integer2pointer(matching_object_type);
@@ -1044,7 +1021,7 @@ __object_get_matching_children (object_t *parent,
 static int
 __object_get_matching_descendants (object_t *parent,
 	int matching_object_type,
-	object_representation_u *found_objects, int limit)
+	object_representation_t *found_objects, int limit)
 {
     int index = 0;
     void *v_object_type = integer2pointer(matching_object_type);
@@ -1471,7 +1448,10 @@ database_initialize (object_database_t *obj_db,
 
     root_obj = &obj_db->root_object;
     root_obj->obj_db = obj_db;
-    root_obj->parent.object_ptr = NULL;
+
+    root_obj->parent.is_pointer = 1;
+    root_obj->parent.u.object_ptr = NULL;
+
     root_obj->object_type = ROOT_OBJECT_TYPE;
     root_obj->object_instance = ROOT_OBJECT_INSTANCE;
 
@@ -1772,14 +1752,14 @@ object_destroy (object_database_t *obj_db,
     return rv;
 }
 
-PUBLIC object_representation_u *
+PUBLIC object_representation_t *
 object_get_matching_children (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
     int size;
     object_t *root;
-    object_representation_u *found_objects;
+    object_representation_t *found_objects;
 
     READ_LOCK(obj_db);
     *returned_count = 0;
@@ -1788,7 +1768,7 @@ object_get_matching_children (object_database_t *obj_db,
 		parent_object_type, parent_object_instance);
     if (root) {
 	size = table_member_count(&root->children);
-	found_objects = malloc((size + 1) * sizeof(object_representation_u));
+	found_objects = malloc((size + 1) * sizeof(object_representation_t));
 	if (found_objects) {
 	    __object_get_matching_children(root, 
 		    matching_object_type, found_objects, size+1);
@@ -1799,7 +1779,7 @@ object_get_matching_children (object_database_t *obj_db,
     return found_objects;
 }
 
-PUBLIC object_representation_u *
+PUBLIC object_representation_t *
 object_get_children (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int *returned_count)
@@ -1810,14 +1790,14 @@ object_get_children (object_database_t *obj_db,
 	    ALL_OBJECT_TYPES, returned_count);
 }
 
-PUBLIC object_representation_u *
+PUBLIC object_representation_t *
 object_get_matching_descendants (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
     int size;
     object_t *root;
-    object_representation_u *found_objects;
+    object_representation_t *found_objects;
 
     READ_LOCK(obj_db);
     *returned_count = 0;
@@ -1832,7 +1812,7 @@ object_get_matching_descendants (object_database_t *obj_db,
 	 */
 	size = table_member_count(&obj_db->object_index);
 
-	found_objects = malloc((size + 1) * sizeof(object_representation_u));
+	found_objects = malloc((size + 1) * sizeof(object_representation_t));
 	if (found_objects) {
 	    __object_get_matching_descendants(root, 
 		    matching_object_type, found_objects, size+1);
@@ -1843,7 +1823,7 @@ object_get_matching_descendants (object_database_t *obj_db,
     return found_objects;
 }
 
-PUBLIC object_representation_u *
+PUBLIC object_representation_t *
 object_get_descendants (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int *returned_count)
@@ -1938,8 +1918,8 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
 
     fprintf(fp, "\n%s %d %d %d %d",
 	object_acronym, 
-        obj->parent.object_ptr->object_type,
-	obj->parent.object_ptr->object_instance,
+        obj->parent.u.object_ptr->object_type,
+	obj->parent.u.object_ptr->object_instance,
 	obj->object_type, obj->object_instance);
 
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES

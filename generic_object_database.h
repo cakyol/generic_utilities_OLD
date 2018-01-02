@@ -116,6 +116,7 @@ extern "C" {
 typedef struct attribute_value_s attribute_value_t;
 typedef struct attribute_instance_s attribute_instance_t;
 typedef struct object_identifier_s object_identifier_t;
+typedef struct object_representation_s object_representation_t;
 typedef struct object_s object_t;
 typedef struct object_database_s object_database_t;
 typedef struct event_record_s event_record_t;
@@ -260,10 +261,17 @@ struct object_identifier_s {
  * and pointers are safe to use.  So, this one type can be used both 
  * for user facing APIs as well as internal uses.
  */
-typedef union {
-    object_identifier_t object_id;
-    object_t *object_ptr;
-} object_representation_u;
+struct object_representation_s {
+
+    /* set if the representation is a pointer */
+    byte is_pointer;
+
+    /* which address type to use */
+    union {
+        object_identifier_t object_id;
+        object_t *object_ptr;
+    } u;
+};
 
 struct object_s {
 
@@ -279,10 +287,10 @@ struct object_s {
     int object_instance;
 
     /*
-     * Unless it is the root object, its parent
-     * Root object's parent is NULL.
+     * Parent of this object.  If object is root, it
+     * has no parent.
      */ 
-    object_representation_u parent;
+    object_representation_t parent;
 
     /* Can have many children; no limit */
     table_t children;
@@ -294,8 +302,6 @@ struct object_s {
     table_t attributes;
 #endif
 
-    /* for private use, do NOT use */
-    unsigned int private_flags;
 };
 
 /******************************************************************************
@@ -430,7 +436,7 @@ object_attribute_destroy (object_database_t *obj_db,
  * the specified type.
  * Returns in the form of object identification (type, instance).
  */
-extern object_representation_u *
+extern object_representation_t *
 object_get_matching_children (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int matching_object_type, int *returned_count);
@@ -439,7 +445,7 @@ object_get_matching_children (object_database_t *obj_db,
  * Returns ALL of the FIRST level children objects.
  * Returns in the form of object identification (type, instance).
  */
-extern object_representation_u *
+extern object_representation_t *
 object_get_children (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
 	int *returned_count);
@@ -450,7 +456,7 @@ object_get_children (object_database_t *obj_db,
  * Returns ALL LEVELS of children objects MATCHING ONLY the specified type.
  * Returns in the form of object pointer.
  */
-extern object_representation_u *
+extern object_representation_t *
 object_get_matching_descendants (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int matching_object_type, int *returned_count);
@@ -461,7 +467,7 @@ object_get_matching_descendants (object_database_t *obj_db,
  * Returns ALL LEVELS of children of ALL objects of the parent.
  * Returns in the form of object pointer.
  */
-extern object_representation_u *
+extern object_representation_t *
 object_get_descendants (object_database_t *obj_db,
 	int parent_object_type, int parent_object_instance,
 	int *returned_count);
