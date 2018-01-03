@@ -45,20 +45,20 @@ int main (argc, argv)
 int argc;
 char *argv [];
 {
-    ntrie_t ntrie_obj;
+    nradix_t nradix_obj;
     int i, rref;
     int rc;
 
     printf("\nPOPULATING FASTMAP\n");
-    ntrie_init(&ntrie_obj, true);
-    printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(ntrie_node_t));
+    nradix_init(&nradix_obj, true);
+    printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(nradix_node_t));
     for (i = 0; i < MAX_STRINGS; i++) {
-        ntrie_insert(&ntrie_obj, strings[i], strlen(strings[i]), NULL, &rref);
+        nradix_insert(&nradix_obj, strings[i], strlen(strings[i]), NULL, &rref);
     }
 
     /* these should NOT be found */
     printf("searching %s in ntrie, it should NOT be there\n", not_there1);
-    rc = ntrie_search(&ntrie_obj, not_there1, strlen(not_there1), NULL, &rref);
+    rc = nradix_search(&nradix_obj, not_there1, strlen(not_there1), NULL, &rref);
     if ((rc == ok) || (rref != 0)) {
         fprintf(stderr, "string %s should NOT be found but did (%d)",
                 not_there1, rref);
@@ -67,7 +67,7 @@ char *argv [];
     }
 
     printf("searching %s in ntrie, it should NOT be there\n", not_there2);
-    rc = ntrie_search(&ntrie_obj, not_there2, strlen(not_there2), NULL, &rref);
+    rc = nradix_search(&nradix_obj, not_there2, strlen(not_there2), NULL, &rref);
     if ((rc == ok) || (rref != 0)) {
         fprintf(stderr, "string %s should NOT be found but did (%d)",
                 not_there2, rref);
@@ -77,7 +77,7 @@ char *argv [];
     fflush(stdout);
 
     /* print out contents */
-    ntrie_traverse(&ntrie_obj, print_key);
+    nradix_traverse(&nradix_obj, print_key);
 
     return 0;
 }

@@ -1,5 +1,7 @@
 
-#include "trie_object.h"
+#include <stdio.h>
+#include "ntrie_object.h"
+#include "timer_object.h"
 
 #define SIZE	5
 #define MAX_REF	4
@@ -28,17 +30,20 @@ int argc;
 char *argv [];
 {
     int i, j, k, l, m;
-    uint64 mem;
+    long long int mem;
     int count = 0, total = 0;
     double megabytes;
+    void *data;
+    void *found;
 
     printf("\nPOPULATING TRIE\n");
-    ntrie_init(&ntrie_obj, NULL);
+    ntrie_init(&ntrie_obj, 1, NULL);
     printf("\nSIZE OF NTRIE NODE = %lu BYTES\n", sizeof(ntrie_node_t));
+    data = integer2pointer(1);
     start_timer(&timr);
     FOR_ALL_POSSIBLE_STRINGS
 	total++;
-        if (ntrie_insert(&ntrie_obj, string, SIZE, (void*) 1, NULL) == ok) {
+        if (ntrie_insert(&ntrie_obj, string, SIZE, data, &found) == 0) {
 	    count++;
 	}
     }
@@ -56,7 +61,7 @@ char *argv [];
     start_timer(&timr);
     FOR_ALL_POSSIBLE_STRINGS
         total++;
-	if (ntrie_search(&ntrie_obj, string, SIZE, NULL) == ok) {
+	if (ntrie_search(&ntrie_obj, string, SIZE, &found) == 0) {
             count++;
         }
     }

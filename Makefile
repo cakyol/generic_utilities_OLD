@@ -3,8 +3,7 @@ CC =		gcc
 
 ## for debugging with gdb
 CFLAGS = 	-g -Wall -Werror -DLOCKABILITY_REQUIRED
-
-###CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
+##CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
@@ -26,11 +25,11 @@ LIB_OBJS =	timer_object.o \
 		avl_tree_object.o \
 		table.o \
 		dynamic_array.o \
+		ntrie_object.o \
 		generic_object_database.o \
 		\
 		### utils_common.o \
 		### event_manager.o \
-		### trie_object.o
 		### chunk_manager_object.o \
 
 %.o:		%.c %.h \
@@ -83,6 +82,10 @@ test_avl_object:	test_avl_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_avl_object.c \
 			    -o test_avl_object $(LIBNAME) $(STATIC_LIBS)
 
+test_ntrie:		test_ntrie.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie.c \
+			    -o test_ntrie $(LIBNAME) $(STATIC_LIBS)
+
 test_dynamic_array:	test_dynamic_array.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_dynamic_array.c \
 			    -o test_dynamic_array $(LIBNAME) $(STATIC_LIBS)
@@ -106,6 +109,7 @@ TESTS =		test_lock_object \
 		test_index_object \
 		test_avl_object \
 		test_dynamic_array \
+		test_ntrie \
 		test_db \
 		test_db_load \
 		test_db_speed \
