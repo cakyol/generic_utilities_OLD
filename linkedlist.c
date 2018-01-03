@@ -135,10 +135,6 @@ thread_unsafe_linkedlist_add_once (linkedlist_t *listp, void *user_data,
     /* found, already in list */
     if (0 == rv) return 0;
     
-    /* the data was NOT in list, so reflect that and add it as new */
-    *data_found = NULL;
-    *node_found = NULL;
-
     /* create and populate the new node */
     node_added = (linkedlist_node_t*)
                     MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));
