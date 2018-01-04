@@ -83,6 +83,7 @@ struct ntrie_node_s {
     ntrie_node_t* parent;
     ntrie_node_t *children [NTRIE_ALPHABET_SIZE];
     void *user_data;
+    byte current;	// used for non recursive traversal
     byte value;
     byte n_children;
 };

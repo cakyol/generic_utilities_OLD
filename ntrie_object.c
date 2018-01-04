@@ -168,6 +168,37 @@ ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
 
 #if 0
 
+void ntrie_traverse (ntrie_t *triep, trie_traverse_function_t tfn)
+{
+    ntrie_node_t *node, *prev;
+    byte *key;
+    int index;
+
+    key = malloc(10000);
+    index = 0;
+
+    node = &triep->ntrie_root;
+    while (node) {
+	if (node->current < NTRIE_ALPHABET_SIZE) {
+	    prev = node;
+	    if (node->children[node->current]) {
+		node = node->children[node->current];
+	    }
+	    prev->current++;
+	} else {
+
+	    // Do your thing with the node.
+	    if (node->user_data) {
+		(tfn)(triep, node, key, index+1, node->user_data,
+	    }
+
+	    node->current = 0;	// Reset counter for next traversal.
+	    node = node->parent;
+	    index--;
+	}
+    }
+}
+
 static int
 ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node, 
     trie_traverse_function_t tfn,
