@@ -5,6 +5,7 @@
 
 #define SIZE	5
 #define MAX_REF	4
+#define ITER    3
 
 char string [SIZE + 1];
 ntrie_t ntrie_obj;
@@ -35,6 +36,7 @@ char *argv [];
     double megabytes;
     void *data;
     void *found;
+    int iter;
 
     printf("\nPOPULATING TRIE\n");
     ntrie_init(&ntrie_obj, 1, NULL);
@@ -59,10 +61,12 @@ char *argv [];
     printf("\nSEARCHING ALL AVAILABLE STRINGS\n");
     count = total = 0;
     start_timer(&timr);
-    FOR_ALL_POSSIBLE_STRINGS
-        total++;
-	if (ntrie_search(&ntrie_obj, string, SIZE, &found) == 0) {
-            count++;
+    for (iter = 0; iter < ITER; iter++) {
+        FOR_ALL_POSSIBLE_STRINGS
+            total++;
+            if (ntrie_search(&ntrie_obj, string, SIZE, &found) == 0) {
+                count++;
+            }
         }
     }
     end_timer(&timr);
@@ -71,4 +75,6 @@ char *argv [];
 
     return 0;
 }
+
+
 

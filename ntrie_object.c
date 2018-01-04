@@ -275,6 +275,7 @@ ntrie_init (ntrie_t *ntp,
     MEM_MONITOR_SETUP(ntp);
     ntp->node_count = 0;
     ntrie_node_init(&ntp->ntrie_root, 0);
+    WRITE_UNLOCK(ntp);
 
     return 0;
 }
@@ -352,7 +353,6 @@ DONE:
 PUBLIC void
 ntrie_destroy (ntrie_t *ntp)
 {
-    // LATER
 }
 
 #ifdef __cplusplus

@@ -330,7 +330,7 @@ create_complex_attribute_value (mem_monitor_t *memp,
     int size = sizeof(attribute_value_t);
 
     /* adjust for stream whose length > sizeof(long long int) */
-    if (complex_value_data_length > sizeof(long long int)) {
+    if (complex_value_data_length > (int) sizeof(long long int)) {
 	size = size + complex_value_data_length - sizeof(long long int);
     }
 

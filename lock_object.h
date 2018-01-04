@@ -106,58 +106,34 @@ release_write_lock (lock_obj_t *lck);
 extern void 
 lock_obj_destroy (lock_obj_t *lck);
 
-#ifdef LOCKABILITY_REQUIRED
+#define LOCK_VARIABLES \
+    lock_obj_t lock; \
+    int make_it_thread_safe
 
-    #define LOCK_VARIABLES \
-        lock_obj_t lock; \
-        int make_it_thread_safe
+#define LOCK_SETUP(obj) \
+    do { \
+        obj->make_it_thread_safe = make_it_thread_safe; \
+        if (make_it_thread_safe) { \
+            int __rv__ = lock_obj_init(&obj->lock); \
+            if (__rv__) return __rv__; \
+            grab_write_lock(&obj->lock); \
+        } \
+    } while (0)
 
-    #define LOCK_SETUP(obj) \
-        do { \
-            obj->make_it_thread_safe = make_it_thread_safe; \
-            if (make_it_thread_safe) { \
-                int __rv__ = lock_obj_init(&obj->lock); \
-                if (__rv__) return __rv__; \
-                grab_write_lock(&obj->lock); \
-            } \
-        } while (0)
+#define READ_LOCK(obj) \
+    if (obj->make_it_thread_safe) grab_read_lock(&obj->lock)
 
-    #define READ_LOCK(obj) \
-        if (obj->make_it_thread_safe) grab_read_lock(&obj->lock)
+#define WRITE_LOCK(obj) \
+    if (obj->make_it_thread_safe) grab_write_lock(&obj->lock)
 
-    #define WRITE_LOCK(obj) \
-        if (obj->make_it_thread_safe) grab_write_lock(&obj->lock)
+#define READ_UNLOCK(obj) \
+    if (obj->make_it_thread_safe) release_read_lock(&obj->lock)
 
-    #define READ_UNLOCK(obj) \
-        if (obj->make_it_thread_safe) release_read_lock(&obj->lock)
+#define WRITE_UNLOCK(obj) \
+    if (obj->make_it_thread_safe) release_write_lock(&obj->lock)
 
-    #define WRITE_UNLOCK(obj) \
-        if (obj->make_it_thread_safe) release_write_lock(&obj->lock)
-
-    #define LOCK_OBJ_DESTROY(obj) \
-        do { lock_obj_destroy(&obj->lock); } while (0)
-
-#else // !LOCKABILITY_REQUIRED
-
-    #define LOCK_VARIABLES
-
-    /*
-     * if LOCKABILITY_REQUIRED is not specified in the build,
-     * we cannot support an object to be thread safe.
-     */
-    #define LOCK_SETUP(obj)     if (make_it_thread_safe) return EINVAL
-
-    #define READ_LOCK(obj) 
-
-    #define WRITE_LOCK(obj)
-
-    #define READ_UNLOCK(obj)
-
-    #define WRITE_UNLOCK(obj)
-
-    #define LOCK_OBJ_DESTROY(obj)
-
-#endif // !LOCKABILITY_REQUIRED
+#define LOCK_OBJ_DESTROY(obj) \
+    do { lock_obj_destroy(&obj->lock); } while (0)
 
 #ifdef __cplusplus
 } // extern C

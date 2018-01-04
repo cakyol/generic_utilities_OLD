@@ -2,8 +2,8 @@
 CC =		gcc
 
 ## for debugging with gdb
-CFLAGS = 	-g -Wall -Werror -DLOCKABILITY_REQUIRED
-##CFLAGS = 	-O3 -Wall -Werror -DLOCKABILITY_REQUIRED
+CFLAGS = 	-g -Wall -Wextra -Wno-unused-parameter -Werror
+CFLAGS = 	-O3 -Wall -Wextra -Wno-unused-parameter -Werror
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
