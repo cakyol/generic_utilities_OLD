@@ -8,6 +8,10 @@ test_chunk_integrity
 test_chunk_object
 test_db
 test_db_speed
+test_db_load
+test_linkedlist
+test_lock_object
+test_ntrie
 test_dynamic_array
 test_index_object
 test_malloc
