@@ -86,6 +86,10 @@ test_ntrie:		test_ntrie.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie.c \
 			    -o test_ntrie $(LIBNAME) $(STATIC_LIBS)
 
+test_ntrie2:		test_ntrie2.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie2.c \
+			    -o test_ntrie2 $(LIBNAME) $(STATIC_LIBS)
+
 test_dynamic_array:	test_dynamic_array.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_dynamic_array.c \
 			    -o test_dynamic_array $(LIBNAME) $(STATIC_LIBS)
@@ -110,6 +114,7 @@ TESTS =		test_lock_object \
 		test_avl_object \
 		test_dynamic_array \
 		test_ntrie \
+		test_ntrie2 \
 		test_db \
 		test_db_load \
 		test_db_speed \

@@ -168,37 +168,6 @@ ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
 
 #if 0
 
-void ntrie_traverse (ntrie_t *triep, trie_traverse_function_t tfn)
-{
-    ntrie_node_t *node, *prev;
-    byte *key;
-    int index;
-
-    key = malloc(10000);
-    index = 0;
-
-    node = &triep->ntrie_root;
-    while (node) {
-	if (node->current < NTRIE_ALPHABET_SIZE) {
-	    prev = node;
-	    if (node->children[node->current]) {
-		node = node->children[node->current];
-	    }
-	    prev->current++;
-	} else {
-
-	    // Do your thing with the node.
-	    if (node->user_data) {
-		(tfn)(triep, node, key, index+1, node->user_data,
-	    }
-
-	    node->current = 0;	// Reset counter for next traversal.
-	    node = node->parent;
-	    index--;
-	}
-    }
-}
-
 static int
 ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node, 
     trie_traverse_function_t tfn,
@@ -354,7 +323,7 @@ ntrie_remove (ntrie_t *ntp,
 #if 0
 
 PUBLIC int
-ntrie_traverse (ntrie_t *ntp, trie_traverse_function_t tfn,
+ntrie_traverse (ntrie_t *ntp, traverse_function_t tfn,
     void *p0, void *p1, void *p2, void *p3)
 {
     int i;
@@ -380,6 +349,56 @@ DONE:
 }
 
 #endif // 0
+
+PUBLIC int
+ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
+	void *user_param_1, void *user_param_2)
+{
+    ntrie_node_t *node, *prev;
+    byte *key;
+    void *key_len;
+    int index, rv = 0;
+
+    key = malloc(4096);
+    if (NULL == key) return ENOMEM;
+    index = 0;
+    node = &triep->ntrie_root;
+    while (node) {
+
+	/* continue constructing the key */
+	if (index & 1) {
+	    /* hi nibble */
+	    key[index/2] |= (node->value << 4);
+	} else {
+	    /* lo nibble */
+	    key[index/2] = node->value;
+	}
+
+	if (node->current < NTRIE_ALPHABET_SIZE) {
+	    prev = node;
+	    if (node->children[node->current]) {
+		node = node->children[node->current];
+	    }
+	    prev->current++;
+	} else {
+
+	    // Do your thing with the node.
+	    key_len = integer2pointer(index+1);
+	    if (node->user_data) {
+		rv = tfn(triep, node, node->user_data,
+			key, key_len,
+			user_param_1, user_param_2);
+		if (rv) break;
+	    }
+
+	    node->current = 0;	// Reset counter for next traversal.
+	    node = node->parent;
+	    index--;
+	}
+    }
+    free(key);
+    return rv;
+}
 
 PUBLIC void
 ntrie_destroy (ntrie_t *ntp)

@@ -1,5 +1,6 @@
 
-#include "utils.h"
+#include <stdio.h>
+#include "ntrie_object.h"
 
 #define MAX_REF		10
 #define MAX_BYTE 	255
@@ -12,16 +13,16 @@ char *strings[] = {
     "hello",
     // "1_invalid_string",
     "hello",
-    "hello",
-    "hello",
-    "hello",
+    "hello2",
+    "hello4",
+    "hello6",
     "goodbye",
-    "uninitialized",
-    "hello",
+    "uninitialized3",
+    "hello10",
     "abc",
     "ab",
     "bc",
-    "goodbye"
+    "goodbye5"
 };
 
 char *not_there1 = "initi";
@@ -29,14 +30,16 @@ char *not_there2 = "hel";
 
 #define MAX_STRINGS	(sizeof(strings) / sizeof(char*))
 
-int print_key (byte *vkey, int len, void *user_data, int refc)
+int print_key (void *trie_object, void *trie_node, void *data,
+    void *key, void *key_length, void *u1, void *u2)
 {
     char buffer [100];
+    int len = pointer2integer(key_length);
 
-    memcpy(buffer, vkey, len);
+    memcpy(buffer, key, len);
     buffer[len] = 0;
-    printf("%s: %d\n", buffer, refc);
-    return ok;
+    printf("key %s: data: 0x%p\n", buffer, data);
+    return 0;
 }
 
 char *extra = "wildcard";
@@ -45,39 +48,38 @@ int main (argc, argv)
 int argc;
 char *argv [];
 {
-    nradix_t nradix_obj;
-    int i, rref;
-    int rc;
+    ntrie_t ntrie_obj;
+    int i, rc;
+    void *found;
 
     printf("\nPOPULATING FASTMAP\n");
-    nradix_init(&nradix_obj, true);
-    printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(nradix_node_t));
-    for (i = 0; i < MAX_STRINGS; i++) {
-        nradix_insert(&nradix_obj, strings[i], strlen(strings[i]), NULL, &rref);
+    ntrie_init(&ntrie_obj, 0, NULL);
+    printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(ntrie_node_t));
+    for (i = 0; i < (int) MAX_STRINGS; i++) {
+        ntrie_insert(&ntrie_obj, strings[i], strlen(strings[i]),
+	    strings[i], &found);
     }
 
     /* these should NOT be found */
     printf("searching %s in ntrie, it should NOT be there\n", not_there1);
-    rc = nradix_search(&nradix_obj, not_there1, strlen(not_there1), NULL, &rref);
-    if ((rc == ok) || (rref != 0)) {
-        fprintf(stderr, "string %s should NOT be found but did (%d)",
-                not_there1, rref);
+    rc = ntrie_search(&ntrie_obj, not_there1, strlen(not_there1), &found);
+    if ((rc == 0) || found) {
+        fprintf(stderr, "string %s should NOT be found but was\n", not_there1);
     } else {
         printf("passed\n");
     }
 
     printf("searching %s in ntrie, it should NOT be there\n", not_there2);
-    rc = nradix_search(&nradix_obj, not_there2, strlen(not_there2), NULL, &rref);
-    if ((rc == ok) || (rref != 0)) {
-        fprintf(stderr, "string %s should NOT be found but did (%d)",
-                not_there2, rref);
+    rc = ntrie_search(&ntrie_obj, not_there2, strlen(not_there2), &found);
+    if ((rc == 0) || found) {
+        fprintf(stderr, "string %s should NOT be found but was\n", not_there2);
     } else {
         printf("passed\n");
     }
     fflush(stdout);
 
     /* print out contents */
-    nradix_traverse(&nradix_obj, print_key);
+    ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
 
     return 0;
 }
