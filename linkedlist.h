@@ -219,7 +219,7 @@ linkedlist_destroy (linkedlist_t *listp);
  */
 
 #define FOR_ALL_LINKEDLIST_ELEMENTS(listp, objp) \
-        for (linkedlist_node_t *__n__ = listp->head; \
+        for (linkedlist_node_t *__n__ = (listp)->head; \
              not_endof_linkedlist(__n__) && \
              (objp = (__typeof__(objp))(__n__->user_data)); \
              __n__ = __n__->next)
@@ -230,7 +230,7 @@ linkedlist_destroy (linkedlist_t *listp);
  * If that is not done, infinite loops WILL result.
  */
 #define WHILE_LINKEDLIST_NOT_EMPTY(listp, objp) \
-        for (linkedlist_node_t *__n__ = listp->head; \
+        for (linkedlist_node_t *__n__ = (listp)->head; \
              not_endof_linkedlist(__n__) && \
              (objp = (__typeof__(objp))(__n__->user_data)); \
              __n__ = listp->head)
