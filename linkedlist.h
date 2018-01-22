@@ -144,12 +144,9 @@ linkedlist_init (linkedlist_t *listp,
  * adds a node containing the specified data to the list.
  * ALWAYS added, regardless of whether the data is already 
  * in the list or not.  So, multiple copies WILL be added
- * if not controlled.  Addition is always done to the head
- * since it is so much faster to do so.
- * If only one copy needs to be added, use 'linkedlist_add_once'
- * function defined below instead.
- * Return value is 0 for success.  Failure may occur if out
- * of memory.
+ * if not controlled.  Addition is is done at a point in
+ * the list determined by the ordering specified in the
+ * comparison function.
  */
 extern int
 linkedlist_add (linkedlist_t *listp, void *user_data);
