@@ -118,7 +118,7 @@ ntrie_remove (ntrie_t *ntp,
         void *key, int key_length, 
         void **data_removed);
 
-extern int
+extern void
 ntrie_traverse (ntrie_t *ntp, traverse_function_t tfn,
 	void *user_param_1, void *user_param_2);
 

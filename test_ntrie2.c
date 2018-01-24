@@ -38,7 +38,7 @@ int print_key (void *trie_object, void *trie_node, void *data,
 
     memcpy(buffer, key, len);
     buffer[len] = 0;
-    printf("key %s: data: 0x%p\n", buffer, data);
+    printf("len %d key %s: data: %s\n", len, buffer, data);
     return 0;
 }
 
@@ -79,6 +79,10 @@ char *argv [];
     fflush(stdout);
 
     /* print out contents */
+    ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
+    printf("\n");
+    ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
+    printf("\n");
     ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
 
     return 0;

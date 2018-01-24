@@ -50,6 +50,7 @@ ntrie_new_node (ntrie_t *ntp, int value)
     node = (ntrie_node_t*) MEM_MONITOR_ALLOC(ntp, sizeof(ntrie_node_t));
     if (node) {
 	node->value = value;
+	node->current = 0;
     }
     return node;
 }
@@ -350,54 +351,49 @@ DONE:
 
 #endif // 0
 
-PUBLIC int
+PUBLIC void
 ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
 	void *user_param_1, void *user_param_2)
 {
     ntrie_node_t *node, *prev;
     byte *key;
     void *key_len;
-    int index, rv = 0;
+    int index = 0;
 
-    key = malloc(4096);
-    if (NULL == key) return ENOMEM;
-    index = 0;
+    key = malloc(8192);
+    if (NULL == key) return;
     node = &triep->ntrie_root;
+    node->current = 0;
     while (node) {
-
-	/* continue constructing the key */
-	if (index & 1) {
-	    /* hi nibble */
-	    key[index/2] |= (node->value << 4);
-	} else {
-	    /* lo nibble */
-	    key[index/2] = node->value;
-	}
-
 	if (node->current < NTRIE_ALPHABET_SIZE) {
+	    if (index >= 1) {
+		if (index & 1) {
+		    /* lo nibble */
+		    key[(index-1)/2] = node->value;
+		} else {
+		    /* hi nibble */
+		    key[(index-1)/2] |= (node->value << 4);
+		}
+	    }
 	    prev = node;
 	    if (node->children[node->current]) {
 		node = node->children[node->current];
+		index++;
 	    }
 	    prev->current++;
 	} else {
-
 	    // Do your thing with the node.
-	    key_len = integer2pointer(index+1);
+	    key_len = integer2pointer(index/2);
 	    if (node->user_data) {
-		rv = tfn(triep, node, node->user_data,
-			key, key_len,
-			user_param_1, user_param_2);
-		if (rv) break;
+		tfn(triep, node, node->user_data, key, key_len,
+		    user_param_1, user_param_2);
 	    }
-
 	    node->current = 0;	// Reset counter for next traversal.
 	    node = node->parent;
 	    index--;
 	}
     }
     free(key);
-    return rv;
 }
 
 PUBLIC void
