@@ -38,7 +38,7 @@ int print_key (void *trie_object, void *trie_node, void *data,
 
     memcpy(buffer, key, len);
     buffer[len] = 0;
-    printf("len %d key %s: data: %s\n", len, buffer, data);
+    printf("len %d key %s: data: %s\n", len, buffer, (char*) data);
     return 0;
 }
 
