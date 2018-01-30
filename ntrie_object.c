@@ -351,6 +351,22 @@ DONE:
 
 #endif // 0
 
+
+/*
+ * This traverse function does not use recursion or a
+ * separate stack.  This is very useful for very deep
+ * trees where we may run out of stack or memory.  This
+ * method will never run out of memory but will just take
+ * longer.
+ *
+ * One very important point here.  Since this traversal
+ * changes node values, we cannot stop until we traverse the
+ * entire tree so that all nodes are reverted back to normal.
+ * Therefore, if the user traverse function returns a non 0,
+ * we can NOT stop traversing; we must continue.  However,
+ * once the error occurs, we simply stop calling the user
+ * function for the rest of the tree.
+ */
 PUBLIC void
 ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
 	void *user_param_1, void *user_param_2)
@@ -359,6 +375,7 @@ ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
     byte *key;
     void *key_len;
     int index = 0;
+    int rv = 0;
 
     key = malloc(8192);
     if (NULL == key) return;
@@ -382,10 +399,10 @@ ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
 	    }
 	    prev->current++;
 	} else {
-	    // Do your thing with the node.
+	    // Do your thing with the node here as long as no error occured so far
 	    key_len = integer2pointer(index/2);
-	    if (node->user_data) {
-		tfn(triep, node, node->user_data, key, key_len,
+	    if (node->user_data && (0 == rv)) {
+		rv = tfn(triep, node, node->user_data, key, key_len,
 		    user_param_1, user_param_2);
 	    }
 	    node->current = 0;	// Reset counter for next traversal.

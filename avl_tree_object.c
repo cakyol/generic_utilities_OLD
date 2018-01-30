@@ -526,13 +526,21 @@ END_OF_DELETE:
  * morris traverse: preorder tree traversal without 
  * using recursion and without stack.  No extra storage
  * is needed, therefore it is frugal in memory usage.
+ *
+ * One very important point here.  Since morris traversal
+ * changes pointers, we cannot stop until we traverse the
+ * entire tree so that all pointers are recovered back.
+ * Therefore, if the user traverse function returns a non 0,
+ * we can NOT stop traversing; we must continue.  However,
+ * once the error occurs, we simply stop calling the user
+ * function for the rest of the tree.
  */
 int
 thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_t tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
-    int rv;
+    int rv = 0;
     avl_node_t *current;
 
     /* if the starting root is NULL, start from top of tree */
@@ -555,8 +563,10 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
                 current->right = NULL;
                 root = root->right;
             } else {
-                rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
-                if (rv) return rv;
+                /* call user function only if no error occured so far */
+                if (0 == rv) {
+                    rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
+                }
                 current->right = root;
                 root = root->left;
             }
