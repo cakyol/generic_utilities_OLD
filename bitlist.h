@@ -66,7 +66,8 @@ typedef struct bitlist_s {
 
 extern int
 bitlist_init (bitlist_t *bl,
-    int lowest_valid_bit, int highest_valid_bit);
+    int lowest_valid_bit, int highest_valid_bit,
+    int initialize_to_all_ones);
 
 extern int
 bitlist_get (bitlist_t *bl,
@@ -85,6 +86,9 @@ bitlist_first_set_bit (bitlist_t *bl);
 /* returns -1 if no bits clear in the entire set */
 extern int
 bitlist_first_clear_bit (bitlist_t *bl);
+
+extern void
+bitlist_destroy (bitlist_t *bl);
 
 #ifdef __cplusplus
 } // extern C

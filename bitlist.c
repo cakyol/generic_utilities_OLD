@@ -35,7 +35,7 @@ extern "C" {
 
 #define PUBLIC
 
-static inline int
+static inline unsigned char
 quick_bit_get (unsigned char *bytes, int bit_number)
 { return bytes[bit_number >> 3] & (1 << (bit_number % 8)); }
 
@@ -60,17 +60,29 @@ first_clear_bit (unsigned int value)
 
 PUBLIC int
 bitlist_init (bitlist_t *bl,
-    int lowest_valid_bit, int highest_valid_bit)
+    int lowest_valid_bit, int highest_valid_bit,
+    int initialize_to_all_ones)
 {
     /* allow an extra 16 bytes at the end to include 2 extra long long ints */
     int size_in_bytes = ((highest_valid_bit - lowest_valid_bit) / 8) + 16;
     int i;
+    unsigned char data;
 
     bl->the_bits = (unsigned char*) malloc(size_in_bytes);
     if (0 == bl->the_bits) return ENOMEM;
     bl->size_in_bytes = size_in_bytes;
-    for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = 0;
+    bl->lowest_valid_bit = lowest_valid_bit;
+    bl->highest_valid_bit = highest_valid_bit;
+    data = initialize_to_all_ones ? 0xFF : 0;
+    for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = data;
     return 0;
+}
+
+PUBLIC void
+bitlist_destroy (bitlist_t *bl)
+{
+    if (bl->the_bits) free(bl->the_bits);
+    bl->the_bits = NULL;
 }
 
 PUBLIC int
