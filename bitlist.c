@@ -133,7 +133,7 @@ bitlist_first_set_bit (bitlist_t *bl)
     int i, size_in_ints, first;
     int *the_ints;
 
-    size_in_ints = bl->size_in_bytes * sizeof(int) + 1;
+    size_in_ints = bl->size_in_bytes / sizeof(int) + 1;
     the_ints = (int*) bl->the_bits;
     first = -1;
     for (i = 0; i < size_in_ints; i++) {
@@ -153,7 +153,7 @@ bitlist_first_clear_bit (bitlist_t *bl)
     int i, size_in_ints, first;
     unsigned int *the_ints;
 
-    size_in_ints = bl->size_in_bytes * sizeof(int) + 1;
+    size_in_ints = bl->size_in_bytes / sizeof(int) + 1;
     the_ints = (unsigned int*) bl->the_bits;
     first = -1;
     for (i = 0; i < size_in_ints; i++) {
