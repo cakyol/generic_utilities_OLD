@@ -60,9 +60,22 @@ typedef struct bitlist_s {
     int lowest_valid_bit;
     int highest_valid_bit;
     int size_in_bytes;
+    int bits_set_count;
     unsigned char *the_bits;
 
 } bitlist_t;
+
+static inline int
+bitlist_count_ones (bitlist_t *bl)
+{ return bl->bits_set_count; }
+
+static inline int
+bitlist_count_zeros (bitlist_t *bl)
+{
+    return 
+	bl->highest_valid_bit - bl->lowest_valid_bit + 1 - 
+	bl->bits_set_count; 
+}
 
 extern int
 bitlist_init (bitlist_t *bl,

@@ -73,8 +73,15 @@ bitlist_init (bitlist_t *bl,
     bl->size_in_bytes = size_in_bytes;
     bl->lowest_valid_bit = lowest_valid_bit;
     bl->highest_valid_bit = highest_valid_bit;
-    data = initialize_to_all_ones ? 0xFF : 0;
+    if (initialize_to_all_ones) {
+	data = 0xFF;
+	bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
+    } else {
+	data = 0;
+	bl->bits_set_count = 0;
+    }
     for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = data;
+
     return 0;
 }
 
@@ -108,6 +115,8 @@ bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 PUBLIC int
 bitlist_set (bitlist_t *bl, int bit_number)
 {
+    unsigned char bit;
+
     /* check bounds */
     if (bit_number < bl->lowest_valid_bit) return ENODATA;
     if (bit_number > bl->highest_valid_bit) return ENODATA;
@@ -116,7 +125,11 @@ bitlist_set (bitlist_t *bl, int bit_number)
     bit_number -= bl->lowest_valid_bit;
 
     /* set it */
-    quick_bit_set(bl->the_bits, bit_number);
+    bit = quick_bit_get(bl->the_bits, bit_number);
+    if (bit == 0) {
+	quick_bit_set(bl->the_bits, bit_number);
+	bl->bits_set_count++;
+    }
 
     /* no error */
     return 0;
@@ -125,6 +138,8 @@ bitlist_set (bitlist_t *bl, int bit_number)
 PUBLIC int
 bitlist_clear (bitlist_t *bl, int bit_number)
 {
+    unsigned char value;
+
     /* check bounds */
     if (bit_number < bl->lowest_valid_bit) return ENODATA;
     if (bit_number > bl->highest_valid_bit) return ENODATA;
@@ -133,7 +148,11 @@ bitlist_clear (bitlist_t *bl, int bit_number)
     bit_number -= bl->lowest_valid_bit;
 
     /* clear it */
-    quick_bit_clear(bl->the_bits, bit_number);
+    value = quick_bit_get(bl->the_bits, bit_number);
+    if (value) {
+	quick_bit_clear(bl->the_bits, bit_number);
+	bl->bits_set_count--;
+    }
 
     /* no error */
     return 0;
