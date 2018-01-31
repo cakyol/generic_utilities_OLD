@@ -18,6 +18,7 @@ LIBNAME =	utils_lib.a
 LIB_OBJS =	timer_object.o \
 		mem_monitor.o \
 		lock_object.o \
+		bitlist.o \
 		stack_object.o \
 		queue_object.o \
 		linkedlist.o \
@@ -47,6 +48,10 @@ utils_lib.a:	$(LIB_OBJS)
 test_lock_object:	test_lock_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_lock_object.c \
 			    -o test_lock_object $(LIBNAME) $(STATIC_LIBS)
+
+test_bitlist:		test_bitlist.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_bitlist.c \
+			    -o test_bitlist $(LIBNAME) $(STATIC_LIBS)
 
 test_stack_object:	test_stack_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_stack_object.c \
@@ -108,6 +113,7 @@ test_db_speed:		test_db_speed.c $(LIBNAME)
 
 TESTS =		test_lock_object \
 		test_stack_object \
+		test_bitlist \
 		test_linkedlist \
 		test_queue_object \
 		test_index_object \

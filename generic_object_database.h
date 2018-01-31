@@ -105,9 +105,9 @@ extern "C" {
 #include "event_types.h"
 
 /* 
- * This uses more memory for widespread attribute values
+ * This uses more memory for widespread attribute ids
  * but is extremely fast.  If attribute id numbers are
- * kept consecutive, then it also uses much less memory
+ * kept consecutive, then it would use less memory.
  */
 #define USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
 
