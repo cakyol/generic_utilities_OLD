@@ -34,8 +34,8 @@ extern "C" {
 #include <errno.h>
 #include <assert.h>
 
-#include "lock_object.h"
 #include "mem_monitor.h"
+#include "lock_object.h"
 #include "function_types.h"
 
 #ifdef USE_CHUNK_MANAGER
@@ -54,8 +54,8 @@ struct avl_node_s {
 
 typedef struct avl_tree_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
 
     avl_node_t *root_node, *first_node, *last_node;
     comparison_function_t cmpf;

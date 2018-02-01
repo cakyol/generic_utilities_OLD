@@ -33,16 +33,17 @@ extern "C" {
 
 #include <errno.h>
 #include <string.h>
-#include "lock_object.h"
+
 #include "mem_monitor.h"
+#include "lock_object.h"
 
 /*
  * generic object structure
  */
 typedef struct queue_obj_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
 
     /* queues may expand by the specified size, if non zero */
     int maximum_size;

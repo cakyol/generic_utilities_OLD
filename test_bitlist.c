@@ -8,9 +8,9 @@
 int main (int argc, char *argv[])
 {
     bitlist_t bl;
-    int rv, i, bit;
+    int rv, i, bit, first;
 
-    if (bitlist_init(&bl, LOW, HI, 0) != 0) {
+    if (bitlist_init(&bl, 0, LOW, HI, 0, NULL) != 0) {
 	fprintf(stderr, "bitlist_init failed for lo %d hi %d\n",
 	    LOW, HI);
 	return -1;
@@ -45,8 +45,8 @@ int main (int argc, char *argv[])
 	if (rv) {
 	    fprintf(stderr, "setting bit %d failed\n", i);
 	}
-	rv = bitlist_first_set_bit(&bl);
-	if (rv != i) {
+	rv = bitlist_first_set_bit(&bl, &first);
+	if (rv || (first != i)) {
 	    fprintf(stderr, "first set bit should be %d but it is %d\n",
 		i, rv);
 	}
@@ -69,8 +69,8 @@ int main (int argc, char *argv[])
 	if (rv) {
 	    fprintf(stderr, "clearing bit %d failed\n", i);
 	}
-	rv = bitlist_first_clear_bit(&bl);
-	if (rv != i) {
+	rv = bitlist_first_clear_bit(&bl, &first);
+	if (rv || (first != i)) {
 	    fprintf(stderr, "first clear bit should be %d but it is %d\n",
 		i, rv);
 	}

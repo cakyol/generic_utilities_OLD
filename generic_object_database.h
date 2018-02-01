@@ -98,6 +98,8 @@ extern "C" {
 #include <unistd.h>
 #include <assert.h>
 
+#include "mem_monitor.h"
+#include "lock_object.h"
 #include "pointer_manipulations.h"
 #include "table.h"
 #include "dynamic_array.h"
@@ -312,9 +314,8 @@ struct object_s {
 
 struct object_database_s {
 
-    /* dynamic memory bookkeeper */
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
 
     /* unique integer for this database */
     int database_id;

@@ -58,42 +58,8 @@ first_clear_bit (unsigned int value)
     return -1;
 }
 
-PUBLIC int
-bitlist_init (bitlist_t *bl,
-    int lowest_valid_bit, int highest_valid_bit,
-    int initialize_to_all_ones)
-{
-    /* allow an extra 16 bytes at the end to include 2 extra long long ints */
-    int size_in_bytes = ((highest_valid_bit - lowest_valid_bit) / 8) + 16;
-    int i;
-    unsigned char data;
-
-    bl->the_bits = (unsigned char*) malloc(size_in_bytes);
-    if (0 == bl->the_bits) return ENOMEM;
-    bl->size_in_bytes = size_in_bytes;
-    bl->lowest_valid_bit = lowest_valid_bit;
-    bl->highest_valid_bit = highest_valid_bit;
-    if (initialize_to_all_ones) {
-	data = 0xFF;
-	bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
-    } else {
-	data = 0;
-	bl->bits_set_count = 0;
-    }
-    for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = data;
-
-    return 0;
-}
-
-PUBLIC void
-bitlist_destroy (bitlist_t *bl)
-{
-    if (bl->the_bits) free(bl->the_bits);
-    bl->the_bits = NULL;
-}
-
-PUBLIC int
-bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
+static int
+thread_unsafe_bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 {
     unsigned char value;
 
@@ -112,8 +78,8 @@ bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
     return 0;
 }
 
-PUBLIC int
-bitlist_set (bitlist_t *bl, int bit_number)
+static int
+thread_unsafe_bitlist_set (bitlist_t *bl, int bit_number)
 {
     unsigned char bit;
 
@@ -135,8 +101,8 @@ bitlist_set (bitlist_t *bl, int bit_number)
     return 0;
 }
 
-PUBLIC int
-bitlist_clear (bitlist_t *bl, int bit_number)
+static int
+thread_unsafe_bitlist_clear (bitlist_t *bl, int bit_number)
 {
     unsigned char value;
 
@@ -158,44 +124,144 @@ bitlist_clear (bitlist_t *bl, int bit_number)
     return 0;
 }
 
-PUBLIC int
-bitlist_first_set_bit (bitlist_t *bl)
+static int
+thread_unsafe_bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number)
 {
     int i, size_in_ints, first;
     int *the_ints;
 
     size_in_ints = bl->size_in_bytes / sizeof(int) + 1;
     the_ints = (int*) bl->the_bits;
-    first = -1;
     for (i = 0; i < size_in_ints; i++) {
         if (the_ints[i]) {
             first = ffs(the_ints[i]);
             first = (first - 1) + (i * 32) + bl->lowest_valid_bit;
-            if (first > bl->highest_valid_bit) first = -1;
-            break;
+            if (first > bl->highest_valid_bit) return ENODATA;
+            *returned_bit_number = first;
+            return 0;
         }
     }
-    return first;
+    return ENODATA;
 }
 
-PUBLIC int
-bitlist_first_clear_bit (bitlist_t *bl)
+static int
+thread_unsafe_bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
 {
     int i, size_in_ints, first;
     unsigned int *the_ints;
 
     size_in_ints = bl->size_in_bytes / sizeof(int) + 1;
     the_ints = (unsigned int*) bl->the_bits;
-    first = -1;
     for (i = 0; i < size_in_ints; i++) {
         if (the_ints[i] != 0xFFFFFFFF) {
             first = first_clear_bit(the_ints[i]);
             first += (i * 32) + bl->lowest_valid_bit;
-            if (first > bl->highest_valid_bit) first = -1;
-            break;
+            if (first > bl->highest_valid_bit) return ENODATA;
+            *returned_bit_number = first;
+            return 0;
         }
     }
-    return first;
+    return ENODATA;
+}
+
+
+/******* Public functions ****************************************************/
+
+PUBLIC int
+bitlist_init (bitlist_t *bl,
+    int make_it_thread_safe,
+    int lowest_valid_bit, int highest_valid_bit,
+    int initialize_to_all_ones,
+    mem_monitor_t *parent_mem_monitor)
+{
+    /* allow an extra 16 bytes at the end to include 2 extra long long ints */
+    int size_in_bytes = ((highest_valid_bit - lowest_valid_bit) / 8) + 16;
+    int i, rv = 0;
+    unsigned char data;
+
+    MEM_MONITOR_SETUP(bl);
+    LOCK_SETUP(bl);
+
+    bl->the_bits = (unsigned char*) MEM_MONITOR_ALLOC(bl, size_in_bytes);
+    if (0 == bl->the_bits) {
+        rv = ENOMEM;
+        goto done;
+    }
+    bl->size_in_bytes = size_in_bytes;
+    bl->lowest_valid_bit = lowest_valid_bit;
+    bl->highest_valid_bit = highest_valid_bit;
+    if (initialize_to_all_ones) {
+	data = 0xFF;
+	bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
+    } else {
+	data = 0;
+	bl->bits_set_count = 0;
+    }
+    for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = data;
+done:
+    return rv;
+}
+
+PUBLIC void
+bitlist_destroy (bitlist_t *bl)
+{
+    if (bl->the_bits) free(bl->the_bits);
+    bl->the_bits = NULL;
+}
+
+PUBLIC int
+bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
+{
+    int rv;
+
+    READ_LOCK(bl);
+    rv = thread_unsafe_bitlist_get(bl, bit_number, returned_bit);
+    READ_UNLOCK(bl);
+    return rv;
+}
+
+PUBLIC int
+bitlist_set (bitlist_t *bl, int bit_number)
+{
+    int rv;
+
+    WRITE_LOCK(bl);
+    rv = thread_unsafe_bitlist_set(bl, bit_number);
+    WRITE_UNLOCK(bl);
+    return rv;
+}
+
+PUBLIC int
+bitlist_clear (bitlist_t *bl, int bit_number)
+{
+    int rv;
+
+    WRITE_LOCK(bl);
+    rv = thread_unsafe_bitlist_clear(bl, bit_number);
+    WRITE_UNLOCK(bl);
+    return rv;
+}
+
+PUBLIC int
+bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number)
+{
+    int rv;
+
+    READ_LOCK(bl);
+    rv = thread_unsafe_bitlist_first_set_bit(bl, returned_bit_number);
+    READ_UNLOCK(bl);
+    return rv;
+}
+
+PUBLIC int
+bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
+{
+    int rv;
+
+    READ_LOCK(bl);
+    rv = thread_unsafe_bitlist_first_clear_bit(bl, returned_bit_number);
+    READ_UNLOCK(bl);
+    return rv;
 }
 
 #ifdef __cplusplus

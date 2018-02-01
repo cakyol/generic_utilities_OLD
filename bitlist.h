@@ -55,8 +55,13 @@ extern "C" {
 #include <stdlib.h>
 #include <strings.h>
 
+#include "mem_monitor.h"
+#include "lock_object.h"
+
 typedef struct bitlist_s {
 
+    MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
     int lowest_valid_bit;
     int highest_valid_bit;
     int size_in_bytes;
@@ -79,8 +84,10 @@ bitlist_count_zeros (bitlist_t *bl)
 
 extern int
 bitlist_init (bitlist_t *bl,
+    int make_it_thread_safe,
     int lowest_valid_bit, int highest_valid_bit,
-    int initialize_to_all_ones);
+    int initialize_to_all_ones,
+    mem_monitor_t *parent_mem_monitor);
 
 extern int
 bitlist_get (bitlist_t *bl,
@@ -92,13 +99,11 @@ bitlist_set (bitlist_t *bl, int bit_number);
 extern int
 bitlist_clear (bitlist_t *bl, int bit_number);
 
-/* returns -1 if no bits set in the entire set */
 extern int
-bitlist_first_set_bit (bitlist_t *bl);
+bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number);
 
-/* returns -1 if no bits clear in the entire set */
 extern int
-bitlist_first_clear_bit (bitlist_t *bl);
+bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number);
 
 extern void
 bitlist_destroy (bitlist_t *bl);

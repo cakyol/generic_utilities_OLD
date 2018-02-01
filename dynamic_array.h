@@ -64,13 +64,13 @@ extern "C" {
 #include <errno.h>
 #include <assert.h>
 
-#include "lock_object.h"
 #include "mem_monitor.h"
+#include "lock_object.h"
 
 typedef struct dynamic_array_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
 
     int size;
     int n;

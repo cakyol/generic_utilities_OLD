@@ -67,9 +67,10 @@ extern "C" {
 #endif
 
 #include <errno.h>
+
 #include "pointer_manipulations.h"
-#include "lock_object.h"
 #include "mem_monitor.h"
+#include "lock_object.h"
 #include "function_types.h"
 
 #define NTRIE_LOW_VALUE         0
@@ -90,8 +91,8 @@ struct ntrie_node_s {
 
 typedef struct ntrie_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
     int node_count;
     ntrie_node_t ntrie_root;
 

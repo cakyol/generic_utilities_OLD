@@ -62,6 +62,7 @@ extern "C" {
 
 #include <string.h>
 #include <pthread.h>
+
 #include "mem_monitor.h"
 
 typedef struct lock_obj_s {

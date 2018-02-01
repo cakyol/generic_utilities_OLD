@@ -34,13 +34,14 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "lock_object.h"
+
 #include "mem_monitor.h"
+#include "lock_object.h"
 
 typedef struct stack_obj_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
 
     int maximum_size;
     int expansion_size;

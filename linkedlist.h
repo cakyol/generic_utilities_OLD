@@ -51,8 +51,9 @@ extern "C" {
 #endif
 
 #include <errno.h>
-#include "lock_object.h"
+
 #include "mem_monitor.h"
+#include "lock_object.h"
 
 typedef int (*comparison_function_t) (void *v1, void *v2);
 typedef struct linkedlist_s linkedlist_t;
@@ -86,8 +87,8 @@ struct linkedlist_node_s {
  */
 struct linkedlist_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
 
     /* start of list */
     linkedlist_node_t *head;

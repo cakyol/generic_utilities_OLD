@@ -51,14 +51,15 @@ extern "C" {
 #endif
 
 #include <errno.h>
-#include "lock_object.h"
+
 #include "mem_monitor.h"
+#include "lock_object.h"
 #include "function_types.h"
 
 typedef struct index_obj_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
     comparison_function_t cmpf;
     int initial_size;
     int maximum_size;
