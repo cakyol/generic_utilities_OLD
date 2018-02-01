@@ -120,8 +120,8 @@ queue_obj_init (queue_obj_t *qobj,
 	return EINVAL;
     }
 
-    LOCK_SETUP(qobj);
     MEM_MONITOR_SETUP(qobj);
+    LOCK_SETUP(qobj);
 
     qobj->maximum_size = maximum_size;
     qobj->expansion_increment = expansion_increment;

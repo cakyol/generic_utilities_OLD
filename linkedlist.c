@@ -221,8 +221,8 @@ linkedlist_init (linkedlist_t *listp,
 
     if (NULL == cmp_fn) return EINVAL;
 
-    LOCK_SETUP(listp);
     MEM_MONITOR_SETUP(listp);
+    LOCK_SETUP(listp);
 
     last_node = (linkedlist_node_t*) 
                     MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));

@@ -62,6 +62,7 @@ extern "C" {
 
 #include <string.h>
 #include <pthread.h>
+#include "mem_monitor.h"
 
 typedef struct lock_obj_s {
 
@@ -107,33 +108,40 @@ extern void
 lock_obj_destroy (lock_obj_t *lck);
 
 #define LOCK_VARIABLES \
-    lock_obj_t lock; \
-    int make_it_thread_safe
+    lock_obj_t *lock; \
 
 #define LOCK_SETUP(obj) \
     do { \
-        obj->make_it_thread_safe = make_it_thread_safe; \
+        obj->lock = 0; \
         if (make_it_thread_safe) { \
-            int __rv__ = lock_obj_init(&obj->lock); \
+            obj->lock = MEM_MONITOR_ALLOC(obj, sizeof(lock_obj_t)); \
+            if (0 == obj->lock) return ENOMEM; \
+            int __rv__ = lock_obj_init(obj->lock); \
             if (__rv__) return __rv__; \
-            grab_write_lock(&obj->lock); \
+            grab_write_lock(obj->lock); \
         } \
     } while (0)
 
 #define READ_LOCK(obj) \
-    if (obj->make_it_thread_safe) grab_read_lock(&obj->lock)
+    if (obj->lock) grab_read_lock(obj->lock)
 
 #define WRITE_LOCK(obj) \
-    if (obj->make_it_thread_safe) grab_write_lock(&obj->lock)
+    if (obj->lock) grab_write_lock(obj->lock)
 
 #define READ_UNLOCK(obj) \
-    if (obj->make_it_thread_safe) release_read_lock(&obj->lock)
+    if (obj->lock) release_read_lock(obj->lock)
 
 #define WRITE_UNLOCK(obj) \
-    if (obj->make_it_thread_safe) release_write_lock(&obj->lock)
+    if (obj->lock) release_write_lock(obj->lock)
 
 #define LOCK_OBJ_DESTROY(obj) \
-    do { lock_obj_destroy(&obj->lock); } while (0)
+    do { \
+        if (obj->lock) { \
+            lock_obj_destroy(obj->lock); \
+            MEM_MONITOR_FREE(obj, obj->lock); \
+            obj->lock = 0; \
+        } \
+    } while (0)
 
 #ifdef __cplusplus
 } // extern C

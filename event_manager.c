@@ -160,8 +160,8 @@ event_manager_init (event_manager_t *evrp,
 {
     error_t rv;
 
-    LOCK_SETUP(evrp);
     MEM_MONITOR_SETUP(evrp);
+    LOCK_SETUP(evrp);
 
     rv = sll_object_init(&evrp->all_types_object_processes, 
             false, compare_process_ids, evrp->mem_mon_p);

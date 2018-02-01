@@ -220,14 +220,13 @@ index_obj_init (index_obj_t *idx,
 	return EINVAL;
     }
 
+    MEM_MONITOR_SETUP(idx);
     LOCK_SETUP(idx);
     idx->initial_size = idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
     idx->expansion_count = 0;
     idx->cmpf = cmpf;
     idx->n = 0;
-
-    MEM_MONITOR_SETUP(idx);
     idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
 	rv = EINVAL;

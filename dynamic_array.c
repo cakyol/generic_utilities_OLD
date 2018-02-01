@@ -182,8 +182,8 @@ dynamic_array_init (dynamic_array_t *datp,
     if (initial_size < 3) {
 	return EINVAL;
     }
-    LOCK_SETUP(datp);
     MEM_MONITOR_SETUP(datp);
+    LOCK_SETUP(datp);
     datp->elements = 
 	MEM_MONITOR_ALLOC(datp, (initial_size * sizeof(void**)));
     if (NULL == datp->elements)

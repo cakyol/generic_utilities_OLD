@@ -584,8 +584,8 @@ avl_tree_init (avl_tree_t *tree,
         mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;
-    LOCK_SETUP(tree);
     MEM_MONITOR_SETUP(tree);
+    LOCK_SETUP(tree);
     tree->cmpf = cmpf;
 
 #ifdef USE_CHUNK_MANAGER

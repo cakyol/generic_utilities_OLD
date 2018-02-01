@@ -272,8 +272,8 @@ ntrie_init (ntrie_t *ntp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
-    LOCK_SETUP(ntp);
     MEM_MONITOR_SETUP(ntp);
+    LOCK_SETUP(ntp);
     ntp->node_count = 0;
     ntrie_node_init(&ntp->ntrie_root, 0);
     WRITE_UNLOCK(ntp);

@@ -1438,8 +1438,8 @@ database_initialize (object_database_t *obj_db,
 
     memset(obj_db, 0, sizeof(object_database_t));
 
-    LOCK_SETUP(obj_db);
     MEM_MONITOR_SETUP(obj_db);
+    LOCK_SETUP(obj_db);
 
     // memset to 0 already does this but just making a point
     obj_db->processing_remote_event = 0;
