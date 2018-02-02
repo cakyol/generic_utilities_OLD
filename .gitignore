@@ -18,5 +18,8 @@ test_malloc
 test_queue_object
 test_sll_object
 test_stack_object
+test_bitlist
+test_ntrie2
+
 
 
