@@ -87,8 +87,10 @@ typedef struct lock_obj_s {
     /* count of current active readers */
     short readers;
 
-    /* count of how many writers are waiting and the current writer if any */
+    /* a boolean indicating if at least one writer is waiting */
     unsigned char pending_writer;
+
+    /* the current writer, if any */
     mp_thread_id_t writer;
 
 } lock_obj_t;
