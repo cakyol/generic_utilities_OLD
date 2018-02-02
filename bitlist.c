@@ -48,7 +48,7 @@ quick_bit_clear (unsigned char *bytes, int bit_number)
 { bytes[bit_number >> 3] &= (~(1 << (bit_number % 8))); } 
 
 static inline int
-first_clear_bit (unsigned int value)
+_first_clear_bit (unsigned int value)
 {
     int i;
 
@@ -154,7 +154,7 @@ thread_unsafe_bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
     the_ints = (unsigned int*) bl->the_bits;
     for (i = 0; i < size_in_ints; i++) {
         if (the_ints[i] != 0xFFFFFFFF) {
-            first = first_clear_bit(the_ints[i]);
+            first = _first_clear_bit(the_ints[i]);
             first += (i * 32) + bl->lowest_valid_bit;
             if (first > bl->highest_valid_bit) return ENODATA;
             *returned_bit_number = first;
