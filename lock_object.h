@@ -37,10 +37,19 @@
 ** Read/Write synchronizer to be used between processes as
 ** well as threads.  It can achieve the following:
 **
-**	- No limit on readers (well.. MAXINT readers max)
+**	- No limit on readers (well.. MAXUSHORT)
+**	- read locks ARE recursive altho discouraged.
 **	- Only one active writer at a time
-**	- read requests may starve out a writer so that 
-**        we can implement recursive read/write locks.
+**      - write locks are *NOT* recursive, deadlock will occur if recursive
+**        write locking is attempted.
+**	- A dead process which may have write locked will be detected
+**	  when another write lock is attempted and will be cleaned up.
+**	  Unfortunately however, this will NOT work for read locks.
+**	  Ie, if a process which may have acquired the read lock dies
+**	  before releasing the read lock, things will just go to 
+**	  worse than bad.
+**	- read locks will not starve a write lock.
+**	- Competing write locks MAY however starve each other.
 **
 ** For this to be usable between processes, the object
 ** must be defined in a shared memory area.  If inter 
@@ -60,33 +69,42 @@
 extern "C" {
 #endif
 
+#include <sys/types.h>
 #include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <signal.h>
 #include <pthread.h>
+#include <assert.h>
 
-#include "mem_monitor.h"
+/*
+ * For locks to be usable in shared memory by multiple processes & threads,
+ * simply using the thread id is not enuf to identify a unique execution unit.
+ * A combination of BOTH the process id AND thread id must be used.  This
+ * structure defines this tuple.  If pid is -1, it indicates an invalid
+ * entry.  Note however that since we are not allowing recursive locks,
+ * for the time being we do not actually need to use the tid.
+ */
+typedef struct mp_thread_id_s {
+
+    int pid;
+    pthread_t tid;
+
+} mp_thread_id_t;
 
 typedef struct lock_obj_s {
 
     /* protects ALL the variables below */
     pthread_mutex_t mtx;
 
-    /* count of read lock requests not yet granted */
-    short pending_read_locks;
-
     /* count of current active readers */
     short readers;
 
-    /* count of write lock requests not yet granted */
-    short pending_write_locks;
+    /* a boolean indicating if at least one writer is waiting */
+    unsigned char pending_writer;
 
-    /* count of recursive write locks granted */
-    short recursive_write_locks_granted;
-
-    /* boolean indicating whether 'writer_thread_id' is set */
-    char writer_thread_id_set;
-
-    /* when valid, the thread id of the current writer thread */
-    pthread_t writer_thread_id;
+    /* the current writer, if any */
+    mp_thread_id_t writer;
 
 } lock_obj_t;
 

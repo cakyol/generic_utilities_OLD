@@ -32,76 +32,98 @@ extern "C" {
 
 #define PUBLIC
 
+/*
+ * A process is dead when a kill 0 signal cannot be sent to it.
+ */
+static inline int
+process_is_dead (int pid)
+{
+    /* process is alive */
+    if (kill(pid, 0) == 0) return 0;
+
+    /* process could not be found, it is definitely dead */
+    if (ESRCH == errno) return 1;
+
+    /* 
+     * permission problem, cannot send signal 0 to the
+     * specified process so it must therefore be alive.
+     */
+    if (EPERM == errno) return 0;
+
+    /* cannot possibly be here unless definition of 'kill' has been changed */
+    assert(0);
+
+    /* shut the compiler up */
+    return 0;
+}
+
+static inline int
+valid_mp_thread (mp_thread_id_t *mpt)
+{ return (mpt->pid >= 0); }
+
+/*
+ * MUST be called already knowing both entries are valid.
+ */
+static inline int
+same_mp_threads (mp_thread_id_t *mt1, mp_thread_id_t *mt2)
+{
+    return
+        (mt1->pid == mt2->pid) &&
+        pthread_equal(mt1->tid, mt2->tid);
+}
+
+/*
+ * This is a dual purpose function.  It checks whether the write
+ * lock has already been acquired by a process/thread AND whether
+ * that process is still alive.  If process has died, it releases
+ * the lock automatically.
+ */
+static inline int
+write_locked_already (lock_obj_t *lck)
+{ 
+    /* not write locked */
+    if (lck->writer.pid < 0) return 0;
+
+    /* check whether whoever locked it is still alive */
+    if (process_is_dead(lck->writer.pid)) {
+	lck->writer.pid = -1;
+	return 0;
+    }
+    return 1;
+}
+
 static int
 thread_got_the_write_lock (lock_obj_t *lck)
 {
-    pthread_t tid;
-    int granted = 0;
+    /* mark that a write lock is awaiting */
+    lck->pending_writer = 1;
+
+    /* A writer already exists and do not allow recursive writes */
+    if (write_locked_already(lck)) return 0;
 
     /* if any current readers, we cannot get the write lock */
-    if (lck->readers > 0) {
-        return 0;
-    }
+    if (lck->readers > 0) return 0;
 
-    /*
-     * If we are here, write lock can be obtained if noone else
-     * has acquired it already or this thread already owns it.
-     */
-    tid = pthread_self();
-    if (!lck->writer_thread_id_set) {
-        lck->writer_thread_id = tid;
-	lck->writer_thread_id_set = 1;
-        granted = 1;
-    } else {
-        granted = pthread_equal(lck->writer_thread_id, tid);
-    }
-    if (granted) {
-        lck->pending_write_locks--;
-        lck->recursive_write_locks_granted++;
-    }
-    return granted;
+    /* if we are here, there are no readers or curent writers, so grab it */
+    lck->writer.pid = getpid();
+    lck->writer.tid = pthread_self();
+    lck->pending_writer = 0;
+
+    return 1;
 }
 
 static int
 thread_got_the_read_lock (lock_obj_t *lck)
 {
-    /* if there is a current writer, cannot grant read lock */
-    if (lck->recursive_write_locks_granted > 0) {
-        return 0;
-    }
+    /* if a pending writer exists, cannot get it */
+    if (lck->pending_writer) return 0;
 
-    /* 
-     * What to do when a write lock request comes in when a reader already
-     * has a read lock.  Should we not allow any further read locks or not ?
-     * Two possibilities exist:
-     *
-     * - Do not allow recursive locks.
-     *   This may become too restrictive.
-     *
-     * - Do not allow a write lock request.
-     *   This may starve the writer but is safer.  Alternative is a possible
-     *   deadlock.  Say thread 1 gets the read lock.  Now thread 2 wants the
-     *   write lock but cannot get it.  However, if we do not allow further
-     *   read locks but the 1st thread recursively wants a read lock again
-     *   and is not granted, 1st thread will wait on a read lock and the 2nd
-     *   will wait till the read unlocks.  They both become deadlocked.
-     *
-     * So, to be able to provide recursive locks, AND ensure that no deadlocks
-     * ever occur, we may have to starve the writer.  This will delay the
-     * write lock but would avoid a deadlock, which is much worse.
-     *
-     */
-#if 0 // see the argument above, let the write lock starve
-
-    if (lck->write_lock_requests > 0) {
-        return 0;
-    }
-
-#endif // 0
+    /* if a current writer exists, cannot get it */
+    if (write_locked_already(lck)) return 0;
 
     /* the thread can get the read lock */
-    lck->pending_read_locks--;
     lck->readers++;
+
     return 1;
 }
 
@@ -118,9 +140,11 @@ lock_obj_init (lock_obj_t *lck)
     /* clear all variables */
     memset(lck, 0, sizeof(lock_obj_t));
 
-    /* get default mutex attributes */
+    /* set default mutex attributes */
     if ((rv = pthread_mutexattr_init(&mtxattr)))
 	return rv;
+
+#if 0
 
     /* 
      * make mutex recursively enterable, for 
@@ -129,21 +153,22 @@ lock_obj_init (lock_obj_t *lck)
     if ((rv = pthread_mutexattr_settype(&mtxattr, PTHREAD_MUTEX_RECURSIVE)))
         return rv;
 
-    /* make mutex sharable between processes */
-    if ((rv = pthread_mutexattr_setpshared(&mtxattr, PTHREAD_PROCESS_SHARED)))
-        return rv;
-
-#if 0
-
     /* make mutex robust */
     if ((rv = pthread_mutexattr_setrobust(&mtxattr, PTHREAD_MUTEX_ROBUST)))
         return rv;
 
 #endif // 0
 
+    /* make mutex sharable between processes */
+    if ((rv = pthread_mutexattr_setpshared(&mtxattr, PTHREAD_PROCESS_SHARED)))
+        return rv;
+
     /* init with the desired attributes */
     if ((rv = pthread_mutex_init(&lck->mtx, &mtxattr)))
 	return rv;
+
+    /* no writer present at first */
+    lck->writer.pid = -1;
 
     return 0;
 }
@@ -156,7 +181,6 @@ PUBLIC void
 grab_read_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->pending_read_locks++;
     while (1) {
         if (thread_got_the_read_lock(lck)) {
             pthread_mutex_unlock(&lck->mtx);
@@ -179,7 +203,7 @@ PUBLIC void
 release_read_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->readers--;
+    if (--lck->readers < 0) lck->readers = 0;
     pthread_mutex_unlock(&lck->mtx);
 }
 
@@ -204,7 +228,6 @@ PUBLIC void
 grab_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->pending_write_locks++;
     while (1) {
 	if (thread_got_the_write_lock(lck)) {
 	    pthread_mutex_unlock(&lck->mtx);
@@ -229,9 +252,8 @@ PUBLIC void
 release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    if (--lck->recursive_write_locks_granted <= 0) {
-        lck->writer_thread_id_set = 0;
-    }
+    lck->pending_writer = 0;
+    lck->writer.pid = -1;
     pthread_mutex_unlock(&lck->mtx);
 }
 

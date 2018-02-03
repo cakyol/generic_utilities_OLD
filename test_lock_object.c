@@ -6,8 +6,10 @@
 #include "lock_object.h"
 
 #define ARRAY_SIZE          100000000
-#define MAX_THREADS         256
-#define LOCK_COUNT          4
+#define MAX_THREADS         50
+
+/* locks are not recursive, do not set this to > 1 */
+#define LOCK_COUNT          1
 
 int array [ARRAY_SIZE];
 lock_obj_t lock;

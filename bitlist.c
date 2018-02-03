@@ -199,6 +199,7 @@ bitlist_init (bitlist_t *bl,
     }
     for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = data;
 done:
+    WRITE_UNLOCK(bl);
     return rv;
 }
 
