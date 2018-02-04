@@ -72,21 +72,6 @@ extern "C" {
 #include <pthread.h>
 #include <assert.h>
 
-/*
- * For locks to be usable in shared memory by multiple processes & threads,
- * simply using the thread id is not enuf to identify a unique execution unit.
- * A combination of BOTH the process id AND thread id must be used.  This
- * structure defines this tuple.  If pid is -1, it indicates an invalid
- * entry.  Note however that since we are not allowing recursive locks,
- * for the time being we do not actually need to use the tid.
- */
-typedef struct mp_thread_id_s {
-
-    int pid;
-    pthread_t tid;
-
-} mp_thread_id_t;
-
 typedef struct lock_obj_s {
 
     /* protects ALL the variables below */

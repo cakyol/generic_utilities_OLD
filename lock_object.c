@@ -42,9 +42,6 @@ static int cached_pid = -1;
     return cached_pid;
 }
 
-/*
- * A process is dead when a kill 0 signal cannot be sent to it.
- */
 static inline int
 process_is_dead (int pid)
 {
@@ -67,12 +64,6 @@ process_is_dead (int pid)
     return 0;
 }
 
-/*
- * This is a dual purpose function.  It checks whether the write
- * lock has already been acquired by a process/thread AND whether
- * that process is still alive.  If process has died, it releases
- * the lock automatically.
- */
 static inline int
 write_locked_already (lock_obj_t *lck)
 { 
@@ -101,7 +92,6 @@ thread_got_the_write_lock (lock_obj_t *lck)
 
     /* if we are here, there are no readers or curent writers, so grab it */
     lck->writer_pid = get_cached_pid();
-    // lck->writer.tid = pthread_self();
     lck->pending_writer = 0;
 
     return 1;
@@ -122,10 +112,8 @@ thread_got_the_read_lock (lock_obj_t *lck)
     return 1;
 }
 
-/*
- * Initialize a lock object.
- * Successfull execution returns 'OK'.
- */
+/******* Public functions start here *****************************************/
+
 PUBLIC int 
 lock_obj_init (lock_obj_t *lck)
 {
@@ -168,10 +156,6 @@ lock_obj_init (lock_obj_t *lck)
     return 0;
 }
 
-/*
- * Obtains a read lock.  The way this works is that a read access
- * can be given only if there are no writers.
- */
 PUBLIC void 
 grab_read_lock (lock_obj_t *lck)
 {
@@ -186,12 +170,6 @@ grab_read_lock (lock_obj_t *lck)
     }
 }
 
-/*
- * Unlock a read lock.  This call should be made ONLY if there are
- * actual read requests outstanding, otherwise the results of further
- * locks will be unpredictable and may cause deadlocks & hangs.
- * It is the caller's responsibility to ensure that.
- */
 PUBLIC void 
 release_read_lock (lock_obj_t *lck)
 {
@@ -200,23 +178,6 @@ release_read_lock (lock_obj_t *lck)
     pthread_mutex_unlock(&lck->mtx);
 }
 
-/*
- * Very similar to obtaining a read lock as described above.
- * The difference is that write lock is exclusive and can be
- * granted to only ONE thread at a time, whereas a read lock
- * can be granted to many threads.  The way this works is that
- * first a writer request is marked.  This blocks out any further
- * readers.  If there are no readers, and also no other writers, 
- * then an exclusive write access is granted.  As long as the
- * existing readers are present or another thread is actually
- * writing, this will block.
- *
- * Note that this lock is re-entrant by the SAME thread.  This
- * means that a thread may write lock repeatedly as long as
- * it was granted the lock in the first place.  If that is the
- * case, the corresponding unlock MUST be issued just as many
- * times to actually release the write lock.
- */
 PUBLIC void 
 grab_write_lock (lock_obj_t *lck)
 {
@@ -231,14 +192,6 @@ grab_write_lock (lock_obj_t *lck)
     }
 }
 
-/*
- * Unlock a write lock.  It is the caller's responsibility
- * to make sure that this function is called appropriately.
- * Otherwise, behaviour is unpredictable and deadlocks and 
- * corrupted data will result.  For example, calling this
- * when the lock is not even acquired will definitely corrupt
- * the data structures.
- */
 PUBLIC void 
 release_write_lock (lock_obj_t *lck)
 {
