@@ -37,9 +37,10 @@
 ** Read/Write synchronizer to be used between processes as
 ** well as threads.  It can achieve the following:
 **
-**	- No limit on readers (well.. MAXUSHORT)
+**	- Can be used in shared memory between multiple processes.
+**	- No limit on readers (well.. MAXUSHORT).
 **	- read locks ARE recursive altho discouraged.
-**	- Only one active writer at a time
+**	- Only one active writer at a time.
 **      - write locks are *NOT* recursive, deadlock will occur if recursive
 **        write locking is attempted.
 **	- A dead process which may have write locked will be detected
@@ -47,14 +48,8 @@
 **	  Unfortunately however, this will NOT work for read locks.
 **	  Ie, if a process which may have acquired the read lock dies
 **	  before releasing the read lock, things will just go to 
-**	  worse than bad.
+**	  worse from bad.
 **	- read locks will not starve a write lock.
-**	- Competing write locks MAY however starve each other.
-**
-** For this to be usable between processes, the object
-** must be defined in a shared memory area.  If inter 
-** process sync is not required, then it does not have
-** to be declared in shared memory.
 **
 *******************************************************************************
 *******************************************************************************
@@ -104,7 +99,7 @@ typedef struct lock_obj_s {
     unsigned char pending_writer;
 
     /* the current writer, if any */
-    mp_thread_id_t writer;
+    pid_t writer_pid;
 
 } lock_obj_t;
 

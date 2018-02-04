@@ -32,6 +32,16 @@ extern "C" {
 
 #define PUBLIC
 
+static inline int
+get_cached_pid (void)
+{
+static int cached_pid = -1;
+    if (cached_pid < 0) {
+	cached_pid = getpid();
+    }
+    return cached_pid;
+}
+
 /*
  * A process is dead when a kill 0 signal cannot be sent to it.
  */
@@ -57,21 +67,6 @@ process_is_dead (int pid)
     return 0;
 }
 
-static inline int
-valid_mp_thread (mp_thread_id_t *mpt)
-{ return (mpt->pid >= 0); }
-
-/*
- * MUST be called already knowing both entries are valid.
- */
-static inline int
-same_mp_threads (mp_thread_id_t *mt1, mp_thread_id_t *mt2)
-{
-    return
-        (mt1->pid == mt2->pid) &&
-        pthread_equal(mt1->tid, mt2->tid);
-}
-
 /*
  * This is a dual purpose function.  It checks whether the write
  * lock has already been acquired by a process/thread AND whether
@@ -82,11 +77,11 @@ static inline int
 write_locked_already (lock_obj_t *lck)
 { 
     /* not write locked */
-    if (lck->writer.pid < 0) return 0;
+    if (lck->writer_pid < 0) return 0;
 
     /* check whether whoever locked it is still alive */
-    if (process_is_dead(lck->writer.pid)) {
-	lck->writer.pid = -1;
+    if (process_is_dead(lck->writer_pid)) {
+	lck->writer_pid = -1;
 	return 0;
     }
     return 1;
@@ -105,8 +100,8 @@ thread_got_the_write_lock (lock_obj_t *lck)
     if (lck->readers > 0) return 0;
 
     /* if we are here, there are no readers or curent writers, so grab it */
-    lck->writer.pid = getpid();
-    lck->writer.tid = pthread_self();
+    lck->writer_pid = get_cached_pid();
+    // lck->writer.tid = pthread_self();
     lck->pending_writer = 0;
 
     return 1;
@@ -168,7 +163,7 @@ lock_obj_init (lock_obj_t *lck)
 	return rv;
 
     /* no writer present at first */
-    lck->writer.pid = -1;
+    lck->writer_pid = -1;
 
     return 0;
 }
@@ -180,16 +175,14 @@ lock_obj_init (lock_obj_t *lck)
 PUBLIC void 
 grab_read_lock (lock_obj_t *lck)
 {
-    pthread_mutex_lock(&lck->mtx);
     while (1) {
+	pthread_mutex_lock(&lck->mtx);
         if (thread_got_the_read_lock(lck)) {
             pthread_mutex_unlock(&lck->mtx);
             return;
         }
 	pthread_mutex_unlock(&lck->mtx);
 	sched_yield();
-	pthread_mutex_lock(&lck->mtx);
-	continue;
     }
 }
 
@@ -227,16 +220,14 @@ release_read_lock (lock_obj_t *lck)
 PUBLIC void 
 grab_write_lock (lock_obj_t *lck)
 {
-    pthread_mutex_lock(&lck->mtx);
     while (1) {
+	pthread_mutex_lock(&lck->mtx);
 	if (thread_got_the_write_lock(lck)) {
 	    pthread_mutex_unlock(&lck->mtx);
 	    return;
 	}
 	pthread_mutex_unlock(&lck->mtx);
 	sched_yield();
-	pthread_mutex_lock(&lck->mtx);
-	continue;
     }
 }
 
@@ -253,7 +244,7 @@ release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
     lck->pending_writer = 0;
-    lck->writer.pid = -1;
+    lck->writer_pid = -1;
     pthread_mutex_unlock(&lck->mtx);
 }
 
