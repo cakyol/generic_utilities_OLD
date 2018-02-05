@@ -54,6 +54,7 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
 
 #define MEM_MONITOR_SETUP(objp) \
     do { \
+        memset(objp, 0, sizeof(*objp)); \
         mem_monitor_init(&objp->mem_mon); \
         objp->mem_mon_p = \
             parent_mem_monitor ? \
