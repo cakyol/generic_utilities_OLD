@@ -32,14 +32,23 @@ extern "C" {
 
 #define PUBLIC
 
+/*
+ * Note that instead of using pid, we could simply have used a boolean
+ * to implement write lock.  We could have done it such that a true means
+ * the write lock is taken and a 0 means vice versa.  This would eliminate
+ * the extra calls to get the pid.  However, we need the pid for the extra 
+ * checking we do to determine if the holder of a write lock is still
+ * alive or not, so that we can clear the lock in case the process holding 
+ * it has died.  That is why we use the poid instead of a simple boolean.
+ */
 static inline int
 get_cached_pid (void)
 {
 static int cached_pid = -1;
-    if (cached_pid < 0) {
+    while (1) {
+	if (cached_pid >= 0) return cached_pid;
 	cached_pid = getpid();
     }
-    return cached_pid;
 }
 
 static inline int

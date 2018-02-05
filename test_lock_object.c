@@ -6,7 +6,7 @@
 #include "lock_object.h"
 
 #define ARRAY_SIZE          100000000
-#define MAX_THREADS         50
+#define MAX_THREADS         128
 
 /* locks are not recursive, do not set this to > 1 */
 #define LOCK_COUNT          1
@@ -20,14 +20,18 @@ void *thread_function (void *arg)
     int *intp = (int*) arg;
     int value = *intp;
     int i, failures;
+    pthread_t tid = pthread_self();
 
     free(intp);
-    for (i = 0; i < LOCK_COUNT; i++) grab_write_lock(&lock);
-    printf("filling array with value %d\n", value);
+    grab_write_lock(&lock);
+    printf("entered thread 0x%x, data %d .. ", (unsigned int) tid, value);
+    fflush(stdout);
+    fflush(stdout);
+    //printf("filling array with value %d\n", value);
     for (i = 0; i < ARRAY_SIZE; i++) {
         array[i] = value;
     }
-    printf("now validating array for value %d\n", value);
+    //printf("now validating array for value %d\n", value);
     failures = 0;
     for (i = 0; i < ARRAY_SIZE; i++) {
         if (array[i] != value) failures++;
@@ -36,14 +40,15 @@ void *thread_function (void *arg)
         printf("validation FAILED for value %d: %d entries\n",
             value, failures);
     } else {
-        printf("validation PASSED for value %d\n", value);
+        //printf("validation PASSED for value %d\n", value);
     }
-    for (i = 0; i < LOCK_COUNT; i++) release_write_lock(&lock);
     if (thread_complete_array[value] != 0) {
         printf("OOOPPPPS, have revisited %d\n", value);
     }
     thread_complete_array[value] = 1;
+    printf("done\n");
     fflush(stdout);
+    release_write_lock(&lock);
     return NULL;
 }
 
@@ -53,7 +58,7 @@ void *validate_array_thread (void *arg)
 
     for (i = 0; i < LOCK_COUNT; i++) grab_read_lock(&lock);
     value = array[0];
-    printf("READ validating now for value %d\n", value);
+    //printf("READ validating now for value %d\n", value);
     failures = 0;
     for (i = 0; i < ARRAY_SIZE; i++) {
         if (array[i] != value) failures++;
@@ -62,7 +67,7 @@ void *validate_array_thread (void *arg)
         printf("READ validation FAILED for value %d: %d entries\n",
             value, failures);
     } else {
-        printf("READ validation PASSED for value %d\n", value);
+        //printf("READ validation PASSED for value %d\n", value);
     }
     fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_read_lock(&lock);
@@ -97,6 +102,7 @@ int main (int argc, char *argv[])
             printf("pthread_create FAILED at iteration %d\n", i);
         }
 
+#if 0
         /* every other thread, also create a read thread to validate */
         if (i & 1) { 
             rv = pthread_create(&tid, NULL, validate_array_thread, NULL);
@@ -104,18 +110,19 @@ int main (int argc, char *argv[])
                 printf("pthread_create FAILED for validation\n");
             }
         }
+#endif
     }
     fflush(stdout);
     while (1) {
         not_all_threads_complete:
         for (i = 0; i < MAX_THREADS; i++) {
             if (thread_complete_array[i] == 0) {
-                printf("thread array %d not done yet\n", i);
+                //printf("thread array %d not done yet\n", i);
                 sleep(1);
                 goto not_all_threads_complete;
             } else {
                 if (thread_complete_array[i] != 2) {
-                    printf("thread %d completed\n", i);
+                    //printf("thread %d completed\n", i);
                     thread_complete_array[i] = 2;
                 }
             }
