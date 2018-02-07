@@ -40,13 +40,12 @@ void *thread_function (void *arg)
         printf("validation FAILED for value %d: %d entries\n",
             value, failures);
     } else {
-        //printf("validation PASSED for value %d\n", value);
+        printf("validation PASSED for value %d\n", value);
     }
     if (thread_complete_array[value] != 0) {
         printf("OOOPPPPS, have revisited %d\n", value);
     }
     thread_complete_array[value] = 1;
-    printf("done\n");
     fflush(stdout);
     release_write_lock(&lock);
     return NULL;
