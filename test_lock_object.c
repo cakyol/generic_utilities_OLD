@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "timer_object.h"
 #include "lock_object.h"
 
 #define ARRAY_SIZE          100000000
 #define MAX_THREADS         128
+#define MAX_ITERATION       50000000
 
 /* locks are not recursive, do not set this to > 1 */
 #define LOCK_COUNT          1
@@ -79,6 +81,7 @@ int main (int argc, char *argv[])
     pthread_t tid;
     int i;
     int *intp;
+    timer_obj_t timr;
 
     printf("\nsize of mutex object is %ld lock object is %ld bytes\n",
         sizeof(pthread_mutex_t), sizeof(lock_obj_t));
@@ -88,6 +91,19 @@ int main (int argc, char *argv[])
         printf("lock_obj_init failed: <%s>\n", strerror(rv));
         return -1;
     }
+
+
+    /* first do a speed test */
+    printf("performing a lock performance test\n");
+    start_timer(&timr);
+    for (i = 0; i < MAX_ITERATION; i++) {
+        grab_write_lock(&lock);
+        release_write_lock(&lock);
+    }
+    end_timer(&timr);
+    report_timer(&timr, MAX_ITERATION);
+    /* give time to view screen before scroll off begins below */
+    sleep(3);
 
     for (i = 0; i < MAX_THREADS; i++) {
         intp = malloc(sizeof(int));

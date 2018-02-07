@@ -39,16 +39,24 @@ extern "C" {
  * the extra calls to get the pid.  However, we need the pid for the extra 
  * checking we do to determine if the holder of a write lock is still
  * alive or not, so that we can clear the lock in case the process holding 
- * it has died.  That is why we use the poid instead of a simple boolean.
+ * it has died.  That is why we use the pid instead of a simple boolean.
  */
 static inline int
 get_cached_pid (void)
 {
+#if 0
+/* 
+ * This trick does not work for fork, exec, etc which spawns a process.
+ * So for the time being just use the "standard" system call getpid().
+ */
 static int cached_pid = -1;
     while (1) {
 	if (cached_pid >= 0) return cached_pid;
 	cached_pid = getpid();
     }
+#else
+    return getpid();
+#endif // 0
 }
 
 static inline int
