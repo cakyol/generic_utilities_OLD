@@ -37,9 +37,6 @@ typedef struct mem_monitor_s {
 
 } mem_monitor_t;
 
-extern void
-mem_monitor_init (mem_monitor_t *mem);
-
 extern void *
 mem_monitor_allocate (mem_monitor_t *mem, int size);
 
@@ -54,11 +51,11 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
 
 #define MEM_MONITOR_SETUP(objp) \
     do { \
-        memset(objp, 0, sizeof(*objp)); \
-        mem_monitor_init(&objp->mem_mon); \
+        objp->mem_mon.bytes_used = 0; \
+        objp->mem_mon.allocations = 0; \
+        objp->mem_mon.frees = 0; \
         objp->mem_mon_p = \
-            parent_mem_monitor ? \
-                parent_mem_monitor : &objp->mem_mon; \
+            parent_mem_monitor ? parent_mem_monitor : &objp->mem_mon; \
     } while (0)
 
 #define MEM_MONITOR_ALLOC(objp, size) \

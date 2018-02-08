@@ -21,14 +21,6 @@
 extern "C" {
 #endif
 
-void
-mem_monitor_init (mem_monitor_t *memp)
-{
-    memp->bytes_used = 0;
-    memp->allocations = 0;
-    memp->frees = 0;
-}
-
 /*
  * An extra 8 bytes is allocated at the front to store the length.
  * Make sure this is 8 bytes aligned or it crashes in 64 bit systems.
