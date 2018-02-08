@@ -74,17 +74,9 @@ extern "C" {
 
 typedef struct lock_obj_s {
 
-    /* protects ALL the variables below */
     pthread_mutex_t mtx;
-
-    /* count of current active readers */
-    volatile short readers;
-
-    /* a boolean indicating if at least one writer is waiting */
-    volatile unsigned char pending_writer;
-
-    /* the current writer, if any */
-    volatile pid_t writer_pid;
+    volatile int readers;
+    volatile int writer_state;
 
 } lock_obj_t;
 

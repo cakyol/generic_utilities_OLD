@@ -6,8 +6,8 @@
 #include "timer_object.h"
 #include "lock_object.h"
 
-#define ARRAY_SIZE          100000000
-#define MAX_THREADS         128
+#define ARRAY_SIZE          10000000
+#define MAX_THREADS         4096
 #define MAX_ITERATION       50000000
 
 /* locks are not recursive, do not set this to > 1 */
@@ -15,7 +15,9 @@
 
 int array [ARRAY_SIZE];
 lock_obj_t lock;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 char thread_complete_array [MAX_THREADS] = { 0 };
+int max_threads = 0;
 
 void *thread_function (void *arg)
 {
@@ -92,8 +94,21 @@ int main (int argc, char *argv[])
         return -1;
     }
 
+    /* first do a speed test for mutex ONLY */
+    printf("performing a lock performance test\n");
+    start_timer(&timr);
+    for (i = 0; i < MAX_ITERATION; i++) {
+        pthread_mutex_lock(&mutex);
+        pthread_mutex_unlock(&mutex);
+    }
+    end_timer(&timr);
+    printf("MUTEX ONLY:\n");
+    report_timer(&timr, MAX_ITERATION);
+    /* give time to view screen before scroll off begins below */
+    sleep(3);
 
-    /* first do a speed test */
+    /* now do a speed test for the actual lock itself */
+
     printf("performing a lock performance test\n");
     start_timer(&timr);
     for (i = 0; i < MAX_ITERATION; i++) {
@@ -101,10 +116,12 @@ int main (int argc, char *argv[])
         release_write_lock(&lock);
     }
     end_timer(&timr);
+    printf("ENTIRE LOCK OBJECT:\n");
     report_timer(&timr, MAX_ITERATION);
     /* give time to view screen before scroll off begins below */
     sleep(3);
 
+    /* create all the threads until no more can be created */
     for (i = 0; i < MAX_THREADS; i++) {
         intp = malloc(sizeof(int));
         if (intp) {
@@ -113,39 +130,22 @@ int main (int argc, char *argv[])
             printf("malloc FAILED\n");
         }
         rv = pthread_create(&tid, NULL, thread_function, intp);
-        if (rv) {
-            printf("pthread_create FAILED at iteration %d\n", i);
-        }
+        if (rv)  break;
+	max_threads++;
+    }
 
-#if 0
-        /* every other thread, also create a read thread to validate */
-        if (i & 1) { 
-            rv = pthread_create(&tid, NULL, validate_array_thread, NULL);
-            if (rv) {
-                printf("pthread_create FAILED for validation\n");
-            }
-        }
-#endif
-    }
     fflush(stdout);
-    while (1) {
-        not_all_threads_complete:
-        for (i = 0; i < MAX_THREADS; i++) {
-            if (thread_complete_array[i] == 0) {
-                //printf("thread array %d not done yet\n", i);
-                sleep(1);
-                goto not_all_threads_complete;
-            } else {
-                if (thread_complete_array[i] != 2) {
-                    //printf("thread %d completed\n", i);
-                    thread_complete_array[i] = 2;
-                }
-            }
-        }
-        printf("all threads have finished\n");
-        fflush(stdout);
-        return 0;
+
+    /* now wait until they all complete */
+not_all_threads_complete:
+    for (i = 0; i < max_threads; i++) {
+	if (thread_complete_array[i] == 0) {
+	    sleep(5);
+	    goto not_all_threads_complete;
+	}
     }
+    printf("all %d threads have finished\n", max_threads);
+    fflush(stdout);
     return 0;
 }
 

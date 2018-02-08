@@ -32,102 +32,9 @@ extern "C" {
 
 #define PUBLIC
 
-/*
- * Note that instead of using pid, we could simply have used a boolean
- * to implement write lock.  We could have done it such that a true means
- * the write lock is taken and a 0 means vice versa.  This would eliminate
- * the extra calls to get the pid.  However, we need the pid for the extra 
- * checking we do to determine if the holder of a write lock is still
- * alive or not, so that we can clear the lock in case the process holding 
- * it has died.  That is why we use the pid instead of a simple boolean.
- */
-static inline int
-get_cached_pid (void)
-{
-#if 0
-/* 
- * This trick does not work for fork, exec, etc which spawns a process.
- * So for the time being just use the "standard" system call getpid().
- */
-static int cached_pid = -1;
-    while (1) {
-	if (cached_pid >= 0) return cached_pid;
-	cached_pid = getpid();
-    }
-#else
-    return getpid();
-#endif // 0
-}
-
-static inline int
-process_is_dead (int pid)
-{
-    /* process is alive */
-    if (kill(pid, 0) == 0) return 0;
-
-    /* process could not be found, it is definitely dead */
-    if (ESRCH == errno) return 1;
-
-    /* 
-     * permission problem, cannot send signal 0 to the
-     * specified process so it must therefore be alive.
-     */
-    if (EPERM == errno) return 0;
-
-    /* cannot possibly be here unless definition of 'kill' has been changed */
-    assert(0);
-
-    /* shut the compiler up */
-    return 0;
-}
-
-static inline int
-write_locked_already (lock_obj_t *lck)
-{ 
-    /* not write locked */
-    if (lck->writer_pid < 0) return 0;
-
-    /* check whether whoever locked it is still alive */
-    if (process_is_dead(lck->writer_pid)) {
-	lck->writer_pid = -1;
-	return 0;
-    }
-    return 1;
-}
-
-static int
-thread_got_the_write_lock (lock_obj_t *lck)
-{
-    /* mark that a write lock is awaiting */
-    lck->pending_writer = 1;
-
-    /* A writer already exists and do not allow recursive writes */
-    if (write_locked_already(lck)) return 0;
-
-    /* if any current readers, we cannot get the write lock */
-    if (lck->readers > 0) return 0;
-
-    /* if we are here, there are no readers or curent writers, so grab it */
-    lck->writer_pid = get_cached_pid();
-    lck->pending_writer = 0;
-
-    return 1;
-}
-
-static int
-thread_got_the_read_lock (lock_obj_t *lck)
-{
-    /* if a pending writer exists, cannot get it */
-    if (lck->pending_writer) return 0;
-
-    /* if a current writer exists, cannot get it */
-    if (write_locked_already(lck)) return 0;
-
-    /* the thread can get the read lock */
-    lck->readers++;
-
-    return 1;
-}
+#define NO_WRITER		0
+#define WRITER_PENDING		1
+#define WRITER_ACTIVE		2
 
 /******* Public functions start here *****************************************/
 
@@ -167,9 +74,6 @@ lock_obj_init (lock_obj_t *lck)
     if ((rv = pthread_mutex_init(&lck->mtx, &mtxattr)))
 	return rv;
 
-    /* no writer present at first */
-    lck->writer_pid = -1;
-
     return 0;
 }
 
@@ -178,8 +82,9 @@ grab_read_lock (lock_obj_t *lck)
 {
     while (1) {
 	pthread_mutex_lock(&lck->mtx);
-        if (thread_got_the_read_lock(lck)) {
-            pthread_mutex_unlock(&lck->mtx);
+	if (lck->writer_state == NO_WRITER) {
+	    lck->readers++;
+	    pthread_mutex_unlock(&lck->mtx);
             return;
         }
 	pthread_mutex_unlock(&lck->mtx);
@@ -200,7 +105,13 @@ grab_write_lock (lock_obj_t *lck)
 {
     while (1) {
 	pthread_mutex_lock(&lck->mtx);
-	if (thread_got_the_write_lock(lck)) {
+
+	/* mark as waiting to write */
+	if (lck->writer_state == NO_WRITER) lck->writer_state = WRITER_PENDING;
+
+	/* get it if no readers and no writer already */
+	if ((lck->readers <= 0) && (lck->writer_state != WRITER_ACTIVE)) {
+	    lck->writer_state = WRITER_ACTIVE;
 	    pthread_mutex_unlock(&lck->mtx);
 	    return;
 	}
@@ -213,8 +124,7 @@ PUBLIC void
 release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->pending_writer = 0;
-    lck->writer_pid = -1;
+    lck->writer_state = NO_WRITER;
     pthread_mutex_unlock(&lck->mtx);
 }
 
