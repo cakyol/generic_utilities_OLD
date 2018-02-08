@@ -27,7 +27,7 @@ void *thread_function (void *arg)
     pthread_t tid = pthread_self();
 
     free(intp);
-    grab_write_lock(&lock);
+    for (i = 0; i < LOCK_COUNT; i++) grab_write_lock(&lock);
     printf("entered thread 0x%x, data %d .. ", (unsigned int) tid, value);
     fflush(stdout);
     fflush(stdout);
@@ -51,7 +51,7 @@ void *thread_function (void *arg)
     }
     thread_complete_array[value] = 1;
     fflush(stdout);
-    release_write_lock(&lock);
+    for (i = 0; i < LOCK_COUNT; i++) release_write_lock(&lock);
     return NULL;
 }
 
