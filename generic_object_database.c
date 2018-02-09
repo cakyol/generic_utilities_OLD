@@ -1462,8 +1462,7 @@ database_initialize (object_database_t *obj_db,
                     use_avl_tree_for_database_object_index));
 
     obj_db->database_id = database_id;
-
-    database_register_evhf(obj_db, evhf);
+    obj_db->evhf = evhf;
 
     /* initialize root object indexes */
     object_indexes_init(obj_db->mem_mon_p, root_obj);
