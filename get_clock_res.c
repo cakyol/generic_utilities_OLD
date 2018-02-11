@@ -4,12 +4,18 @@
 
 int main (int argc, char *argv[])
 {
-    struct timespec res;
+    struct timespec first, later;
+    long long int f, l;
 
-    if (clock_getres(CLOCK_REALTIME, &res) == 0)  {
-	printf("system clock resolution secs: %d\n", res.tv_sec);
-	printf("system clock resolution nano secs: %ld\n", res.tv_nsec);
+    clock_gettime(CLOCK_MONOTONIC, &first);
+    while (1) {
+	clock_gettime(CLOCK_MONOTONIC, &later);
+	if (later.tv_sec != first.tv_sec) break;
+	if (later.tv_nsec != first.tv_nsec) break;
     }
+    f = first.tv_sec + first.tv_nsec * 1000000000LL;
+    l = later.tvsec + later.tv_nsec * 1000000000LL;
+    printf("resolution is %lld nano seconds\n", l - f);
 }
 
 
