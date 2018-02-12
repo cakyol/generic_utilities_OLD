@@ -37,6 +37,41 @@
 extern "C" {
 #endif
 
+static linkedlist_node_t *
+linkedlist_new_node (linkedlist_t *listp, void *user_data)
+{
+    linkedlist_node_t *n;
+
+    n = (linkedlist_node_t*) 
+	MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));
+    if (n) {
+	n->list = listp;
+	n->user_data = user_data;
+	n->next = NULL;
+    }
+    return n;
+}
+
+/*
+ * data is always unconditionally added to the head of
+ * the list, no duplicate checking is done.
+ */
+static int
+thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
+{
+    linkedlist_node_t *node;
+
+    node = linkedlist_new_node(listp, user_data);
+    if (NULL == node) return ENOMEM;
+
+    /* insert to head */
+    if (listp->head) node->next = listp->head;
+    listp->head = node;
+
+    /* done */
+    return 0;
+}
+
 /*
  * add the new node/data based on ordering defined by 
  * the user specified comparison function
@@ -49,11 +84,8 @@ thread_unsafe_linkedlist_add (linkedlist_t *listp, void *user_data,
     linkedlist_node_t *cur, *prev;
     linkedlist_node_t *node;
     
-    node = (linkedlist_node_t*) 
-                MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));
+    node = linkedlist_new_node(listp, user_data);
     if (NULL == node) return ENOMEM;
-    node->list = listp;
-    node->user_data = user_data;
 
     cur = listp->head;
     prev = NULL;
@@ -263,6 +295,17 @@ linkedlist_add_once (linkedlist_t *listp, void *user_data,
     WRITE_LOCK(listp);
     rv = thread_unsafe_linkedlist_add_once
             (listp, user_data, data_found, &node_found);
+    WRITE_UNLOCK(listp);
+    return rv;
+}
+
+PUBLIC int
+linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
+{
+    int rv;
+
+    WRITE_LOCK(listp);
+    rv = thread_unsafe_linkedlist_add_to_head(listp, user_data);
     WRITE_UNLOCK(listp);
     return rv;
 }

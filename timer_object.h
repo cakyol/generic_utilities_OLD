@@ -23,6 +23,8 @@ extern "C" {
 #include <sys/time.h>
 #include <time.h>
 
+#define NANOSEC_TO_SEC      ((long long int) 1000000000)
+
 typedef struct timer_obj_s {
 
     struct timespec start, end;
@@ -31,7 +33,7 @@ typedef struct timer_obj_s {
 
 #ifdef __APPLE__
 
-#define CLOCK_PROCESS_CPUTIME_ID	1
+#define CLOCK_REALTIME		1
 
 static inline int
 clock_gettime (int clock_id, struct timespec *ts)
@@ -49,11 +51,19 @@ clock_gettime (int clock_id, struct timespec *ts)
 
 static inline void 
 start_timer (timer_obj_t *tp)
-{ clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp->start); }
+{ clock_gettime(CLOCK_REALTIME, &tp->start); }
 
 static inline void 
 end_timer (timer_obj_t *tp)
-{ clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp->end); }
+{ clock_gettime(CLOCK_REALTIME, &tp->end); }
+
+static inline long long int
+timer_delay_nsecs (timer_obj_t *tp)
+{
+    return
+	(tp->end.tv_sec * NANOSEC_TO_SEC) + tp->end.tv_nsec -
+	(tp->start.tv_sec * NANOSEC_TO_SEC) + tp->start.tv_nsec;
+}
 
 extern 
 void report_timer (timer_obj_t *tp, long long int iterations);

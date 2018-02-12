@@ -169,6 +169,17 @@ linkedlist_add_once (linkedlist_t *listp, void *user_data,
         void **data_found);
 
 /*
+ * Just blindly adds to the head of the list regardless
+ * of any ordering.  This can be used in lists where the
+ * ordering may not matter.  But once the list is added
+ * to this way, it will no longer be ordered and searches
+ * will fail unless user specifically writes his own search
+ * function.
+ */
+extern int
+linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
+
+/*
  * searches the first occurence of the matching data.
  * This is where the compare function is applied to find
  * out whether a match has occured.

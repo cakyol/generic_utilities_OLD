@@ -47,8 +47,6 @@ extern "C" {
 
 #define PUBLIC
 
-#define NANOSEC_TO_SEC      ((long long int) 1000000000)
-
 PUBLIC void 
 report_timer (timer_obj_t *tp, long long int iterations)
 {
