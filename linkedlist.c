@@ -53,10 +53,12 @@ linkedlist_new_node (linkedlist_t *listp, void *user_data)
 }
 
 /*
+ * DONT MAKE THIS STATIC, it is used in scheduler.c
+ *
  * data is always unconditionally added to the head of
  * the list, no duplicate checking is done.
  */
-static int
+int
 thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
 {
     linkedlist_node_t *node;

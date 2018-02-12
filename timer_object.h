@@ -33,7 +33,7 @@ typedef struct timer_obj_s {
 
 #ifdef __APPLE__
 
-#define CLOCK_REALTIME		1
+#define CLOCK_MONOTONIC		1
 
 static inline int
 clock_gettime (int clock_id, struct timespec *ts)
@@ -51,11 +51,11 @@ clock_gettime (int clock_id, struct timespec *ts)
 
 static inline void 
 start_timer (timer_obj_t *tp)
-{ clock_gettime(CLOCK_REALTIME, &tp->start); }
+{ clock_gettime(CLOCK_MONOTONIC, &tp->start); }
 
 static inline void 
 end_timer (timer_obj_t *tp)
-{ clock_gettime(CLOCK_REALTIME, &tp->end); }
+{ clock_gettime(CLOCK_MONOTONIC, &tp->end); }
 
 static inline long long int
 timer_delay_nsecs (timer_obj_t *tp)

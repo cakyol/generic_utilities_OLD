@@ -35,7 +35,7 @@ extern "C" {
  * Simplest of all callback funtion.  Takes a single void *
  * argument & returns a void * result.
  */
-typedef void *(simple_function_pointer) (void *arg);
+typedef void (*simple_function_pointer) (void *arg);
 
 /*
  * A generic type for defining a pointer to a function which

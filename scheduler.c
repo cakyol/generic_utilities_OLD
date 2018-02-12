@@ -1,35 +1,37 @@
 
-#include <signal.h>
-#include <sys/time.h>
+/******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+**
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com, gee_akyol@yahoo.com
+** Copyright: Cihangir Metin Akyol, April 2014 -> ....
+**
+** All this code has been personally developed by and belongs to 
+** Mr. Cihangir Metin Akyol.  It has been developed in his own 
+** personal time using his own personal resources.  Therefore,
+** it is NOT owned by any establishment, group, company or 
+** consortium.  It is the sole property and work of the named
+** individual.
+**
+** It CAN be used by ANYONE or ANY company for ANY purpose as long 
+** as ownership and/or patent claims are NOT made to it by ANYONE
+** or ANY ENTITY.
+**
+** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+**
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+******************************************************************************/
 
-/* second to nanosecond multiplier */
-#define SEC_TO_NSEC_FACTOR			(1000000000LL)
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* one hundred milliseconds in nano seconds */
-#define ONE_HUNDRED_MSEC_IN_NSEC		(100000000LL)
-
-/*
- * tasks within this much spacing is assumed
- * to approximately fire all at the same time,
- * this is the lowest granularity which we can
- * separate the firings.  No less.
- */
-#define RESOLUTION_NSECS			(ONE_HUNDRED_MSEC_IN_NSEC)
-
-/*
- * A task has an absolute execution time, a function to execute
- * when its timer expires and an argument to pass to that execution
- * function.  When a task is scheduled, the current time is added to
- * its future execution time and placed in 'abs_firing_time_nsecs'.
- * The list is ordered in increasing number of this value.
- */
-typedef struct task_s {
-
-    long long int abs_firing_time_nsecs;
-    simple_function_pointer efn;
-    void *argument;
-
-} task_t;
+#include "scheduler.h"
 
 /*
  * It is very important to understand why there are two lists separated
@@ -60,8 +62,6 @@ static linkedlist_t *executable_tasks = &executable_tasks_list;
 static int
 compare_tasks (void *vt1, void *vt2)
 {
-    int rv;
-
     task_t *t1 = (task_t*) vt1;
     task_t *t2 = (task_t*) vt2;
 
@@ -89,23 +89,27 @@ within_resolution (task_t *first_task, task_t *later_task)
     return (diff >= -RESOLUTION_NSECS) && (diff <= RESOLUTION_NSECS);
 }
 
+static int 
+schedule_next_alarm_signal (long long int interval)
+{
+    struct itimerval itim;
+
+    itim.it_interval.tv_sec = 0;
+    itim.it_interval.tv_usec = 0;
+    itim.it_value.tv_sec = interval / SEC_TO_NSEC_FACTOR;
+    itim.it_value.tv_usec = (interval % SEC_TO_NSEC_FACTOR) / 1000;
+    return
+	setitimer(ITIMER_REAL, &itim, NULL);
+}
+
 static void
 __alarm_signal_handler (int signo)
 {
     int rv;
     linkedlist_node_t *d;
     task_t *tp, *first_task = NULL;
-    timer_obj_t delay;
-    long long int nsec_delay;
-
-    /*
-     * calculate how much time we spend in this entire function so
-     * we can compensate for it when we schedule the next 
-     * task in.  The excution time here will be deducted so that
-     * the next set of events fire at the time nearest to as 
-     * correct as it can be.
-     */
-    start_timer(&delay);
+    struct timespec current_time;
+    long long int current_time_nsec;
 
     /* some sanity checking */
     assert(SIGALRM == signo);
@@ -162,25 +166,37 @@ __alarm_signal_handler (int signo)
      */
     WRITE_UNLOCK(scheduled_tasks);
 
-    /* execute all tasks in the executable_tasks list now one at a time */
+    /*
+     * now execute all tasks in the executable_tasks list now one at a time.
+     */
+    while (not_endof_linkedlist(executable_tasks->head)) {
+	tp = (task_t*) executable_tasks->head->user_data;
+	tp->efn(tp->argument);
+	d = executable_tasks->head;
+	executable_tasks->head = d->next;
+	executable_tasks->n--;
+	free(d);
+    }
 
     /*
-     * record how much time we actually took to do all this work.
-     * In trying to schedule the next firing of the alarm, we must
-     * take this delay into account
+     * now schedule the alarm signal to fire for the next task.  The
+     * next task is now at the head of the scheduled_tasks list.
      */
-    end_timer(&delay);
+    READ_LOCK(scheduled_tasks);
+    if (scheduled_tasks->n > 0) {
+	tp = (task_t*) scheduled_tasks->head->user_data;
 
-    nsec_delay = timer_delay_nsecs(&delay);
-
-    /* now schedule the next event (set the alarm to the future to fire)
-     * to continue executing tasks when the time comes again.
-
-
+	/* what is the current time ? */
+	clock_gettime(CLOCK_MONOTONIC, &current_time);
+	current_time_nsec = 
+	    (current_time.tv_sec * SEC_TO_NSEC_FACTOR) + current_time.tv_nsec;
+	schedule_next_alarm_signal(tp->abs_firing_time_nsecs - current_time_nsec);
+    }
+    READ_UNLOCK(scheduled_tasks);
 }
 
 /*
- * The 'executable_tasks_list' does not have ay ordering in it.
+ * The 'executable_tasks_list' does not have any ordering in it.
  * It is simply used as a list.  So, the compare function always
  * returns 0 for it.  Every entry will always match.
  */
@@ -209,7 +225,12 @@ initialize_task_scheduler (void)
 task_t * 
 schedule_task (int secs, int usecs, simple_function_pointer fn, void *arg)
 {
+    return NULL;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif
 
 
 

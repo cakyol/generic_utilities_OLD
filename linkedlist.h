@@ -52,10 +52,10 @@ extern "C" {
 
 #include <errno.h>
 
+#include "function_types.h"
 #include "mem_monitor.h"
 #include "lock_object.h"
 
-typedef int (*comparison_function_t) (void *v1, void *v2);
 typedef struct linkedlist_s linkedlist_t;
 typedef struct linkedlist_node_s linkedlist_node_t;
 
