@@ -205,7 +205,7 @@ bitlist_init (bitlist_t *bl,
     bl->lowest_valid_bit = lowest_valid_bit;
     bl->highest_valid_bit = highest_valid_bit;
     if (initialize_to_all_ones) {
-	data = 0xFFFFFFFF;
+	data = ALL_ONES;
 	bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
     } else {
 	data = 0;
