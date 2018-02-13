@@ -33,6 +33,9 @@ extern "C" {
 
 #include "scheduler.h"
 
+extern int
+thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
+
 /*
  * It is very important to understand why there are two lists separated
  * as shown below.  When a user schedules a task into the future, it gets
@@ -222,10 +225,12 @@ initialize_task_scheduler (void)
  * schedule function 'fn' to be called in future with
  * the argument specified in 'arg'.
  */
-task_t * 
-schedule_task (int secs, int usecs, simple_function_pointer fn, void *arg)
+int
+schedule_task (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
+        simple_function_pointer fnp, void *argument,
+        task_t *task_handle)
 {
-    return NULL;
+    return 0;
 }
 
 #ifdef __cplusplus

@@ -40,6 +40,8 @@ extern "C" {
 #include "timer_object.h"
 #include "linkedlist.h"
 
+typedef long long int nano_seconds_t;
+
 /* second to nanosecond multiplier */
 #define SEC_TO_NSEC_FACTOR			(1000000000LL)
 
@@ -54,10 +56,6 @@ extern "C" {
  */
 #define RESOLUTION_NSECS			(ONE_HUNDRED_MSEC_IN_NSEC)
 
-extern int
-thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp,
-    void *user_data);
-
 /*
  * A task has an absolute execution time, a function to execute
  * when its timer expires and an argument to pass to that execution
@@ -67,11 +65,31 @@ thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp,
  */
 typedef struct task_s {
 
-    long long int abs_firing_time_nsecs;
+    nano_seconds_t abs_firing_time_nsecs;
     simple_function_pointer efn;
     void *argument;
 
 } task_t;
+
+extern int
+initialize_task_scheduler (void);
+
+/*
+ * schedule function 'fnp' to be executed in the future by the specified
+ * amount, with the specified argument.  Return value is a void * which
+ * should be used as a handle in case the event needs to be cancelled
+ * before it takes place.  A NULL return value means scheduling did not
+ * succeed.  This handle is placed into 'returned_task_handle'.  The
+ * function return value is 0 for success or an errno if could not be
+ * scheduled.
+ */
+extern int
+schedule_task (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
+        simple_function_pointer fnp, void *argument,
+        task_t *task_handle);
+
+extern int 
+cancel_task (task_t *task_handle);
 
 #ifdef __cplusplus
 } // extern C
