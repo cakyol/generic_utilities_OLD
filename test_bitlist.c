@@ -3,7 +3,7 @@
 #include "bitlist.h"
 
 #define LOW	-10000
-#define HI	100000
+#define HI	10000
 
 int main (int argc, char *argv[])
 {
@@ -17,13 +17,13 @@ int main (int argc, char *argv[])
     }
 
     /* access outside the limits, these should fail */
-    for (i = LOW - 100; i < LOW; i++) {
+    for (i = LOW - 1000; i < LOW; i++) {
 	rv = bitlist_get(&bl, i, &bit);
 	if (0 == rv) {
 	    fprintf(stderr, "erroneously returned bit number %d\n", i);
 	}
     }
-    for (i = HI + 1; i < HI + 100; i++) {
+    for (i = HI + 1; i < HI + 1000; i++) {
 	rv = bitlist_get(&bl, i, &bit);
 	if (0 == rv) {
 	    fprintf(stderr, "erroneously returned bit number %d\n", i);

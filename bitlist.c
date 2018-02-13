@@ -28,31 +28,51 @@
 ******************************************************************************/
 
 #include "bitlist.h"
+#include <limits.h>
+
+#if INT_MAX == 32767
+    #define BITS_PER_INT		16
+    #define BYTES_PER_INT		2
+    #define BITS_TO_INT_SHIFT		4
+    #define ALL_ONES			0xFFFF
+#elif INT_MAX == 2147483647
+    #define BITS_PER_INT		32
+    #define BYTES_PER_INT		4
+    #define BITS_TO_INT_SHIFT		5
+    #define ALL_ONES			0xFFFFFFFF
+#elif INT_MAX == 9223372036854775807
+    #define BITS_PER_INT		64
+    #define BYTES_PER_INT		8	
+    #define BITS_TO_INT_SHIFT		6
+    #define ALL_ONES			0xFFFFFFFFFFFFFFFF
+#else
+    #error "What kind of weird system are you on?"
+#endif
+
+#define PUBLIC
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define PUBLIC
-
-static inline unsigned char
-quick_bit_get (unsigned char *bytes, int bit_number)
-{ return bytes[bit_number >> 3] & (1 << (bit_number % 8)); }
+static inline unsigned int
+quick_bit_get (unsigned int *ints, int bit_number)
+{ return ints[bit_number >> BITS_TO_INT_SHIFT] & (1 << (bit_number % BITS_PER_INT)); }
 
 static inline void
-quick_bit_set (unsigned char *bytes, int bit_number)
-{ bytes[bit_number >> 3] |= (1 << (bit_number % 8)); }
+quick_bit_set (unsigned int *ints, int bit_number)
+{ ints[bit_number >> BITS_TO_INT_SHIFT] |= (1 << (bit_number % BITS_PER_INT)); }
 
 static inline void
-quick_bit_clear (unsigned char *bytes, int bit_number)
-{ bytes[bit_number >> 3] &= (~(1 << (bit_number % 8))); } 
+quick_bit_clear (unsigned int *ints, int bit_number)
+{ ints[bit_number >> BITS_TO_INT_SHIFT] &= (~(1 << (bit_number % BITS_PER_INT))); } 
 
 static inline int
 _first_clear_bit (unsigned int value)
 {
     int i;
 
-    for (i = 0; i < 32; i++) {
+    for (i = 0; i < BITS_PER_INT; i++) {
         if (0 == (value & (1 << i))) return i;
     }
     return -1;
@@ -61,7 +81,7 @@ _first_clear_bit (unsigned int value)
 static int
 thread_unsafe_bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 {
-    unsigned char value;
+    unsigned int value;
 
     /* check bounds */
     if (bit_number < bl->lowest_valid_bit) return ENODATA;
@@ -81,7 +101,7 @@ thread_unsafe_bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 static int
 thread_unsafe_bitlist_set (bitlist_t *bl, int bit_number)
 {
-    unsigned char bit;
+    unsigned int bit;
 
     /* check bounds */
     if (bit_number < bl->lowest_valid_bit) return ENODATA;
@@ -104,7 +124,7 @@ thread_unsafe_bitlist_set (bitlist_t *bl, int bit_number)
 static int
 thread_unsafe_bitlist_clear (bitlist_t *bl, int bit_number)
 {
-    unsigned char value;
+    unsigned int value;
 
     /* check bounds */
     if (bit_number < bl->lowest_valid_bit) return ENODATA;
@@ -127,15 +147,12 @@ thread_unsafe_bitlist_clear (bitlist_t *bl, int bit_number)
 static int
 thread_unsafe_bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number)
 {
-    int i, size_in_ints, first;
-    int *the_ints;
+    int i, first;
 
-    size_in_ints = bl->size_in_bytes / sizeof(int) + 1;
-    the_ints = (int*) bl->the_bits;
-    for (i = 0; i < size_in_ints; i++) {
-        if (the_ints[i]) {
-            first = ffs(the_ints[i]);
-            first = (first - 1) + (i * 32) + bl->lowest_valid_bit;
+    for (i = 0; i < bl->size_in_ints; i++) {
+        if (bl->the_bits[i]) {
+            first = ffs(bl->the_bits[i]);
+            first = (first - 1) + (i * BITS_PER_INT) + bl->lowest_valid_bit;
             if (first > bl->highest_valid_bit) return ENODATA;
             *returned_bit_number = first;
             return 0;
@@ -147,15 +164,12 @@ thread_unsafe_bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number)
 static int
 thread_unsafe_bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
 {
-    int i, size_in_ints, first;
-    unsigned int *the_ints;
+    int i, first;
 
-    size_in_ints = bl->size_in_bytes / sizeof(int) + 1;
-    the_ints = (unsigned int*) bl->the_bits;
-    for (i = 0; i < size_in_ints; i++) {
-        if (the_ints[i] != 0xFFFFFFFF) {
-            first = _first_clear_bit(the_ints[i]);
-            first += (i * 32) + bl->lowest_valid_bit;
+    for (i = 0; i < bl->size_in_ints; i++) {
+        if (bl->the_bits[i] != ALL_ONES) {
+            first = _first_clear_bit(bl->the_bits[i]);
+            first += (i * BITS_PER_INT) + bl->lowest_valid_bit;
             if (first > bl->highest_valid_bit) return ENODATA;
             *returned_bit_number = first;
             return 0;
@@ -174,30 +188,30 @@ bitlist_init (bitlist_t *bl,
     int initialize_to_all_ones,
     mem_monitor_t *parent_mem_monitor)
 {
-    /* allow an extra 16 bytes at the end to include 2 extra long long ints */
-    int size_in_bytes = ((highest_valid_bit - lowest_valid_bit) / 8) + 16;
+    /* allow some extra at the end so we can run thru using complete ints */
+    int size_in_ints = ((highest_valid_bit - lowest_valid_bit + 1) / BITS_PER_INT) + 2;
     int i, rv = 0;
-    unsigned char data;
+    unsigned int data;
 
     MEM_MONITOR_SETUP(bl);
     LOCK_SETUP(bl);
 
-    bl->the_bits = (unsigned char*) MEM_MONITOR_ALLOC(bl, size_in_bytes);
+    bl->the_bits = (unsigned int*) MEM_MONITOR_ALLOC(bl, (size_in_ints * BYTES_PER_INT));
     if (0 == bl->the_bits) {
         rv = ENOMEM;
         goto done;
     }
-    bl->size_in_bytes = size_in_bytes;
+    bl->size_in_ints = size_in_ints;
     bl->lowest_valid_bit = lowest_valid_bit;
     bl->highest_valid_bit = highest_valid_bit;
     if (initialize_to_all_ones) {
-	data = 0xFF;
+	data = 0xFFFFFFFF;
 	bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
     } else {
 	data = 0;
 	bl->bits_set_count = 0;
     }
-    for (i = 0; i < size_in_bytes; i++) bl->the_bits[i] = data;
+    for (i = 0; i < size_in_ints; i++) bl->the_bits[i] = data;
 done:
     WRITE_UNLOCK(bl);
     return rv;

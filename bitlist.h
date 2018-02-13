@@ -64,9 +64,9 @@ typedef struct bitlist_s {
     LOCK_VARIABLES;
     int lowest_valid_bit;
     int highest_valid_bit;
-    int size_in_bytes;
+    int size_in_ints;
     int bits_set_count;
-    unsigned char *the_bits;
+    unsigned int *the_bits;
 
 } bitlist_t;
 
