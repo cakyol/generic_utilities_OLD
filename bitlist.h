@@ -90,8 +90,7 @@ bitlist_init (bitlist_t *bl,
     mem_monitor_t *parent_mem_monitor);
 
 extern int
-bitlist_get (bitlist_t *bl,
-    int bit_number, int *returned_bit);
+bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit);
 
 extern int
 bitlist_set (bitlist_t *bl, int bit_number);

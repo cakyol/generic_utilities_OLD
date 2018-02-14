@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include "bitlist.h"
 
-#define LOW	-10000
-#define HI	10000
+#define LOW	-100000
+#define HI	100000
 
 int main (int argc, char *argv[])
 {

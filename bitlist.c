@@ -57,15 +57,25 @@ extern "C" {
 
 static inline unsigned int
 quick_bit_get (unsigned int *ints, int bit_number)
-{ return ints[bit_number >> BITS_TO_INT_SHIFT] & (1 << (bit_number % BITS_PER_INT)); }
+{
+    return
+        ints[bit_number >> BITS_TO_INT_SHIFT] & 
+            (1 << (bit_number % BITS_PER_INT));
+}
 
 static inline void
 quick_bit_set (unsigned int *ints, int bit_number)
-{ ints[bit_number >> BITS_TO_INT_SHIFT] |= (1 << (bit_number % BITS_PER_INT)); }
+{
+    ints[bit_number >> BITS_TO_INT_SHIFT] |= 
+            (1 << (bit_number % BITS_PER_INT));
+}
 
 static inline void
 quick_bit_clear (unsigned int *ints, int bit_number)
-{ ints[bit_number >> BITS_TO_INT_SHIFT] &= (~(1 << (bit_number % BITS_PER_INT))); } 
+{
+    ints[bit_number >> BITS_TO_INT_SHIFT] &= 
+        (~(1 << (bit_number % BITS_PER_INT)));
+} 
 
 static inline int
 _first_clear_bit (unsigned int value)
@@ -84,8 +94,8 @@ thread_unsafe_bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
     unsigned int value;
 
     /* check bounds */
-    if (bit_number < bl->lowest_valid_bit) return ENODATA;
-    if (bit_number > bl->highest_valid_bit) return ENODATA;
+    if (bit_number < bl->lowest_valid_bit) return EINVAL;
+    if (bit_number > bl->highest_valid_bit) return EINVAL;
 
     /* adjust offset */
     bit_number -= bl->lowest_valid_bit;
@@ -104,8 +114,8 @@ thread_unsafe_bitlist_set (bitlist_t *bl, int bit_number)
     unsigned int bit;
 
     /* check bounds */
-    if (bit_number < bl->lowest_valid_bit) return ENODATA;
-    if (bit_number > bl->highest_valid_bit) return ENODATA;
+    if (bit_number < bl->lowest_valid_bit) return EINVAL;
+    if (bit_number > bl->highest_valid_bit) return EINVAL;
 
     /* adjust offset */
     bit_number -= bl->lowest_valid_bit;
@@ -127,8 +137,8 @@ thread_unsafe_bitlist_clear (bitlist_t *bl, int bit_number)
     unsigned int value;
 
     /* check bounds */
-    if (bit_number < bl->lowest_valid_bit) return ENODATA;
-    if (bit_number > bl->highest_valid_bit) return ENODATA;
+    if (bit_number < bl->lowest_valid_bit) return EINVAL;
+    if (bit_number > bl->highest_valid_bit) return EINVAL;
 
     /* adjust offset */
     bit_number -= bl->lowest_valid_bit;
