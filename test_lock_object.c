@@ -27,7 +27,7 @@ void *thread_function (void *arg)
 
     free(arg);
     for (i = 0; i < LOCK_COUNT; i++) grab_write_lock(&lock);
-    printf("WRITE thread %d, data %d .. ", tid, value);
+    //printf("WRITE thread %d, data %d .. ", tid, value);
     fflush(stdout);
     fflush(stdout);
     //printf("filling array with value %d\n", value);
@@ -43,7 +43,7 @@ void *thread_function (void *arg)
         printf("validation FAILED for value %d: %d entries\n",
             value, failures);
     } else {
-        printf("validation PASSED for value %d\n", value);
+        //printf("validation PASSED for value %d\n", value);
     }
     if (thread_complete_array[tid] != 0) {
         printf("OOOPPPPS, have revisited thread %d\n", tid);
@@ -62,7 +62,7 @@ void *validate_array_thread (void *arg)
     free(arg);
     for (i = 0; i < LOCK_COUNT; i++) grab_read_lock(&lock);
     value = array[0];
-    printf("READ thread %d validating now for value %d\n ..", tid, value);
+    //printf("READ thread %d validating now for value %d\n ..", tid, value);
     fflush(stdout);
     failures = 0;
     for (i = 0; i < ARRAY_SIZE; i++) {
@@ -71,7 +71,7 @@ void *validate_array_thread (void *arg)
     if (failures) {
         printf("FAILED for value %d: %d entries\n", value, failures);
     } else {
-        printf("done\n");
+        //printf("done\n");
     }
     fflush(stdout);
     if (thread_complete_array[tid] != 0) {
@@ -87,7 +87,6 @@ int main (int argc, char *argv[])
     int rv;
     pthread_t tid;
     int i;
-    timer_obj_t timr;
     int *intp;
 
     printf("\nsize of mutex object is %ld lock object is %ld bytes\n",
@@ -98,6 +97,9 @@ int main (int argc, char *argv[])
         printf("lock_obj_init failed: <%s>\n", strerror(rv));
         return -1;
     }
+
+#if 0
+    timer_obj_t timr;
 
     /* first do a speed test for mutex ONLY */
     printf("performing a lock performance test\n");
@@ -125,8 +127,10 @@ int main (int argc, char *argv[])
     report_timer(&timr, MAX_ITERATION);
     /* give time to view screen before scroll off begins below */
     sleep(3);
+#endif
 
     /* create all the threads until no more can be created */
+    printf("NOW TESTING FOR LOCK VERIFICATION\n");
     for (i = 0; i < MAX_THREADS; i++) {
         intp = malloc(sizeof(int));
         if (intp) {

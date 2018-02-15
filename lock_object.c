@@ -32,10 +32,6 @@ extern "C" {
 
 #define PUBLIC
 
-#define NO_WRITER		0
-#define WRITER_PENDING		1
-#define WRITER_ACTIVE		2
-
 /******* Public functions start here *****************************************/
 
 PUBLIC int 
@@ -82,7 +78,7 @@ grab_read_lock (lock_obj_t *lck)
 {
     while (1) {
 	pthread_mutex_lock(&lck->mtx);
-	if (lck->writer_state == NO_WRITER) {
+	if (lck->write_pending == 0) {
 	    lck->readers++;
 	    pthread_mutex_unlock(&lck->mtx);
             return;
@@ -105,13 +101,9 @@ grab_write_lock (lock_obj_t *lck)
 {
     while (1) {
 	pthread_mutex_lock(&lck->mtx);
-
-	/* mark as waiting to write */
-	if (lck->writer_state == NO_WRITER) lck->writer_state = WRITER_PENDING;
-
-	/* get it if no readers and no writer already */
-	if ((lck->readers <= 0) && (lck->writer_state != WRITER_ACTIVE)) {
-	    lck->writer_state = WRITER_ACTIVE;
+        lck->write_pending = 1;
+	if ((lck->readers <= 0) && (lck->writing == 0)) {
+	    lck->writing = 1;
 	    pthread_mutex_unlock(&lck->mtx);
 	    return;
 	}
@@ -124,7 +116,7 @@ PUBLIC void
 release_write_lock (lock_obj_t *lck)
 {
     pthread_mutex_lock(&lck->mtx);
-    lck->writer_state = NO_WRITER;
+    lck->write_pending = lck->writing = 0;
     pthread_mutex_unlock(&lck->mtx);
 }
 

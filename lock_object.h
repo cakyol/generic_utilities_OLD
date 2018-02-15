@@ -75,8 +75,9 @@ extern "C" {
 typedef struct lock_obj_s {
 
     pthread_mutex_t mtx;
-    volatile int readers;
-    volatile int writer_state;
+    volatile short readers;
+    volatile char write_pending;
+    volatile char writing;
 
 } lock_obj_t;
 
