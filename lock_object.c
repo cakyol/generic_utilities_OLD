@@ -66,24 +66,56 @@ lock_obj_init (lock_obj_t *lck)
     if ((rv = pthread_mutexattr_setpshared(&mtxattr, PTHREAD_PROCESS_SHARED)))
         return rv;
 
+#ifdef USE_GNUC_CAS
+    lck->mtx = 0;
+#else
+
     /* init with the desired attributes */
     if ((rv = pthread_mutex_init(&lck->mtx, &mtxattr)))
 	return rv;
+#endif
 
     return 0;
 }
+
+#ifdef USE_GNUC_CAS
+
+static inline void 
+grab_mutex (char *mtx)
+{
+    while (1) {
+	if (__sync_val_compare_and_swap(mtx, 0, 1) == 0) return;
+	sched_yield();
+    }
+}
+
+static inline void 
+release_mutex (char *addr)
+{ *addr = 0; }
+
+#else
+
+static inline void
+grab_mutex (pthread_mutex_t *mtx)
+{ pthread_mutex_lock(mtx); }
+
+static inline void
+release_mutex (pthread_mutex_t *mtx)
+{ pthread_mutex_unlock(mtx); }
+
+#endif
 
 PUBLIC void 
 grab_read_lock (lock_obj_t *lck)
 {
     while (1) {
-	pthread_mutex_lock(&lck->mtx);
+	grab_mutex(&lck->mtx);
 	if (lck->write_pending == 0) {
 	    lck->readers++;
-	    pthread_mutex_unlock(&lck->mtx);
+	    release_mutex(&lck->mtx);
             return;
         }
-	pthread_mutex_unlock(&lck->mtx);
+	release_mutex(&lck->mtx);
 	sched_yield();
     }
 }
@@ -91,23 +123,23 @@ grab_read_lock (lock_obj_t *lck)
 PUBLIC void 
 release_read_lock (lock_obj_t *lck)
 {
-    pthread_mutex_lock(&lck->mtx);
+    grab_mutex(&lck->mtx);
     if (--lck->readers < 0) lck->readers = 0;
-    pthread_mutex_unlock(&lck->mtx);
+    release_mutex(&lck->mtx);
 }
 
 PUBLIC void 
 grab_write_lock (lock_obj_t *lck)
 {
     while (1) {
-	pthread_mutex_lock(&lck->mtx);
+	grab_mutex(&lck->mtx);
         lck->write_pending = 1;
 	if ((lck->readers <= 0) && (lck->writing == 0)) {
 	    lck->writing = 1;
-	    pthread_mutex_unlock(&lck->mtx);
+	    release_mutex(&lck->mtx);
 	    return;
 	}
-	pthread_mutex_unlock(&lck->mtx);
+	release_mutex(&lck->mtx);
 	sched_yield();
     }
 }
@@ -115,15 +147,19 @@ grab_write_lock (lock_obj_t *lck)
 PUBLIC void 
 release_write_lock (lock_obj_t *lck)
 {
-    pthread_mutex_lock(&lck->mtx);
+    grab_mutex(&lck->mtx);
     lck->write_pending = lck->writing = 0;
-    pthread_mutex_unlock(&lck->mtx);
+    release_mutex(&lck->mtx);
 }
 
 void
 lock_obj_destroy (lock_obj_t *lck)
 {
+#ifdef USE_GNUC_CAS
+    lck->mtx = 0;
+#else
     pthread_mutex_destroy(&lck->mtx);
+#endif
     memset(lck, 0, sizeof(lock_obj_t));
 }
 

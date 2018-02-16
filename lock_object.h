@@ -74,7 +74,13 @@ extern "C" {
 
 typedef struct lock_obj_s {
 
+#define USE_GNUC_CAS
+
+#ifdef USE_GNUC_CAS
+    char mtx;
+#else
     pthread_mutex_t mtx;
+#endif
     volatile short readers;
     volatile char write_pending;
     volatile char writing;
