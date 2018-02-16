@@ -72,9 +72,14 @@ extern "C" {
 #include <pthread.h>
 #include <assert.h>
 
-typedef struct lock_obj_s {
-
+/*
+ * If this is defined, we use the Gnu C in built CAS
+ * instruction to implement the lock.  It saves about
+ * 40 bytes per lock and is faster.  If not defined,
+ * a standard linux mutex object will be used.
+ */
 #define USE_GNUC_CAS
+typedef struct lock_obj_s {
 
 #ifdef USE_GNUC_CAS
     char mtx;
