@@ -72,20 +72,9 @@ extern "C" {
 #include <pthread.h>
 #include <assert.h>
 
-/*
- * If this is defined, we use the Gnu C in built CAS
- * instruction to implement the lock.  It saves about
- * 40 bytes per lock and is faster.  If not defined,
- * a standard linux mutex object will be used.
- */
-#define USE_GNUC_CAS
 typedef struct lock_obj_s {
 
-#ifdef USE_GNUC_CAS
-    char mtx;
-#else
-    pthread_mutex_t mtx;
-#endif
+    volatile char mtx;
     volatile short readers;
     volatile char write_pending;
     volatile char writing;
@@ -93,19 +82,19 @@ typedef struct lock_obj_s {
 } lock_obj_t;
 
 extern int 
-lock_obj_init (lock_obj_t *lck);
+lock_obj_init (volatile lock_obj_t *lck);
 
 extern void
-grab_read_lock (lock_obj_t *lck);
+grab_read_lock (volatile lock_obj_t *lck);
 
 extern void 
-release_read_lock (lock_obj_t *lck);
+release_read_lock (volatile lock_obj_t *lck);
 
 extern void 
-grab_write_lock (lock_obj_t *lck);
+grab_write_lock (volatile lock_obj_t *lck);
 
 extern void
-release_write_lock (lock_obj_t *lck);
+release_write_lock (volatile lock_obj_t *lck);
 
 extern void 
 lock_obj_destroy (lock_obj_t *lck);

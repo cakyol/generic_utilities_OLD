@@ -6,9 +6,9 @@
 #include "timer_object.h"
 #include "lock_object.h"
 
-#define ARRAY_SIZE          10000000
+#define ARRAY_SIZE          3000000
 #define MAX_THREADS         (16 * 1024)
-#define MAX_ITERATION       50000000
+#define MAX_ITERATION       100000000
 
 /* locks are not recursive, do not set this to > 1 */
 #define LOCK_COUNT          1
@@ -27,6 +27,7 @@ void *thread_function (void *arg)
 
     free(arg);
     for (i = 0; i < LOCK_COUNT; i++) grab_write_lock(&lock);
+    printf("<w");
     //printf("WRITE thread %d, data %d .. ", tid, value);
     fflush(stdout);
     fflush(stdout);
@@ -49,6 +50,7 @@ void *thread_function (void *arg)
         printf("OOOPPPPS, have revisited thread %d\n", tid);
     }
     thread_complete_array[tid] = 1;
+    printf("w> ");
     fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_write_lock(&lock);
     return NULL;
@@ -61,6 +63,7 @@ void *validate_array_thread (void *arg)
 
     free(arg);
     for (i = 0; i < LOCK_COUNT; i++) grab_read_lock(&lock);
+    printf("<r");
     value = array[0];
     //printf("READ thread %d validating now for value %d\n ..", tid, value);
     fflush(stdout);
@@ -78,6 +81,8 @@ void *validate_array_thread (void *arg)
         printf("OOOPPPPS, have revisited thread %d\n", tid);
     }
     thread_complete_array[tid] = 1;
+    printf("r> ");
+    fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_read_lock(&lock);
     return NULL;
 }
@@ -88,6 +93,7 @@ int main (int argc, char *argv[])
     pthread_t tid;
     int i;
     int *intp;
+    timer_obj_t timr;
 
     printf("\nsize of mutex object is %ld lock object is %ld bytes\n",
         sizeof(pthread_mutex_t), sizeof(lock_obj_t));
@@ -97,9 +103,6 @@ int main (int argc, char *argv[])
         printf("lock_obj_init failed: <%s>\n", strerror(rv));
         return -1;
     }
-
-#if 0
-    timer_obj_t timr;
 
     /* first do a speed test for mutex ONLY */
     printf("performing a lock performance test\n");
@@ -112,7 +115,7 @@ int main (int argc, char *argv[])
     printf("MUTEX ONLY:\n");
     report_timer(&timr, MAX_ITERATION);
     /* give time to view screen before scroll off begins below */
-    sleep(3);
+    sleep(1);
 
     /* now do a speed test for the actual lock itself */
 
@@ -126,8 +129,7 @@ int main (int argc, char *argv[])
     printf("ENTIRE LOCK OBJECT:\n");
     report_timer(&timr, MAX_ITERATION);
     /* give time to view screen before scroll off begins below */
-    sleep(3);
-#endif
+    sleep(1);
 
     /* create all the threads until no more can be created */
     printf("NOW TESTING FOR LOCK VERIFICATION\n");
@@ -141,13 +143,11 @@ int main (int argc, char *argv[])
         }
         if (i & 1) {
             rv = pthread_create(&tid, NULL, validate_array_thread, intp);
-            if (rv) break;
-            max_threads++;
         } else {
             rv = pthread_create(&tid, NULL, thread_function, intp);
-            if (rv) break;
-            max_threads++;
         }
+        if (rv) break;
+        max_threads++;
     }
 
     fflush(stdout);
