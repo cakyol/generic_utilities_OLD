@@ -39,17 +39,11 @@
 **
 **	- Can be used in shared memory between multiple processes.
 **	- No limit on readers (well.. MAXUSHORT).
-**	- read locks ARE recursive altho discouraged.
+**	- read locks are recursive but discouraged.
 **	- Only one active writer at a time.
-**      - write locks are *NOT* recursive, deadlock will occur if recursive
+**      - write locks are *NOT* recursive, deadlock *WILL* occur if recursive
 **        write locking is attempted.
-**	- A dead process which may have write locked will be detected
-**	  when another write lock is attempted and will be cleaned up.
-**	  Unfortunately however, this will NOT work for read locks.
-**	  Ie, if a process which may have acquired the read lock dies
-**	  before releasing the read lock, things will just go to 
-**	  worse from bad.
-**	- read locks will not starve a write lock.
+**	- read locks will not starve out a write lock.
 **
 *******************************************************************************
 *******************************************************************************
@@ -74,7 +68,9 @@ extern "C" {
 
 typedef struct lock_obj_s {
 
+    /* used with compare & swap, protects rest of the variables */
     volatile char mtx;
+
     volatile short readers;
     volatile char write_pending;
     volatile char writing;

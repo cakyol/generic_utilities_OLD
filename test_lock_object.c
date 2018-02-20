@@ -23,7 +23,7 @@ void *thread_function (void *arg)
 {
     int tid = *((int*) arg);
     int value = -tid * 12;
-    int i, failures;
+    int i;
 
     free(arg);
     for (i = 0; i < LOCK_COUNT; i++) grab_write_lock(&lock);
@@ -35,8 +35,9 @@ void *thread_function (void *arg)
     for (i = 0; i < ARRAY_SIZE; i++) {
         array[i] = value;
     }
+#if 0
     //printf("now validating array for value %d\n", value);
-    failures = 0;
+    int failures = 0;
     for (i = 0; i < ARRAY_SIZE; i++) {
         if (array[i] != value) failures++;
     }
@@ -46,6 +47,7 @@ void *thread_function (void *arg)
     } else {
         //printf("validation PASSED for value %d\n", value);
     }
+#endif
     if (thread_complete_array[tid] != 0) {
         printf("OOOPPPPS, have revisited thread %d\n", tid);
     }
