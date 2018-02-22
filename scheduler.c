@@ -36,6 +36,10 @@ extern "C" {
 extern int
 thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
 
+extern int
+thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
+    linkedlist_node_t *node_tobe_deleted);
+
 /*
  * It is very important to understand why there are two lists separated
  * as shown below.  When a user schedules a task into the future, it gets
@@ -98,13 +102,11 @@ next_firing_time (task_t *first_task, task_t *later_task,
     nano_seconds_t lateness)
 {
     nano_seconds_t now, next_firing;
-    timespec_t current_time;
 
     if (first_task) {
 	now = first_task->abs_firing_time_nsecs;
     } else {
-	clock_gettime(CLOCK_MONOTONIC, &current_time);
-	now = (current_time.tv_sec * SEC_TO_NSEC_FACTOR) + current_time.tv_nsec;
+	now = time_now();
     }
     next_firing = later_task->abs_firing_time_nsecs - now - lateness;
     if (next_firing <= RESOLUTION_NANO_SECONDS)
@@ -149,27 +151,6 @@ terminate_alarm (void)
 	setitimer(ITIMER_REAL, &itim, NULL);
 }
 
-static inline int
-schedule_next_alarm_usecs (micro_seconds_t interval)
-{
-    return
-	schedule_next_alarm_nsecs(interval * 1000);
-}
-
-static inline int
-schedule_next_alarm_msecs (int milliseconds)
-{
-    return
-	schedule_next_alarm_usecs(milliseconds * 1000);
-}
-
-static inline int
-schedule_next_alarm_secs (int seconds)
-{
-    return
-	schedule_next_alarm_msecs(seconds * 1000);
-}
-
 /*
  * This function is called whenever a change occurs and we know that
  * we have to re-schedule the next alarm signal.  It always checks
@@ -179,16 +160,16 @@ schedule_next_alarm_secs (int seconds)
  * been added, a task has been cancelled etc.
  */
 static void
-revisit_alarm_scheduling (nano_seconds_t lateness)
+reschedule_next_alarm (nano_seconds_t lateness)
 {
     task_t *tp;
 
-    READ_LOCK(scheduler);
+    READ_LOCK(scheduled_tasks);
 
     /* no task scheduled, stop the alarms */
-    if (scheduler->n <= 0) {
+    if (scheduled_tasks->n <= 0) {
 	terminate_alarm();
-	READ_UNLOCK(scheduler);
+	READ_UNLOCK(scheduled_tasks);
 	return;
     }
 
@@ -198,7 +179,7 @@ revisit_alarm_scheduling (nano_seconds_t lateness)
      */
     tp = (task_t*) scheduled_tasks->head->user_data;
     schedule_next_alarm_nsecs(next_firing_time(NULL, tp, lateness));
-    READ_UNLOCK(scheduler);
+    READ_UNLOCK(scheduled_tasks);
 }
 
 static void
@@ -207,11 +188,7 @@ __alarm_signal_handler (int signo)
     int rv;
     linkedlist_node_t *d;
     task_t *tp, *first_task = NULL;
-    timespec_t current_time;
-    nano_seconds_t current_time_nsec, nsec_future;
     timer_obj_t execution_time;
-
-execute_again:
 
     /*
      * start timing the delay this function call will introduce
@@ -226,7 +203,7 @@ execute_again:
     /* re-instate the alarm handler again for next time */
     signal(SIGALRM, __alarm_signal_handler);
 
-    /* we must do this since we will manipulate lists */
+    /* we must do this since we will manipulate both lists */
     WRITE_LOCK(scheduled_tasks);
     WRITE_LOCK(executable_tasks);
 
@@ -297,7 +274,7 @@ execute_again:
     end_timer(&execution_time);
 
     /* set the next alarm firing time for the rest of the tasks */
-    revisit_alarm_scheduling(timer_delay_nsecs(&execution_time));
+    reschedule_next_alarm(timer_delay_nsecs(&execution_time));
 }
 
 /*
@@ -325,7 +302,11 @@ initialize_task_scheduler (void)
 
 /*
  * schedule function 'fn' to be called in future with
- * the argument specified in 'arg'.
+ * the argument specified in 'arg'.  If the scheduling
+ * process is such that the new task gets inserted into
+ * the beginning of the scheduled_tasks list, it also
+ * ensures that the next alarm time is recalculated & set
+ * accordingly.
  */
 int
 task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
@@ -333,34 +314,49 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
         task_t **scheduled_task)
 {
     task_t *tp = (task_t*) malloc(sizeof(task_t));
-    timespec_t now;
+    linkedlist_node_t *first;
+    int rv, head_changed;
 
     *scheduled_task = NULL;
     if (NULL == tp) return ENOMEM;
     tp->efn = efn;
     tp->argument = argument;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    tp->abs_firing_time_nsecs =
-	(now.tv_sec * SEC_TO_NSEC_FACTOR) + now.tv_nsec;
+    tp->abs_firing_time_nsecs = time_now() + 
+	    (seconds_from_now * SEC_TO_NSEC_FACTOR) + nano_seconds_from_now;
+    READ_LOCK(scheduled_tasks);
+    first = scheduled_tasks->head;
+    READ_UNLOCK(scheduled_tasks);
     rv = linkedlist_add(scheduled_tasks, tp);
+    READ_LOCK(scheduled_tasks);
+    head_changed = first != scheduled_tasks->head;
+    READ_UNLOCK(scheduled_tasks);
     if (0 == rv) {
-	/* succeeded, return it to the caller */
 	*scheduled_task = tp;
+	if (head_changed) reschedule_next_alarm(0);
     } else {
-	/* failed, free up the structure */
 	free(tp);
     }
     return rv;
 }
 
+int
 task_cancel (task_t *tp)
 {
     task_t *t;
+    int rv = ENODATA, head_changed = 0;
 
     WRITE_LOCK(scheduled_tasks);
     FOR_ALL_LINKEDLIST_ELEMENTS(scheduled_tasks, t) {
-	if (t == tp) break;
+	if (t == tp) {
+	    if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
+	    thread_unsafe_linkedlist_node_delete(scheduled_tasks, __n__);
+	    rv = 0;
+	    break;
+	}
     }
+    WRITE_UNLOCK(scheduled_tasks);
+    if (head_changed) reschedule_next_alarm(0);
+    return rv;
 }
 
 #ifdef __cplusplus

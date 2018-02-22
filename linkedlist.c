@@ -204,7 +204,7 @@ thread_unsafe_linkedlist_add_once (linkedlist_t *listp, void *user_data,
  * (which is never NULL), this algorithm works even for 
  * deleting the last node in the list.
  */
-static int
+int
 thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
         linkedlist_node_t *node_tobe_deleted)
 {

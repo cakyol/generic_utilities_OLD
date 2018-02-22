@@ -72,6 +72,16 @@ timer_delay_nsecs (timer_obj_t *tp)
 	(tp->start.tv_sec * SEC_TO_NSEC_FACTOR) + tp->start.tv_nsec;
 }
 
+static inline nano_seconds_t
+time_now (void)
+{
+    timespec_t now;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return
+	(now.tv_sec * SEC_TO_NSEC_FACTOR) + now.tv_nsec;
+}
+
 extern 
 void report_timer (timer_obj_t *tp, long long int iterations);
 
