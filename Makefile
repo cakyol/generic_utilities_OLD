@@ -27,9 +27,9 @@ LIB_OBJS =	timer_object.o \
 		table.o \
 		dynamic_array.o \
 		ntrie_object.o \
-		scheduler.o \
 		generic_object_database.o \
 		\
+		### scheduler.o \
 		### utils_common.o \
 		### event_manager.o \
 		### chunk_manager_object.o \

@@ -59,6 +59,14 @@ static linkedlist_t executable_tasks_list;
 static linkedlist_t *executable_tasks = &executable_tasks_list;
 
 /*
+ * tasks to be executed this close to each other will all be
+ * executed immediately after one another.  This is basically
+ * the minimum resolution of this timer system.
+ */
+#define RESOLUTION_MILLI_SECONDS	20
+#define RESOLUTION_NANO_SECONDS		(RESOLUTION_MILLI_SECONDS * 1000000LL)	
+
+/*
  * tasks are ordered based on their firing time values which is in
  * nanoseconds.
  */
@@ -81,21 +89,44 @@ compare_tasks (void *vt1, void *vt2)
 /*
  * the next task's ('later_task') execution time is close enuf (within 
  * resolution time) to the execution time of the 'first_task' so that 
- * they can be assumed to execute at the same time.
+ * they can be assumed to execute at the same time.  If 'first_task'
+ * is NULL, then the current time is assumed.  The return value is
+ * when the alarm should be fired in nano seconds from now.
  */
+static nano_seconds_t
+next_firing_time (task_t *first_task, task_t *later_task,
+    nano_seconds_t lateness)
+{
+    nano_seconds_t now, next_firing;
+    timespec_t current_time;
+
+    if (first_task) {
+	now = first_task->abs_firing_time_nsecs;
+    } else {
+	clock_gettime(CLOCK_MONOTONIC, &current_time);
+	now = (current_time.tv_sec * SEC_TO_NSEC_FACTOR) + current_time.tv_nsec;
+    }
+    next_firing = later_task->abs_firing_time_nsecs - now - lateness;
+    if (next_firing <= RESOLUTION_NANO_SECONDS)
+	next_firing = RESOLUTION_NANO_SECONDS;
+    return next_firing;
+}
+
 static inline int
 within_resolution (task_t *first_task, task_t *later_task)
 {
-    int diff = 
-	later_task->abs_firing_time_nsecs - 
-	first_task->abs_firing_time_nsecs;
-    return (diff >= -RESOLUTION_NSECS) && (diff <= RESOLUTION_NSECS);
+    return
+	next_firing_time(first_task, later_task, 0) <= RESOLUTION_NANO_SECONDS;
 }
 
+/*
+ * Schedules an alarm to go off 'interval' nanoseconds from 
+ * the time this function is called.
+ */
 static int 
-schedule_next_alarm_signal (long long int interval)
+schedule_next_alarm_nsecs (nano_seconds_t interval)
 {
-    struct itimerval itim;
+    itimerval_t itim;
 
     itim.it_interval.tv_sec = 0;
     itim.it_interval.tv_usec = 0;
@@ -105,14 +136,89 @@ schedule_next_alarm_signal (long long int interval)
 	setitimer(ITIMER_REAL, &itim, NULL);
 }
 
+static int
+terminate_alarm (void)
+{
+    itimerval_t itim;
+
+    itim.it_interval.tv_sec = 0;
+    itim.it_interval.tv_usec = 0;
+    itim.it_value.tv_sec = 0;
+    itim.it_value.tv_usec = 0;
+    return
+	setitimer(ITIMER_REAL, &itim, NULL);
+}
+
+static inline int
+schedule_next_alarm_usecs (micro_seconds_t interval)
+{
+    return
+	schedule_next_alarm_nsecs(interval * 1000);
+}
+
+static inline int
+schedule_next_alarm_msecs (int milliseconds)
+{
+    return
+	schedule_next_alarm_usecs(milliseconds * 1000);
+}
+
+static inline int
+schedule_next_alarm_secs (int seconds)
+{
+    return
+	schedule_next_alarm_msecs(seconds * 1000);
+}
+
+/*
+ * This function is called whenever a change occurs and we know that
+ * we have to re-schedule the next alarm signal.  It always checks
+ * the first task at the front of the scheduler list to calculate
+ * and set the alarm to its execution time.  It should be called
+ * whenever the task scheduler has changed, such as, a new task has
+ * been added, a task has been cancelled etc.
+ */
+static void
+revisit_alarm_scheduling (nano_seconds_t lateness)
+{
+    task_t *tp;
+
+    READ_LOCK(scheduler);
+
+    /* no task scheduled, stop the alarms */
+    if (scheduler->n <= 0) {
+	terminate_alarm();
+	READ_UNLOCK(scheduler);
+	return;
+    }
+
+    /*
+     * if we are here, we have at least one task to be scheduled.
+     * So, calculate its time and schedule it into the future.
+     */
+    tp = (task_t*) scheduled_tasks->head->user_data;
+    schedule_next_alarm_nsecs(next_firing_time(NULL, tp, lateness));
+    READ_UNLOCK(scheduler);
+}
+
 static void
 __alarm_signal_handler (int signo)
 {
     int rv;
     linkedlist_node_t *d;
     task_t *tp, *first_task = NULL;
-    struct timespec current_time;
-    long long int current_time_nsec;
+    timespec_t current_time;
+    nano_seconds_t current_time_nsec, nsec_future;
+    timer_obj_t execution_time;
+
+execute_again:
+
+    /*
+     * start timing the delay this function call will introduce
+     * so that we can compensate this delay when we schedule the
+     * next alarm signal.
+     */
+    start_timer(&execution_time);
 
     /* some sanity checking */
     assert(SIGALRM == signo);
@@ -132,7 +238,7 @@ __alarm_signal_handler (int signo)
     }
 
     /*
-     * first transfer all tasks at the head of the scheduler list
+     * first transfer all tasks from the head of the scheduler list
      * which fall approximately into the range of the timer resolution,
      * to the execution list one at a time.  Check the comment at around
      * line number 30 to understand this carefully.  It is CRITICAL.
@@ -161,7 +267,8 @@ __alarm_signal_handler (int signo)
 	}
     }
 
-    /* unlock scheduler tasks lists in case during the executions in the
+    /*
+     * unlock scheduler tasks lists in case during the executions in the
      * executable_tasks lists, some functions reschedule themselves back
      * into the scheduler task list.  This is why the scheduler tasks list
      * opened again for writing but the executable tasks list is still
@@ -170,9 +277,11 @@ __alarm_signal_handler (int signo)
     WRITE_UNLOCK(scheduled_tasks);
 
     /*
-     * now execute all tasks in the executable_tasks list now one at a time.
+     * now execute all tasks in the executable_tasks list now one at a time
+     * picking them from the head of the list and deleting them from the
+     * list as we execute them.
      */
-    while (not_endof_linkedlist(executable_tasks->head)) {
+    while (executable_tasks->n > 0) {
 	tp = (task_t*) executable_tasks->head->user_data;
 	tp->efn(tp->argument);
 	d = executable_tasks->head;
@@ -182,20 +291,13 @@ __alarm_signal_handler (int signo)
     }
 
     /*
-     * now schedule the alarm signal to fire for the next task.  The
-     * next task is now at the head of the scheduled_tasks list.
+     * record our finishing time so we can calculate the
+     * delay introduced by all the work we did above.
      */
-    READ_LOCK(scheduled_tasks);
-    if (scheduled_tasks->n > 0) {
-	tp = (task_t*) scheduled_tasks->head->user_data;
+    end_timer(&execution_time);
 
-	/* what is the current time ? */
-	clock_gettime(CLOCK_MONOTONIC, &current_time);
-	current_time_nsec = 
-	    (current_time.tv_sec * SEC_TO_NSEC_FACTOR) + current_time.tv_nsec;
-	schedule_next_alarm_signal(tp->abs_firing_time_nsecs - current_time_nsec);
-    }
-    READ_UNLOCK(scheduled_tasks);
+    /* set the next alarm firing time for the rest of the tasks */
+    revisit_alarm_scheduling(timer_delay_nsecs(&execution_time));
 }
 
 /*
@@ -226,11 +328,39 @@ initialize_task_scheduler (void)
  * the argument specified in 'arg'.
  */
 int
-schedule_task (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
-        simple_function_pointer fnp, void *argument,
-        task_t *task_handle)
+task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
+        simple_function_pointer efn, void *argument,
+        task_t **scheduled_task)
 {
-    return 0;
+    task_t *tp = (task_t*) malloc(sizeof(task_t));
+    timespec_t now;
+
+    *scheduled_task = NULL;
+    if (NULL == tp) return ENOMEM;
+    tp->efn = efn;
+    tp->argument = argument;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    tp->abs_firing_time_nsecs =
+	(now.tv_sec * SEC_TO_NSEC_FACTOR) + now.tv_nsec;
+    rv = linkedlist_add(scheduled_tasks, tp);
+    if (0 == rv) {
+	/* succeeded, return it to the caller */
+	*scheduled_task = tp;
+    } else {
+	/* failed, free up the structure */
+	free(tp);
+    }
+    return rv;
+}
+
+task_cancel (task_t *tp)
+{
+    task_t *t;
+
+    WRITE_LOCK(scheduled_tasks);
+    FOR_ALL_LINKEDLIST_ELEMENTS(scheduled_tasks, t) {
+	if (t == tp) break;
+    }
 }
 
 #ifdef __cplusplus

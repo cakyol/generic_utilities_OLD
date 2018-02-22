@@ -23,12 +23,19 @@ extern "C" {
 #include <sys/time.h>
 #include <time.h>
 
-#define NANOSEC_TO_SEC      ((long long int) 1000000000)
+#define SEC_TO_MSEC_FACTOR			(1000)
+#define SEC_TO_USEC_FACTOR			(1000000LL)
+#define SEC_TO_NSEC_FACTOR                      (1000000000LL)
+
+typedef long long int nano_seconds_t;
+typedef long long int micro_seconds_t;
+typedef struct timespec timespec_t;
+typedef struct timeval timeval_t;
+typedef struct itimerval itimerval_t;
 
 typedef struct timer_obj_s {
-
-    struct timespec start, end;
-
+    timespec_t start;
+    timespec_t end;
 } timer_obj_t;
 
 #ifdef __APPLE__
@@ -36,9 +43,9 @@ typedef struct timer_obj_s {
 #define CLOCK_MONOTONIC		1
 
 static inline int
-clock_gettime (int clock_id, struct timespec *ts)
+clock_gettime (int clock_id, timespec_t *ts)
 {
-    struct timeval tv;
+    timeval_t tv;
 
     if (gettimeofday(&tv, NULL) < 0) return -1;
     ts->tv_sec = tv.tv_sec;
@@ -57,12 +64,12 @@ static inline void
 end_timer (timer_obj_t *tp)
 { clock_gettime(CLOCK_MONOTONIC, &tp->end); }
 
-static inline long long int
+static inline nano_seconds_t
 timer_delay_nsecs (timer_obj_t *tp)
 {
     return
-	(tp->end.tv_sec * NANOSEC_TO_SEC) + tp->end.tv_nsec -
-	(tp->start.tv_sec * NANOSEC_TO_SEC) + tp->start.tv_nsec;
+	(tp->end.tv_sec * SEC_TO_NSEC_FACTOR) + tp->end.tv_nsec -
+	(tp->start.tv_sec * SEC_TO_NSEC_FACTOR) + tp->start.tv_nsec;
 }
 
 extern 

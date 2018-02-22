@@ -40,22 +40,6 @@ extern "C" {
 #include "timer_object.h"
 #include "linkedlist.h"
 
-typedef long long int nano_seconds_t;
-
-/* second to nanosecond multiplier */
-#define SEC_TO_NSEC_FACTOR			(1000000000LL)
-
-/* one hundred milliseconds in nano seconds */
-#define ONE_HUNDRED_MSEC_IN_NSEC		(100000000LL)
-
-/*
- * tasks within this much spacing is assumed
- * to approximately fire all at the same time,
- * this is the lowest granularity which we can
- * separate the firings.  No less.
- */
-#define RESOLUTION_NSECS			(ONE_HUNDRED_MSEC_IN_NSEC)
-
 /*
  * A task has an absolute execution time, a function to execute
  * when its timer expires and an argument to pass to that execution
