@@ -75,7 +75,7 @@ process_is_dead (pid_t pid)
 
 #define NANOSEC_TO_SEC      ((int64) 1000000000)
 
-void report_timer (timer_obj_t *tp, int64 iterations)
+void timer_report (timer_obj_t *tp, int64 iterations)
 {
     int64 start_ns, end_ns, elapsed_ns;
     double elapsed_s, per_iter;

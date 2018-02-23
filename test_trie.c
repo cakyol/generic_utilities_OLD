@@ -62,15 +62,15 @@ char *argv [];
     alphabet_size = 'z' - 'a' + 1;
     trie_init(&trie_obj, alphabet_size, trie_index_convert, NULL);
     printf("\nSIZE OF TRIE NODE = %d BYTES\n", trie_node_size(&trie_obj));
-    start_timer(&timr);
+    timer_start(&timr);
     FOR_ALL_POSSIBLE_STRINGS
 	total++;
         if (trie_insert(&trie_obj, string, SIZE, (void*) 1, NULL) == 0) {
 	    count++;
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, total);
+    timer_end(&timr);
+    timer_report(&timr, total);
 
     printf("successfully added %d of %d strings to trie (nodes %d)\n", 
 	count, total, trie_obj.node_count);
@@ -81,16 +81,16 @@ char *argv [];
 
     printf("\nSEARCHING ALL AVAILABLE STRINGS\n");
     count = total = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     FOR_ALL_POSSIBLE_STRINGS
         total++;
 	if (trie_search(&trie_obj, string, SIZE, NULL) == ok) {
 	    count++;
 	}
     }
-    end_timer(&timr);
+    timer_end(&timr);
     printf("found %d strings of %d strings\n", count, total);
-    report_timer(&timr, total);
+    timer_report(&timr, total);
 
     return 0;
 }

@@ -59,7 +59,7 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 
     /* enter all array data into avl tree */
     printf("now entering all %s number data into the avl tree\n", oddness);
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
 	fwdata = &data[i];
 	rv = avl_tree_insert(avlt, fwdata, &found);
@@ -67,15 +67,15 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 	    printf("populate_data: avl_tree_insert error: %d failed\n", i);
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, MAX_SZ);
+    timer_end(&timr);
+    timer_report(&timr, MAX_SZ);
     OBJECT_MEMORY_USAGE(avlt, bytes_used, megabytes_used);
     printf("total memory used by the avl tree of %d nodes: %llu bytes (%lf Mbytes)\n",
 	avlt->n, bytes_used, megabytes_used);
 
     printf("searching for non existant data\n");
     fine = not_fine = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = max_value_reached; i < (max_value_reached + EXTRA); i++) {
 	searched = &i;
 	rv = avl_tree_search(avlt, searched, &found);
@@ -85,14 +85,14 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 	    fine++;
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, EXTRA);
+    timer_end(&timr);
+    timer_report(&timr, EXTRA);
     printf("expected %d, NOT expected %d\n", fine, not_fine);
 
     /* now search all data that should be found (all of them) */
     printf("now searching all %s numbers in the avl tree\n", oddness);
     fine = not_fine = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
 	searched = &data[i];
 	rv = avl_tree_search(avlt, searched, &found);
@@ -103,15 +103,15 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 	    fine++;
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, MAX_SZ);
+    timer_end(&timr);
+    timer_report(&timr, MAX_SZ);
     printf("found %d as expected and %d as NOT expected\n", fine, not_fine);
 
     /* now search for all entries that should NOT be in the tree */
     printf("now searching for all %s numbers in the avl tree\n", reverse);
     fine = not_fine = 0;
     d = use_odd_numbers ? 0 : 1;
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
 	searched = &d;
 	rv = avl_tree_search(avlt, searched, &found);
@@ -122,18 +122,18 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 	}
 	d += 2;
     }
-    end_timer(&timr);
-    report_timer(&timr, MAX_SZ);
+    timer_end(&timr);
+    timer_report(&timr, MAX_SZ);
     printf("%d as expected and %d as NOT expected\n", fine, not_fine);
 
 #if 0
 
 int tree_nodes = avlt->n;
 printf("now deleting the whole tree (%d nodes)\n", tree_nodes);
-start_timer(&timr);
+timer_start(&timr);
 avl_tree_destroy(avlt);
-end_timer(&timr);
-report_timer(&timr, tree_nodes);
+timer_end(&timr);
+timer_report(&timr, tree_nodes);
 return;
 
 #endif // 0
@@ -141,7 +141,7 @@ return;
     /* now delete one entry at a time and search it (should not be there) */
     printf("now deleting and searching\n");
     fine = not_fine = fail_search = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
 	searched =  &data[i];
 	rv = avl_tree_remove(avlt, searched, &removed);
@@ -155,8 +155,8 @@ return;
 	    fail_search++;
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, MAX_SZ*2);
+    timer_end(&timr);
+    timer_report(&timr, MAX_SZ*2);
     printf("deleted %d, could NOT delete %d, erroneous search %d\n",
 	fine, not_fine, fail_search);
 

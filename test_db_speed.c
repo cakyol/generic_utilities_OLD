@@ -26,7 +26,7 @@ int main (int argc, char *argv[])
 
     /* create objects */
     count = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     printf("creating objects\n");
     ptype = pinstance = 0;
     for (type = MAX_TYPES; type > 0; type--) {
@@ -40,8 +40,8 @@ int main (int argc, char *argv[])
 	    }
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, count);
+    timer_end(&timr);
+    timer_report(&timr, count);
     printf("\n");
 
     OBJECT_MEMORY_USAGE(&db, bytes_used, megabytes_used);
@@ -61,7 +61,7 @@ int main (int argc, char *argv[])
     /* search objects */
     printf("searching objects\n");
     count = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < ITER; i++) {
 	for (type = 1; type <= MAX_TYPES; type++) {
 	    for (instance = 1; instance <= MAX_TYPES; instance++) {
@@ -74,13 +74,13 @@ int main (int argc, char *argv[])
 	    }
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, count);
+    timer_end(&timr);
+    timer_report(&timr, count);
     printf("\n");
 
     /* delete objects */
     count = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     printf("deleting objects\n");
     for (type = MAX_TYPES; type > 0; type--) {
 	for (instance = MAX_TYPES; instance > 0; instance--) {
@@ -91,8 +91,8 @@ int main (int argc, char *argv[])
 	    count++;
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, count);
+    timer_end(&timr);
+    timer_report(&timr, count);
     printf("\n");
 
     return 0;

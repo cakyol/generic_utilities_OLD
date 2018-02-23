@@ -28,7 +28,7 @@ int main (int argc, char *argv[])
     }
 #endif
 
-    start_timer(&tp);
+    timer_start(&tp);
     for (j = 0; j < LOOP; j++) {
 
 	/* allocate chunks */
@@ -62,8 +62,8 @@ int main (int argc, char *argv[])
 	    }
 	}
     }
-    end_timer(&tp);
-    report_timer(&tp, iter);
+    timer_end(&tp);
+    timer_report(&tp, iter);
     return 0;
 } 
 

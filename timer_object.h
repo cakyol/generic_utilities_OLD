@@ -57,13 +57,17 @@ clock_gettime (int clock_id, timespec_t *ts)
 #endif // __APPLE__
 
 static inline void 
-start_timer (timer_obj_t *tp)
+timer_start (timer_obj_t *tp)
 { clock_gettime(CLOCK_MONOTONIC, &tp->start); }
 
 static inline void 
-end_timer (timer_obj_t *tp)
+timer_end (timer_obj_t *tp)
 { clock_gettime(CLOCK_MONOTONIC, &tp->end); }
 
+/*
+ * returns the time difference (in nano seconds) between
+ * when 'timer_end' and 'timer_start' were called.
+ */
 static inline nano_seconds_t
 timer_delay_nsecs (timer_obj_t *tp)
 {
@@ -72,6 +76,12 @@ timer_delay_nsecs (timer_obj_t *tp)
 	(tp->start.tv_sec * SEC_TO_NSEC_FACTOR) + tp->start.tv_nsec;
 }
 
+/*
+ * returns an arbitrary reference point in time to base all consecutive
+ * relative times from.  Typically, at boot time, it may return 0,
+ * and every time it is called therefater, it will return the time
+ * passed (in nano seconds) relative to that first call.
+ */
 static inline nano_seconds_t
 time_now (void)
 {
@@ -97,8 +107,11 @@ nano_seconds_sleep (nano_seconds_t nsecs)
     nanosleep(&n, 0);
 }
 
+/*
+ * just a printf convenience
+ */
 extern 
-void report_timer (timer_obj_t *tp, long long int iterations);
+void timer_report (timer_obj_t *tp, long long int iterations);
 
 #ifdef __cplusplus
 } // extern C

@@ -42,15 +42,15 @@ char *argv [];
     ntrie_init(&ntrie_obj, 1, NULL);
     printf("\nSIZE OF NTRIE NODE = %lu BYTES\n", sizeof(ntrie_node_t));
     data = integer2pointer(1);
-    start_timer(&timr);
+    timer_start(&timr);
     FOR_ALL_POSSIBLE_STRINGS
 	total++;
         if (ntrie_insert(&ntrie_obj, string, SIZE, data, &found) == 0) {
 	    count++;
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, total);
+    timer_end(&timr);
+    timer_report(&timr, total);
 
     printf("successfully added %d of %d strings to trie (nodes %d)\n", 
 	count, total, ntrie_obj.node_count);
@@ -60,7 +60,7 @@ char *argv [];
 
     printf("\nSEARCHING ALL AVAILABLE STRINGS\n");
     count = total = 0;
-    start_timer(&timr);
+    timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {
         FOR_ALL_POSSIBLE_STRINGS
             total++;
@@ -69,9 +69,9 @@ char *argv [];
             }
         }
     }
-    end_timer(&timr);
+    timer_end(&timr);
     printf("found %d strings of %d strings\n", count, total);
-    report_timer(&timr, total);
+    timer_report(&timr, total);
 
     return 0;
 }

@@ -51,7 +51,7 @@ int main (int argc, char *argv[])
     
     printf ("\n\n\n");
 printf("FILLING INITIAL DATA\n");
-    start_timer(&timr);
+    timer_start(&timr);
     for (i=0; i<MAX_SZ; i++) {
 	data [i].first = i;
 	data [i].second = i;
@@ -64,16 +64,16 @@ printf("FILLING INITIAL DATA\n");
 	    // printf("inserted (%d, %d)\n", i, i);
 	}
     }
-    end_timer(&timr);
+    timer_end(&timr);
     printf("INITIAL DATA FILLED, object expanded %d times\n", index.expansion_count);
-    report_timer(&timr, MAX_SZ);
+    timer_report(&timr, MAX_SZ);
 
     lodata.first = lodata.second = -5;
     hidata.first = hidata.second = MAX_SZ + 5;
 
     printf ("\n\n\n");
 printf("SEARCHING DATA\n");
-    start_timer(&timr);
+    timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {
 	for (i = 0; i < MAX_SZ; i++) {
 	    searched.first = searched.second = i;
@@ -92,12 +92,12 @@ printf("SEARCHING DATA\n");
 	    }
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, ITER * MAX_SZ);
+    timer_end(&timr);
+    timer_report(&timr, ITER * MAX_SZ);
 
     printf ("\n\n\n");
 printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
-    start_timer(&timr);
+    timer_start(&timr);
     ip1 = &hidata;
     for (i = 0; i < BIG_ITER; i++) {
 	if (index_obj_insert(&index, ip1, &exists) != 0) {
@@ -117,12 +117,12 @@ printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
 		    hidata.first, hidata.second, datp->first, datp->second);
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, BIG_ITER * 2);
+    timer_end(&timr);
+    timer_report(&timr, BIG_ITER * 2);
 
     printf ("\n\n\n");
 printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
-    start_timer(&timr);
+    timer_start(&timr);
     ip1 = &lodata;
     for (i = 0; i < ITER * 200; i++) {
 	if (index_obj_insert(&index, ip1, &exists) != 0) {
@@ -134,8 +134,8 @@ printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
 		lodata.first, lodata.second);
 	}
     }
-    end_timer(&timr);
-    report_timer(&timr, ITER * 2 * 200);
+    timer_end(&timr);
+    timer_report(&timr, ITER * 2 * 200);
 
     printf ("\n\n\n");
     return 0;

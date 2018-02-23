@@ -51,7 +51,7 @@ int main (int argc, char *argv[])
 	return error;
     }
 
-    start_timer(&tp);
+    timer_start(&tp);
     for (j = 0; j < LOOP; j++) {
 
 	/* allocate chunks */
@@ -79,8 +79,8 @@ int main (int argc, char *argv[])
 	    }
 	}
     }
-    end_timer(&tp);
-    report_timer(&tp, iter);
+    timer_end(&tp);
+    timer_report(&tp, iter);
     printf("chunk manager grew %llu times and shrank %llu times\n",
             cmgr.grow_count, cmgr.trim_count);
     return 0;

@@ -108,28 +108,28 @@ int main (int argc, char *argv[])
 
     /* first do a speed test for mutex ONLY */
     printf("performing a lock performance test\n");
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < MAX_ITERATION; i++) {
         pthread_mutex_lock(&mutex);
         pthread_mutex_unlock(&mutex);
     }
-    end_timer(&timr);
+    timer_end(&timr);
     printf("MUTEX ONLY:\n");
-    report_timer(&timr, MAX_ITERATION);
+    timer_report(&timr, MAX_ITERATION);
     /* give time to view screen before scroll off begins below */
     sleep(1);
 
     /* now do a speed test for the actual lock itself */
 
     printf("performing a lock performance test\n");
-    start_timer(&timr);
+    timer_start(&timr);
     for (i = 0; i < MAX_ITERATION; i++) {
         grab_write_lock(&lock);
         release_write_lock(&lock);
     }
-    end_timer(&timr);
+    timer_end(&timr);
     printf("ENTIRE LOCK OBJECT:\n");
-    report_timer(&timr, MAX_ITERATION);
+    timer_report(&timr, MAX_ITERATION);
     /* give time to view screen before scroll off begins below */
     sleep(1);
 

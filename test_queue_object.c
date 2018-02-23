@@ -25,7 +25,7 @@ int main (int argc, char *argv[])
     }
 
     /* fill up the fifo */
-    start_timer(&timr);
+    timer_start(&timr);
     printf("Populating the queue\n");
     fflush(stdout);
     for (i = 0; i < ITER_COUNT; i++) {
@@ -35,8 +35,8 @@ int main (int argc, char *argv[])
             return -1;
         }
     }
-    end_timer(&timr);
-    report_timer(&timr, ITER_COUNT);
+    timer_end(&timr);
+    timer_report(&timr, ITER_COUNT);
 
     n_stored = qobj.n;
     OBJECT_MEMORY_USAGE(&qobj, bytes, mbytes);
@@ -44,7 +44,7 @@ int main (int argc, char *argv[])
     /* now read back and verify */
     i = 0;
     printf("Now dequeuing & verifying\n");
-    start_timer(&timr);
+    timer_start(&timr);
     while (0 == queue_obj_dequeue(&qobj, &pointer)) {
         j = pointer2integer(pointer);
         if (j == i) {
@@ -55,8 +55,8 @@ int main (int argc, char *argv[])
         }
         i++;
     }
-    end_timer(&timr);
-    report_timer(&timr, i);
+    timer_end(&timr);
+    timer_report(&timr, i);
     assert((qobj.n == 0) && (i == n_stored));
     printf("\nqueue object is sane\n  capacity %d\n  expanded %d times\n"
             "  memory %lld bytes %f mbytes\n",

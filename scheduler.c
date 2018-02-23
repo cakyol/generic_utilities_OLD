@@ -195,7 +195,7 @@ __alarm_signal_handler (int signo)
      * so that we can compensate this delay when we schedule the
      * next alarm signal.
      */
-    start_timer(&execution_time);
+    timer_start(&execution_time);
 
     /* some sanity checking */
     assert(SIGALRM == signo);
@@ -271,7 +271,7 @@ __alarm_signal_handler (int signo)
      * record our finishing time so we can calculate the
      * delay introduced by all the work we did above.
      */
-    end_timer(&execution_time);
+    timer_end(&execution_time);
 
     /* set the next alarm firing time for the rest of the tasks */
     reschedule_next_alarm(timer_delay_nsecs(&execution_time));

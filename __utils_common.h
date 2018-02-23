@@ -350,15 +350,15 @@ typedef struct timer_obj_s {
 } timer_obj_t;
 
 static inline void 
-start_timer (timer_obj_t *tp)
+timer_start (timer_obj_t *tp)
 { clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp->start); }
 
 static inline void 
-end_timer (timer_obj_t *tp)
+timer_end (timer_obj_t *tp)
 { clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &tp->end); }
 
 extern 
-void report_timer (timer_obj_t *tp, int64 iterations);
+void timer_report (timer_obj_t *tp, int64 iterations);
 
 /******************************************************************************
 *******************************************************************************
