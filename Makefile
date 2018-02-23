@@ -112,6 +112,10 @@ test_db_speed:		test_db_speed.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c -o test_db_speed \
 		    		$(LIBNAME) $(STATIC_LIBS)
 
+test_delay:		test_delay.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_delay.c -o test_delay \
+		    		$(LIBNAME) $(STATIC_LIBS)
+
 TESTS =		test_lock_object \
 		test_stack_object \
 		test_bitlist \
@@ -125,6 +129,7 @@ TESTS =		test_lock_object \
 		test_db \
 		test_db_load \
 		test_db_speed \
+		test_delay \
 		\
 		### test_chunk_object \
 		### test_chunk_integrity \
