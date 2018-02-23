@@ -73,7 +73,7 @@ timer_delay_nsecs (timer_obj_t *tp)
 {
     return
 	(tp->end.tv_sec * SEC_TO_NSEC_FACTOR) + tp->end.tv_nsec -
-	(tp->start.tv_sec * SEC_TO_NSEC_FACTOR) + tp->start.tv_nsec;
+	(tp->start.tv_sec * SEC_TO_NSEC_FACTOR) - tp->start.tv_nsec;
 }
 
 /*
