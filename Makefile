@@ -3,7 +3,7 @@ CC =		gcc
 
 ## for debugging with gdb
 CFLAGS = 	-g -Wall -Wextra -Wno-unused-parameter -Werror
-CFLAGS = 	-O3 -Wall -Wextra -Wno-unused-parameter -Werror
+CFLAGS = 	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
