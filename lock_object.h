@@ -71,9 +71,9 @@ typedef struct lock_obj_s {
     /* used with compare & swap, protects rest of the variables */
     volatile char mtx;
 
-    volatile short readers;
-    volatile char write_pending;
-    volatile char writing;
+    short readers;
+    char write_pending;
+    char writing;
 
 } lock_obj_t;
 

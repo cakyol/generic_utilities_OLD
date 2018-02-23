@@ -30,8 +30,16 @@
 extern "C" {
 #endif
 
-#define compare_and_swap(variable, checked, set) \
-    __sync_val_compare_and_swap((variable), (checked), (set))
+/*
+ * equivalent of test and test and set
+ */
+static inline int
+ttas (volatile char *variable, char checked, char set)
+{
+    return
+	(*variable == 0) && 
+	(__sync_val_compare_and_swap(variable, checked, set) == 0);
+}
 
 #define PUBLIC
 
@@ -48,7 +56,7 @@ PUBLIC void
 grab_read_lock (volatile lock_obj_t *lck)
 {
     while (1) {
-        if (compare_and_swap(&lck->mtx, 0, 1) == 0) {
+        if (ttas(&lck->mtx, 0, 1)) {
             if (lck->write_pending == 0) {
                 lck->readers++;
                 lck->mtx = 0;
@@ -64,7 +72,7 @@ PUBLIC void
 release_read_lock (volatile lock_obj_t *lck)
 {
     while (1) {
-        if (compare_and_swap(&lck->mtx, 0, 1) == 0) {
+        if (ttas(&lck->mtx, 0, 1)) {
             if (--lck->readers < 0) lck->readers = 0;
             lck->mtx = 0;
             return;
@@ -77,7 +85,7 @@ PUBLIC void
 grab_write_lock (volatile lock_obj_t *lck)
 {
     while (1) {
-        if (compare_and_swap(&lck->mtx, 0, 1) == 0) {
+        if (ttas(&lck->mtx, 0, 1)) {
             lck->write_pending = 1;
             if ((lck->readers <= 0) && (lck->writing == 0)) {
                 lck->writing = 1;
@@ -94,7 +102,7 @@ PUBLIC void
 release_write_lock (volatile lock_obj_t *lck)
 {
     while (1) {
-        if (compare_and_swap(&lck->mtx, 0, 1) == 0) {
+        if (ttas(&lck->mtx, 0, 1)) {
             lck->write_pending = lck->writing = 0;
             lck->mtx = 0;
             return;
