@@ -82,6 +82,21 @@ time_now (void)
 	(now.tv_sec * SEC_TO_NSEC_FACTOR) + now.tv_nsec;
 }
 
+/*
+ * Sleep for a pre determined nano seconds specified in the parameter.
+ * Do **NOT** pass a parameter greater than one second equivalent as
+ * the parameter, ie the max valid value is 999,999,999 (almost 1 second).
+ */
+static inline void
+nano_seconds_sleep (nano_seconds_t nsecs)
+{
+    timespec_t n;
+
+    n.tv_sec = 0;
+    n.tv_nsec = nsecs;
+    nanosleep(&n, 0);
+}
+
 extern 
 void report_timer (timer_obj_t *tp, long long int iterations);
 
