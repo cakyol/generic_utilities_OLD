@@ -550,8 +550,9 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 
     while (root) {
         if (root->left == NULL) {
-            rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
-            if (rv) return rv;
+            if (0 == rv) {
+                rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
+            }
             root = root->right;
         } else {
             current = root->left;
