@@ -8,7 +8,7 @@
 
 #define ARRAY_SIZE          3000000
 #define MAX_THREADS         (16 * 1024)
-#define MAX_ITERATION       100000000
+#define MAX_ITERATION       300000000
 
 /* locks are not recursive, do not set this to > 1 */
 #define LOCK_COUNT          1
@@ -158,7 +158,7 @@ int main (int argc, char *argv[])
 not_all_threads_complete:
     for (i = 0; i < max_threads; i++) {
 	if (thread_complete_array[i] == 0) {
-	    sleep(5);
+	    sleep(1);
 	    goto not_all_threads_complete;
 	}
     }

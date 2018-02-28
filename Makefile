@@ -50,6 +50,10 @@ test_lock_object:	test_lock_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_lock_object.c \
 			    -o test_lock_object $(LIBNAME) $(STATIC_LIBS)
 
+test_lock_speed:	test_lock_speed.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_lock_speed.c \
+			    -o test_lock_speed $(LIBNAME) $(STATIC_LIBS)
+
 test_bitlist:		test_bitlist.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_bitlist.c \
 			    -o test_bitlist $(LIBNAME) $(STATIC_LIBS)
@@ -117,6 +121,7 @@ test_delay:		test_delay.c $(LIBNAME)
 		    		$(LIBNAME) $(STATIC_LIBS)
 
 TESTS =		test_lock_object \
+		test_lock_speed \
 		test_stack_object \
 		test_bitlist \
 		test_linkedlist \

@@ -30,6 +30,15 @@
 extern "C" {
 #endif
 
+#define SPIN
+
+#ifdef SPIN
+#define yield()			nano_seconds_sleep(2)
+#else
+#define yield()			sched_yield()
+#endif
+
+
 /*
  * equivalent of test and test and set
  */
@@ -64,7 +73,7 @@ grab_read_lock (volatile lock_obj_t *lck)
             }
             lck->mtx = 0;
         }
-        sched_yield();
+        yield();
     }
 }
 
@@ -77,7 +86,7 @@ release_read_lock (volatile lock_obj_t *lck)
             lck->mtx = 0;
             return;
         }
-        sched_yield();
+        yield();
     }
 }
 
@@ -94,7 +103,7 @@ grab_write_lock (volatile lock_obj_t *lck)
             }
             lck->mtx = 0;
         }
-        sched_yield();
+        yield();
     }
 }
 
@@ -107,7 +116,7 @@ release_write_lock (volatile lock_obj_t *lck)
             lck->mtx = 0;
             return;
         }
-        sched_yield();
+        yield();
     }
 }
 

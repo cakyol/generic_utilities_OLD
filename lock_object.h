@@ -66,6 +66,8 @@ extern "C" {
 #include <pthread.h>
 #include <assert.h>
 
+#include "timer_object.h"
+
 typedef struct lock_obj_s {
 
     /* used with compare & swap, protects rest of the variables */
