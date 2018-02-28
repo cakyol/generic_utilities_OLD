@@ -30,15 +30,6 @@
 extern "C" {
 #endif
 
-#define SPIN
-
-#ifdef SPIN
-#define yield()			nano_seconds_sleep(2)
-#else
-#define yield()			sched_yield()
-#endif
-
-
 /*
  * equivalent of test and test and set
  */
@@ -50,19 +41,35 @@ ttas (volatile char *variable, char checked, char set)
 	(__sync_val_compare_and_swap(variable, checked, set) == 0);
 }
 
+/*
+ * either yield to another thread or spin lock
+ */
+static inline void
+back_off (lock_obj_t *lck)
+{
+    if (lck->yield_if_locked) {
+        sched_yield();
+    } else {
+        volatile int i;
+        for (i = 0; i < 20000; i++);
+    }
+}
+
 #define PUBLIC
 
 /******* Public functions start here *****************************************/
 
 PUBLIC int 
-lock_obj_init (volatile lock_obj_t *lck)
+lock_obj_init (lock_obj_t *lck /*, int yield_if_locked */)
 {
     memset((void*) lck, 0, sizeof(lock_obj_t));
+    // lck->yield_if_locked = yield_if_locked;
+    lck->yield_if_locked = 1;
     return 0;
 }
 
 PUBLIC void 
-grab_read_lock (volatile lock_obj_t *lck)
+grab_read_lock (lock_obj_t *lck)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
@@ -73,12 +80,12 @@ grab_read_lock (volatile lock_obj_t *lck)
             }
             lck->mtx = 0;
         }
-        yield();
+        back_off(lck);
     }
 }
 
 PUBLIC void 
-release_read_lock (volatile lock_obj_t *lck)
+release_read_lock (lock_obj_t *lck)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
@@ -86,12 +93,12 @@ release_read_lock (volatile lock_obj_t *lck)
             lck->mtx = 0;
             return;
         }
-        yield();
+        back_off(lck);
     }
 }
 
 PUBLIC void 
-grab_write_lock (volatile lock_obj_t *lck)
+grab_write_lock (lock_obj_t *lck)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
@@ -103,12 +110,12 @@ grab_write_lock (volatile lock_obj_t *lck)
             }
             lck->mtx = 0;
         }
-        yield();
+        back_off(lck);
     }
 }
 
 PUBLIC void 
-release_write_lock (volatile lock_obj_t *lck)
+release_write_lock (lock_obj_t *lck)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
@@ -116,7 +123,7 @@ release_write_lock (volatile lock_obj_t *lck)
             lck->mtx = 0;
             return;
         }
-        yield();
+        back_off(lck);
     }
 }
 

@@ -70,6 +70,8 @@ extern "C" {
 
 typedef struct lock_obj_s {
 
+    char yield_if_locked;
+
     /* used with compare & swap, protects rest of the variables */
     volatile char mtx;
 
@@ -79,20 +81,27 @@ typedef struct lock_obj_s {
 
 } lock_obj_t;
 
+/*
+ * if 'yield_if_locked' is true then if the lock is already
+ * acquired by another thread, the operation will yield
+ * to another thread.  Otherwise, it will spin lock and
+ * camp on the lock until it is released.  On uni-processor
+ * systems, it IS recommended to set this to 1.
+ */
 extern int 
-lock_obj_init (volatile lock_obj_t *lck);
+lock_obj_init (lock_obj_t *lck /*, int yield_if_locked */);
 
 extern void
-grab_read_lock (volatile lock_obj_t *lck);
+grab_read_lock (lock_obj_t *lck);
 
 extern void 
-release_read_lock (volatile lock_obj_t *lck);
+release_read_lock (lock_obj_t *lck);
 
 extern void 
-grab_write_lock (volatile lock_obj_t *lck);
+grab_write_lock (lock_obj_t *lck);
 
 extern void
-release_write_lock (volatile lock_obj_t *lck);
+release_write_lock (lock_obj_t *lck);
 
 extern void 
 lock_obj_destroy (lock_obj_t *lck);

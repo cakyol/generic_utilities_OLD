@@ -199,14 +199,16 @@ bitlist_init (bitlist_t *bl,
     mem_monitor_t *parent_mem_monitor)
 {
     /* allow some extra at the end so we can run thru using complete ints */
-    int size_in_ints = ((highest_valid_bit - lowest_valid_bit + 1) / BITS_PER_INT) + 2;
+    int size_in_ints = 
+        ((highest_valid_bit - lowest_valid_bit + 1) / BITS_PER_INT) + 2;
     int i, rv = 0;
     unsigned int data;
 
     MEM_MONITOR_SETUP(bl);
     LOCK_SETUP(bl);
 
-    bl->the_bits = (unsigned int*) MEM_MONITOR_ALLOC(bl, (size_in_ints * BYTES_PER_INT));
+    bl->the_bits = 
+        (unsigned int*) MEM_MONITOR_ALLOC(bl, (size_in_ints * BYTES_PER_INT));
     if (0 == bl->the_bits) {
         rv = ENOMEM;
         goto done;
