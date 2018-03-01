@@ -45,13 +45,13 @@ ttas (volatile char *variable, char checked, char set)
  * either yield to another thread or spin lock
  */
 static inline void
-back_off (lock_obj_t *lck)
+holdoff (lock_obj_t *lck)
 {
     if (lck->yield_if_locked) {
         sched_yield();
     } else {
         volatile int i;
-        for (i = 0; i < 20000; i++);
+        for (i = 0; i < 40000; i++);
     }
 }
 
@@ -80,7 +80,7 @@ grab_read_lock (lock_obj_t *lck)
             }
             lck->mtx = 0;
         }
-        back_off(lck);
+        holdoff(lck);
     }
 }
 
@@ -93,7 +93,7 @@ release_read_lock (lock_obj_t *lck)
             lck->mtx = 0;
             return;
         }
-        back_off(lck);
+        holdoff(lck);
     }
 }
 
@@ -102,7 +102,10 @@ grab_write_lock (lock_obj_t *lck)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
+
+	    /* dont clear this since 'grab_read_lock' will check it */
             lck->write_pending = 1;
+
             if ((lck->readers <= 0) && (lck->writing == 0)) {
                 lck->writing = 1;
                 lck->mtx = 0;
@@ -110,7 +113,7 @@ grab_write_lock (lock_obj_t *lck)
             }
             lck->mtx = 0;
         }
-        back_off(lck);
+        holdoff(lck);
     }
 }
 
@@ -123,7 +126,7 @@ release_write_lock (lock_obj_t *lck)
             lck->mtx = 0;
             return;
         }
-        back_off(lck);
+        holdoff(lck);
     }
 }
 
