@@ -23,8 +23,14 @@ extern "C" {
 #include <sys/time.h>
 #include <time.h>
 
+/* seconds to milli seconds multiplier */
 #define SEC_TO_MSEC_FACTOR			(1000)
+
+
+/* seconds to micro seconds multiplier */
 #define SEC_TO_USEC_FACTOR			(1000000LL)
+
+/* seconds to nano seconds multiplier */
 #define SEC_TO_NSEC_FACTOR                      (1000000000LL)
 
 typedef long long int nano_seconds_t;

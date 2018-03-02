@@ -2,8 +2,8 @@
 CC =		gcc
 
 ## for debugging with gdb
-CFLAGS = 	-g -Wall -Wextra -Wno-unused-parameter -Werror
-CFLAGS = 	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
+CFLAGS = 	-g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
+#CFLAGS = 	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
@@ -113,12 +113,16 @@ test_db_load:		test_db_load.c $(LIBNAME)
 		    		$(LIBNAME) $(STATIC_LIBS)
 
 test_db_speed:		test_db_speed.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c -o test_db_speed \
-		    		$(LIBNAME) $(STATIC_LIBS)
+			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c \
+			    -o test_db_speed $(LIBNAME) $(STATIC_LIBS)
 
 test_delay:		test_delay.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_delay.c -o test_delay \
 		    		$(LIBNAME) $(STATIC_LIBS)
+
+test_scheduler:		test_scheduler.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_scheduler.c \
+			    -o test_scheduler $(LIBNAME) $(STATIC_LIBS)
 
 TESTS =		test_lock_object \
 		test_lock_speed \
@@ -135,6 +139,7 @@ TESTS =		test_lock_object \
 		test_db_load \
 		test_db_speed \
 		test_delay \
+		test_scheduler \
 		\
 		### test_chunk_object \
 		### test_chunk_integrity \

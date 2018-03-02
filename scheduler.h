@@ -36,6 +36,7 @@ extern "C" {
 
 #include <signal.h>
 #include <sys/time.h>
+
 #include "function_types.h"
 #include "timer_object.h"
 #include "linkedlist.h"
@@ -56,7 +57,7 @@ typedef struct task_s {
 } task_t;
 
 extern int
-initialize_task_scheduler (void);
+task_scheduler_init (void);
 
 /*
  * schedule function 'fnp' to be executed in the future by the specified
@@ -68,9 +69,9 @@ initialize_task_scheduler (void);
  * scheduled.
  */
 extern int
-schedule_task (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
+task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
         simple_function_pointer fnp, void *argument,
-        task_t *task_handle);
+        task_t **scheduled_task_ptr);
 
 extern int 
 cancel_task (task_t *task_handle);

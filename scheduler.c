@@ -62,6 +62,8 @@ static linkedlist_t *scheduled_tasks = &scheduled_tasks_list;
 static linkedlist_t executable_tasks_list;
 static linkedlist_t *executable_tasks = &executable_tasks_list;
 
+static itimerval_t zero_itim = { { 0, 0 }, { 0, 0 } };
+
 /*
  * tasks to be executed this close to each other will all be
  * executed immediately after one another.  This is basically
@@ -117,8 +119,11 @@ next_firing_time (task_t *first_task, task_t *later_task,
 static inline int
 within_resolution (task_t *first_task, task_t *later_task)
 {
+    if (first_task == later_task)
+	return 1;
     return
-	next_firing_time(first_task, later_task, 0) <= RESOLUTION_NANO_SECONDS;
+	next_firing_time(first_task, later_task, 0) <= 
+	    RESOLUTION_NANO_SECONDS;
 }
 
 /*
@@ -133,22 +138,16 @@ schedule_next_alarm_nsecs (nano_seconds_t interval)
     itim.it_interval.tv_sec = 0;
     itim.it_interval.tv_usec = 0;
     itim.it_value.tv_sec = interval / SEC_TO_NSEC_FACTOR;
-    itim.it_value.tv_usec = (interval % SEC_TO_NSEC_FACTOR) / 1000;
+    itim.it_value.tv_usec = (interval % SEC_TO_USEC_FACTOR);
     return
 	setitimer(ITIMER_REAL, &itim, NULL);
 }
 
-static int
+static inline int
 terminate_alarm (void)
 {
-    itimerval_t itim;
-
-    itim.it_interval.tv_sec = 0;
-    itim.it_interval.tv_usec = 0;
-    itim.it_value.tv_sec = 0;
-    itim.it_value.tv_usec = 0;
     return
-	setitimer(ITIMER_REAL, &itim, NULL);
+	setitimer(ITIMER_REAL, &zero_itim, NULL);
 }
 
 /*
@@ -221,7 +220,7 @@ __alarm_signal_handler (int signo)
      * line number 30 to understand this carefully.  It is CRITICAL.
      */
     first_task = (task_t*) scheduled_tasks->head->user_data;
-    while (not_endof_linkedlist(scheduled_tasks->head)) {
+    while (scheduled_tasks->n > 0) {
 	tp = (task_t*) scheduled_tasks->head->user_data;
 	if (within_resolution(first_task, tp)) {
 
@@ -229,7 +228,7 @@ __alarm_signal_handler (int signo)
 	    d = scheduled_tasks->head;
 	    scheduled_tasks->head = d->next;
 	    scheduled_tasks->n--;
-	    free(d);
+	    MEM_MONITOR_FREE(scheduled_tasks, d);
 
 	    /*
 	     * now txfer it to the executable_tasks list.
@@ -267,6 +266,9 @@ __alarm_signal_handler (int signo)
 	free(d);
     }
 
+    /* ok we executed everything, unlock now */
+    WRITE_UNLOCK(executable_tasks);
+
     /*
      * record our finishing time so we can calculate the
      * delay introduced by all the work we did above.
@@ -282,11 +284,11 @@ __alarm_signal_handler (int signo)
  * It is simply used as a list.  So, the compare function always
  * returns 0 for it.  Every entry will always match.
  */
-static int executable_tasks_list_comparer (void *vt1, void *vt2)
+static int dummy_comparer (void *vt1, void *vt2)
 { return 0; }
 
 int
-initialize_task_scheduler (void)
+task_scheduler_init (void)
 {
     int rv;
 
@@ -294,7 +296,7 @@ initialize_task_scheduler (void)
     if (SIG_ERR == signal(SIGALRM, __alarm_signal_handler))
 	return errno;
 
-    rv = linkedlist_init(executable_tasks, 1, executable_tasks_list_comparer, NULL);
+    rv = linkedlist_init(executable_tasks, 1, dummy_comparer, NULL);
     if (rv) return rv;
     rv = linkedlist_init(scheduled_tasks, 1, compare_tasks, NULL);
     return rv;
