@@ -69,6 +69,7 @@ thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
     /* insert to head */
     if (listp->head) node->next = listp->head;
     listp->head = node;
+    listp->n++;
 
     /* done */
     return 0;

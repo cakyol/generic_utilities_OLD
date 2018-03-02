@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 #include "scheduler.h"
+#include <stdio.h>
 
 extern int
 thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
@@ -139,6 +140,7 @@ schedule_next_alarm_nsecs (nano_seconds_t interval)
     itim.it_interval.tv_usec = 0;
     itim.it_value.tv_sec = interval / SEC_TO_NSEC_FACTOR;
     itim.it_value.tv_usec = (interval % SEC_TO_USEC_FACTOR);
+    fflush(stdout);
     return
 	setitimer(ITIMER_REAL, &itim, NULL);
 }
@@ -260,10 +262,11 @@ __alarm_signal_handler (int signo)
     while (executable_tasks->n > 0) {
 	tp = (task_t*) executable_tasks->head->user_data;
 	tp->efn(tp->argument);
+	free(tp);
 	d = executable_tasks->head;
 	executable_tasks->head = d->next;
 	executable_tasks->n--;
-	free(d);
+	MEM_MONITOR_FREE(executable_tasks, d);
     }
 
     /* ok we executed everything, unlock now */
