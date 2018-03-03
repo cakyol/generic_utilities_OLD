@@ -47,12 +47,16 @@ ttas (volatile char *variable, char checked, char set)
 static inline void
 holdoff (lock_obj_t *lck)
 {
+#if 1
+    sched_yield();
+#else
     if (lck->yield_if_locked) {
         sched_yield();
     } else {
         volatile int i;
         for (i = 0; i < 40000; i++);
     }
+#endif
 }
 
 #define PUBLIC
@@ -63,26 +67,36 @@ PUBLIC int
 lock_obj_init (lock_obj_t *lck /*, int yield_if_locked */)
 {
     memset((void*) lck, 0, sizeof(lock_obj_t));
-    // lck->yield_if_locked = yield_if_locked;
-    lck->yield_if_locked = 1;
     return 0;
 }
 
-PUBLIC void 
-grab_read_lock (lock_obj_t *lck)
+static int 
+_read_lock (lock_obj_t *lck, int block)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
             if (lck->write_pending == 0) {
                 lck->readers++;
                 lck->mtx = 0;
-                return;
+                return 0;
             }
             lck->mtx = 0;
         }
-        holdoff(lck);
+	if (block) {
+	    holdoff(lck);
+	} else {
+	    return -1;
+	}
     }
 }
+
+PUBLIC int
+try_read_lock (lock_obj_t *lck)
+{ return _read_lock(lck, 0); }
+
+PUBLIC void
+grab_read_lock (lock_obj_t *lck)
+{ (void) _read_lock(lck, 1); }
 
 PUBLIC void 
 release_read_lock (lock_obj_t *lck)
@@ -97,8 +111,8 @@ release_read_lock (lock_obj_t *lck)
     }
 }
 
-PUBLIC void 
-grab_write_lock (lock_obj_t *lck)
+static int
+_write_lock (lock_obj_t *lck, int block)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
@@ -109,13 +123,25 @@ grab_write_lock (lock_obj_t *lck)
             if ((lck->readers <= 0) && (lck->writing == 0)) {
                 lck->writing = 1;
                 lck->mtx = 0;
-                return;
+                return 0;
             }
             lck->mtx = 0;
         }
-        holdoff(lck);
+	if (block) {
+	    holdoff(lck);
+	} else {
+	    return -1;
+	}
     }
 }
+
+PUBLIC int
+try_write_lock (lock_obj_t *lck)
+{ return _write_lock(lck, 0); }
+
+PUBLIC void
+grab_write_lock (lock_obj_t *lck)
+{ return (void) _write_lock(lck, 1); }
 
 PUBLIC void 
 release_write_lock (lock_obj_t *lck)
