@@ -242,7 +242,7 @@ extern void datum_list_free (datum_list_t *dlp);
  * to determine their ordering.  Like 'strcmp'
  * but for structures.
  */
-typedef int (*comparison_function_t) (datum_t p0, datum_t p1);
+typedef int (*comparison_function_pointer) (datum_t p0, datum_t p1);
 #endif // TYPE_COMPARISON_FUNCTION
 
 /*
@@ -267,7 +267,7 @@ typedef int (*comparison_function_t) (datum_t p0, datum_t p1);
  */
 #ifndef TYPE_TRAVERSE_FUNCTION
 #define TYPE_TRAVERSE_FUNCTION
-typedef error_t (*traverse_function_t)
+typedef error_t (*traverse_function_pointer)
     (void *utility_object, void *utility_node, datum_t node_data, 
      datum_t extra_parameter_0,
      datum_t extra_parameter_1,
@@ -284,7 +284,7 @@ typedef error_t (*traverse_function_t)
  * The rest of them are user supplied.
  */
 #ifndef TRIE_TRAVERSE_FUNCTION
-typedef error_t (*trie_traverse_function_t)
+typedef error_t (*trie_traverse_function_pointer)
     (void *utility_object, void *node,
      byte *key, int key_length, void *key_data,
      void *p0, void *p1, void *p2, void *p3);

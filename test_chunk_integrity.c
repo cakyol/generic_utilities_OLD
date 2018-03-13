@@ -1,11 +1,12 @@
 
+#include <stdio.h>
 #include "chunk_manager_object.h"
 
 #define CHUNK_SIZE		128
-#define MAX_CHUNKS		(2*MILLION)
+#define MAX_CHUNKS		(2*1024*1024)
 #define LOOP                    10
 
-byte *chunks [MAX_CHUNKS];
+unsigned char *chunks [MAX_CHUNKS];
 chunk_manager_t cmgr;
 timer_obj_t tp;
 
@@ -15,40 +16,40 @@ fill_chunk (void *chunk, int starting_value)
     int i, *iptr;
 
     iptr = (int*) chunk;
-    for (i = 0; i < (CHUNK_SIZE/sizeof(int)); i++) {
+    for (i = 0; i < (CHUNK_SIZE/(int) sizeof(int)); i++) {
         *iptr++ = starting_value;
         starting_value += i;
     }
 }
 
-static error_t
+static int
 validate_chunk (void *chunk, int starting_value)
 {
     int i, *iptr;
 
     iptr = (int*) chunk;
-    for (i = 0; i < (CHUNK_SIZE/sizeof(int)); i++) {
+    for (i = 0; i < (CHUNK_SIZE/(int)sizeof(int)); i++) {
         if (*iptr != starting_value) {
             fprintf(stderr, "error in chunk integrity\n");
-            return error;
+            return -1;
         }
         iptr++;
         starting_value += i;
     }
-    return ok;
+    return 0;
 }
 
 int main (int argc, char *argv[])
 {
     int i, j;
-    uint64 iter = 0;
+    unsigned long long iter = 0;
 
-    int rc = chunk_manager_init(&cmgr, false, 
+    int rc = chunk_manager_init(&cmgr, 0, 
                 CHUNK_SIZE, MAX_CHUNKS/64, 1024, NULL);
-    if (rc != ok) {
+    if (rc != 0) {
 	printf("chunk_manager_init failed for %d chunks\n",
 	    MAX_CHUNKS);
-	return error;
+	return -1;
     }
 
     timer_start(&tp);

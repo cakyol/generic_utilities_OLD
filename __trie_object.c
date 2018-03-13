@@ -132,7 +132,7 @@ trie_node_find (trie_t *triep, byte *key, int key_length)
 
 static error_t
 trie_node_traverse (trie_t *triep, trie_node_t *node, 
-    trie_traverse_function_t tfn,
+    trie_traverse_function_pointer tfn,
     byte *key, int level,
     void *p0, void *p1, void *p2, void *p3)
 { 
@@ -253,7 +253,7 @@ trie_search (trie_t *triep, void *key, int key_length, void **found_data)
 }
 
 PUBLIC error_t
-trie_traverse (trie_t *triep, trie_traverse_function_t tfn,
+trie_traverse (trie_t *triep, trie_traverse_function_pointer tfn,
     void *p0, void *p1, void *p2, void *p3)
 {
     int i, level;
@@ -468,7 +468,7 @@ ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
 
 static error_t
 ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node, 
-    trie_traverse_function_t tfn,
+    trie_traverse_function_pointer tfn,
     byte *key, int level,
     void *p0, void *p1, void *p2, void *p3)
 { 
@@ -566,7 +566,7 @@ ntrie_remove (ntrie_t *ntp, void *key, int key_length, void **removed_data)
 }
 
 PUBLIC error_t
-ntrie_traverse (ntrie_t *ntriep, trie_traverse_function_t tfn,
+ntrie_traverse (ntrie_t *ntriep, trie_traverse_function_pointer tfn,
     void *p0, void *p1, void *p2, void *p3)
 {
     int i;

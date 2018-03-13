@@ -58,7 +58,7 @@ typedef struct avl_tree_s {
     LOCK_VARIABLES;
 
     avl_node_t *root_node, *first_node, *last_node;
-    comparison_function_t cmpf;
+    comparison_function_pointer cmpf;
 
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_t nodes;
@@ -79,7 +79,7 @@ avl_tree_size (avl_tree_t *tree)
 extern int 
 avl_tree_init (avl_tree_t *tree,
 	int make_it_thread_safe,
-	comparison_function_t cmpf,
+	comparison_function_pointer cmpf,
         mem_monitor_t *parent_mem_monitor);
 
 /**************************** Insert *****************************************/
@@ -112,7 +112,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count);
 
 extern int
 avl_tree_traverse (avl_tree_t *tree,
-	traverse_function_t tfn,
+	traverse_function_pointer tfn,
 	void *p0, void *p1, void *p2, void *p3);
 
 /**************************** Destroy ****************************************/

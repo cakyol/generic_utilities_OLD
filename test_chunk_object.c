@@ -1,30 +1,31 @@
 
+#include "stdio.h"
 #include "chunk_manager_object.h"
 
 #define CHUNK_SIZE		128
-#define MAX_CHUNKS		MILLION
+#define MAX_CHUNKS		(1024 * 1024)
 #ifdef MEASURE_CHUNKS
 #define LOOP                    4000
 #else
 #define LOOP                    400
 #endif
 
-byte *chunks [MAX_CHUNKS];
+unsigned char *chunks [MAX_CHUNKS];
 chunk_manager_t cmgr;
 timer_obj_t tp;
 
 int main (int argc, char *argv[])
 {
     int i, j;
-    uint64 iter = 0;
+    unsigned long long iter = 0;
 
 #ifdef MEASURE_CHUNKS
     int rc = chunk_manager_init(&cmgr, 
-                false, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL);
-    if (rc != ok) {
+                0, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL);
+    if (rc != 0) {
 	printf("chunk_manager_init failed for %d chunks\n",
 	    MAX_CHUNKS);
-	return error;
+	return -1;
     }
 #endif
 

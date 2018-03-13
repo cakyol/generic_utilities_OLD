@@ -30,7 +30,9 @@
 extern "C" {
 #endif
 
-static error_t
+#define PUBLIC
+
+static int
 chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
 {
     int i, potential_capacity;
@@ -62,7 +64,7 @@ chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
         i ? 0 : ENOMEM;
 }
 
-static error_t
+static int
 thread_unsafe_chunk_manager_init (chunk_manager_t *cmgr,
         int chunk_size, int initial_number_of_chunks, int expansion_size,
         mem_monitor_t *parent_mem_monitor)
@@ -91,7 +93,7 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgr)
     }
 
     /* no more chunks, see if it can recover */
-    if (SUCCEEDED(chunk_manager_expand(cmgr, cmgr->expansion_size))) {
+    if (0 == chunk_manager_expand(cmgr, cmgr->expansion_size)) {
         return
             thread_unsafe_chunk_manager_alloc(cmgr);
     }
@@ -100,13 +102,13 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgr)
     return NULL;
 }
 
-PUBLIC error_t
+PUBLIC int
 chunk_manager_init (chunk_manager_t *cmgr,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	int chunk_size, int initial_number_of_chunks, int expansion_size,
 	mem_monitor_t *parent_mem_monitor)
 {
-    error_t rv;
+    int rv;
 
     LOCK_SETUP(cmgr);
     rv = thread_unsafe_chunk_manager_init(cmgr,

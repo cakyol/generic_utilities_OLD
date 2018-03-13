@@ -35,7 +35,7 @@ extern "C" {
 PUBLIC int
 table_init (table_t *tablep,
 	int make_it_thread_safe,
-	comparison_function_t cmpf, 
+	comparison_function_pointer cmpf, 
         mem_monitor_t *parent_mem_monitor,
 	int use_avl_tree)
 {
@@ -89,7 +89,7 @@ table_remove (table_t *tablep,
 }
 
 PUBLIC int
-table_traverse (table_t *tablep, traverse_function_t tfn,
+table_traverse (table_t *tablep, traverse_function_pointer tfn,
     void *p0, void *p1, void *p2, void *p3)
 {
     if (tablep->use_avl_tree) {

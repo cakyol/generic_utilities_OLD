@@ -248,7 +248,7 @@ thread_unsafe_linkedlist_delete (linkedlist_t *listp, void *data_to_be_deleted,
 PUBLIC int
 linkedlist_init (linkedlist_t *listp,
         int make_it_thread_safe,
-        comparison_function_t cmp_fn,
+        comparison_function_pointer cmp_fn,
         mem_monitor_t *parent_mem_monitor)
 {
     int rv = ENOMEM;

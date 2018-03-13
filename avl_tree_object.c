@@ -537,7 +537,7 @@ END_OF_DELETE:
  */
 int
 thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
-        traverse_function_t tfn,
+        traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
     int rv = 0;
@@ -581,7 +581,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 PUBLIC int
 avl_tree_init (avl_tree_t *tree,
 	int make_it_thread_safe,
-	comparison_function_t cmpf,
+	comparison_function_pointer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;
@@ -592,7 +592,7 @@ avl_tree_init (avl_tree_t *tree,
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_init(&tree->nodes, 
         0, 
-        sizeof(avl_node_t), 256, 256, tree->memp);
+        sizeof(avl_node_t), 1024, 1024, tree->memp);
 #endif // USE_CHUNK_MANAGER
 
     tree->n = 0;
@@ -739,7 +739,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 ///// static int
 ///// thread_unsafe_recursive_traverse (avl_tree_t *tree,
 ///// 	avl_node_t *node,
-///// 	traverse_function_t tfn,
+///// 	traverse_function_pointer tfn,
 ///// 	void *p0, void *p1, void *p2, void *p3)
 ///// {
 /////     // end of branch
@@ -763,7 +763,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 ///// 
 ///// PUBLIC int
 ///// avl_tree_recursive_traverse (avl_tree_t *tree,
-///// 	traverse_function_t tfn,
+///// 	traverse_function_pointer tfn,
 ///// 	void *p0, void *p1, void *p2, void *p3)
 ///// {
 /////     int rv;
@@ -777,7 +777,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 
 PUBLIC int
 avl_tree_traverse (avl_tree_t *tree,
-	traverse_function_t tfn,
+	traverse_function_pointer tfn,
 	void *p0, void *p1, void *p2, void *p3)
 {
     int rv;

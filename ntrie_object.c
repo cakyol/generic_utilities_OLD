@@ -167,42 +167,6 @@ ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
     }
 }
 
-#if 0
-
-static int
-ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node, 
-    trie_traverse_function_t tfn,
-    byte *key, int level,
-    void *p0, void *p1, void *p2, void *p3)
-{ 
-    int i, n, index, rc;
-
-    index = level / 2;
-    if (level & 1) {
-        key[index] |= (node->value << 4);
-        if (node->user_data) {
-            rc = (tfn)(triep, node, key, index+1, node->user_data,
-		    p0, p1, p2, p3);
-            if (rc != ok) return error;
-        }
-    } else {
-        key[index] = node->value;
-    }
-
-    for (i = n = 0; (i < FASTMAP_ALPHABET_SIZE) && (n < node->n_children); i++) {
-	if (node->children[i]) {
-	    if (ntrie_node_traverse(triep, node->children[i], tfn, 
-		key, level+1, p0, p1, p2, p3) != ok) {
-		    return error;
-	    }
-	    n++;
-	}
-    }
-    return 0;
-}
-
-#endif // 0
-
 static int
 thread_unsafe_ntrie_insert (ntrie_t *ntp,
         void *key, int key_length, 
@@ -321,37 +285,6 @@ ntrie_remove (ntrie_t *ntp,
     return rv;
 }
 
-#if 0
-
-PUBLIC int
-ntrie_traverse (ntrie_t *ntp, traverse_function_t tfn,
-    void *p0, void *p1, void *p2, void *p3)
-{
-    int i;
-    byte *key;
-    ntrie_node_t *node;
-    int err = ok;
-
-    key = malloc(2 * 8192);
-    if (NULL == key) return error;
-    node = &ntp->ntrie_root;
-    for (i = 0; i < FASTMAP_ALPHABET_SIZE; i++) {
-	if (node->children[i]) {
-	    if (ntrie_node_traverse(ntp, node->children[i], tfn, 
-		key, 0, p0, p1, p2, p3) != ok) {
-		    err = error;
-		    goto DONE;
-	    }
-	}
-    }
-DONE:
-    free(key);
-    return err;
-}
-
-#endif // 0
-
-
 /*
  * This traverse function does not use recursion or a
  * separate stack.  This is very useful for very deep
@@ -368,7 +301,7 @@ DONE:
  * function for the rest of the tree.
  */
 PUBLIC void
-ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
+ntrie_traverse (ntrie_t *triep, traverse_function_pointer tfn,
 	void *user_param_1, void *user_param_2)
 {
     ntrie_node_t *node, *prev;
@@ -379,6 +312,7 @@ ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
 
     key = malloc(8192);
     if (NULL == key) return;
+    READ_LOCK(triep);
     node = &triep->ntrie_root;
     node->current = 0;
     while (node) {
@@ -410,6 +344,7 @@ ntrie_traverse (ntrie_t *triep, traverse_function_t tfn,
 	    index--;
 	}
     }
+    READ_UNLOCK(triep);
     free(key);
 }
 

@@ -22,6 +22,7 @@ LIB_OBJS =	timer_object.o \
 		stack_object.o \
 		queue_object.o \
 		linkedlist.o \
+		chunk_manager_object.o \
 		index_object.o \
 		avl_tree_object.o \
 		table.o \
@@ -32,7 +33,6 @@ LIB_OBJS =	timer_object.o \
 		\
 		### utils_common.o \
 		### event_manager.o \
-		### chunk_manager_object.o \
 
 %.o:		%.c %.h \
 		pointer_manipulations.h \
@@ -89,8 +89,9 @@ test_index_object:	test_index_object.c $(LIBNAME)
 			    -o test_index_object $(LIBNAME) $(STATIC_LIBS)
 
 test_avl_object:	test_avl_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_avl_object.c \
-			    -o test_avl_object $(LIBNAME) $(STATIC_LIBS)
+			$(CC) $(CFLAGS) $(INCLUDES) -DUSE_CHUNK_MANAGER \
+			    test_avl_object.c -o test_avl_object \
+			    $(LIBNAME) $(STATIC_LIBS)
 
 test_ntrie:		test_ntrie.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie.c \
@@ -130,6 +131,9 @@ TESTS =		test_lock_object \
 		test_bitlist \
 		test_linkedlist \
 		test_queue_object \
+		test_chunk_object \
+		test_malloc \
+		test_chunk_integrity \
 		test_index_object \
 		test_avl_object \
 		test_dynamic_array \

@@ -94,7 +94,7 @@ struct linkedlist_s {
     linkedlist_node_t *head;
 
     /* comparison function used *ONLY* for equality */
-    comparison_function_t cmp_fn;
+    comparison_function_pointer cmp_fn;
 
     /* number of elements in the list */
     int n;
@@ -138,7 +138,7 @@ not_endof_linkedlist (linkedlist_node_t *llnp)
 extern int
 linkedlist_init (linkedlist_t *listp,
         int make_it_thread_safe,
-        comparison_function_t cmp_fn,
+        comparison_function_pointer cmp_fn,
         mem_monitor_t *parent_mem_monitor);
 
 /*

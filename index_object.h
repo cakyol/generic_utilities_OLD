@@ -60,7 +60,7 @@ typedef struct index_obj_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
-    comparison_function_t cmpf;
+    comparison_function_pointer cmpf;
     int initial_size;
     int maximum_size;
     int expansion_size;
@@ -75,7 +75,7 @@ typedef struct index_obj_s {
 extern int 
 index_obj_init (index_obj_t *idx,
 	int make_it_thread_safe,
-	comparison_function_t cmpf,
+	comparison_function_pointer cmpf,
 	int maximum_size,
 	int expansion_size,
         mem_monitor_t *parent_mem_monitor);
@@ -110,7 +110,7 @@ index_obj_get_all (index_obj_t *idx, int *returned_count);
 
 extern int
 index_obj_traverse (index_obj_t *idx,
-	traverse_function_t tfn,
+	traverse_function_pointer tfn,
 	void *p0, void *p1, void *p2, void *p3);
 
 /**************************** Other ******************************************/

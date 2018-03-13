@@ -49,7 +49,7 @@
 extern "C" {
 #endif
 
-#include "utils_common.h"
+#include "mem_monitor.h"
 #include "lock_object.h"
 
 typedef struct chunk_manager_s {
@@ -100,13 +100,13 @@ typedef struct chunk_manager_s {
      * statistical counters indicating how many times the object grew
      * and/or shrank
      */
-    uint64 grow_count, trim_count;
+    long long int grow_count, trim_count;
 
 } chunk_manager_t;
 
-extern error_t
+extern int
 chunk_manager_init (chunk_manager_t *cmgr,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
         int chunk_size, int initial_number_of_chunks, int grow,
         mem_monitor_t *parent_mem_monitor);
 

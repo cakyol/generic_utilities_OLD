@@ -120,7 +120,7 @@ ntrie_remove (ntrie_t *ntp,
         void **data_removed);
 
 extern void
-ntrie_traverse (ntrie_t *ntp, traverse_function_t tfn,
+ntrie_traverse (ntrie_t *ntp, traverse_function_pointer tfn,
 	void *user_param_1, void *user_param_2);
 
 extern void 

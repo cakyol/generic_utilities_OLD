@@ -95,7 +95,7 @@ extern error_t
 trie_search (trie_t *triep, void *key, int key_length, datum_t *found_data);
 
 extern error_t
-trie_traverse (trie_t *triep, trie_traverse_function_t tfn,
+trie_traverse (trie_t *triep, trie_traverse_function_pointer tfn,
     datum_t p0, datum_t p1, datum_t p2, datum_t p3);
 
 extern error_t 
@@ -184,7 +184,7 @@ extern error_t
 ntrie_remove (ntrie_t *ntp, void *key, int key_length, void **removed_data);
 
 extern error_t
-ntrie_traverse (ntrie_t *triep, trie_traverse_function_t tfn,
+ntrie_traverse (ntrie_t *triep, trie_traverse_function_pointer tfn,
     void *p0, void *p1, void *p2, void *p3);
 
 extern uint64
