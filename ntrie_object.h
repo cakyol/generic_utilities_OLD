@@ -73,6 +73,10 @@ extern "C" {
 #include "lock_object.h"
 #include "function_types.h"
 
+#ifdef USE_CHUNK_MANAGER
+#include "chunk_manager_object.h"
+#endif
+
 #define NTRIE_LOW_VALUE         0
 #define NTRIE_HI_VALUE		(0xF)
 #define NTRIE_ALPHABET_SIZE     (NTRIE_HI_VALUE - NTRIE_LOW_VALUE + 1)
@@ -93,6 +97,9 @@ typedef struct ntrie_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+#ifdef USE_CHUNK_MANAGER
+    chunk_manager_t nodes;
+#endif
     int node_count;
     ntrie_node_t ntrie_root;
 

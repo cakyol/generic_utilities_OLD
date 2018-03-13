@@ -592,7 +592,7 @@ avl_tree_init (avl_tree_t *tree,
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_init(&tree->nodes, 
         0, 
-        sizeof(avl_node_t), 1024, 1024, tree->memp);
+        sizeof(avl_node_t), 1024, 1024, tree->mem_mon_p);
 #endif // USE_CHUNK_MANAGER
 
     tree->n = 0;

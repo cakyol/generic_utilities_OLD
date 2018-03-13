@@ -47,7 +47,11 @@ ntrie_new_node (ntrie_t *ntp, int value)
 {
     ntrie_node_t *node;
 
+#ifdef USE_CHUNK_MANAGER
+    node = chunk_manager_alloc(&ntp->nodes);
+#else
     node = (ntrie_node_t*) MEM_MONITOR_ALLOC(ntp, sizeof(ntrie_node_t));
+#endif
     if (node) {
 	node->value = value;
 	node->current = 0;
@@ -159,7 +163,11 @@ ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
         parent->n_children--;
 
 	/* delete myself */
+#ifdef USE_CHUNK_MANAGER
+	chunk_manager_free(&ntp->nodes, node);
+#else
 	MEM_MONITOR_FREE(ntp, node);
+#endif
 	ntp->node_count--;
 
 	/* go up one more parent & try again */
@@ -236,13 +244,19 @@ ntrie_init (ntrie_t *ntp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
+    int rv = 0;
+
     MEM_MONITOR_SETUP(ntp);
     LOCK_SETUP(ntp);
     ntp->node_count = 0;
     ntrie_node_init(&ntp->ntrie_root, 0);
+#ifdef USE_CHUNK_MANAGER
+    rv = chunk_manager_init(&ntp->nodes, 0, sizeof(ntrie_node_t),
+	    1024, 1024, ntp->mem_mon_p);
+#endif
     WRITE_UNLOCK(ntp);
 
-    return 0;
+    return rv;
 }
 
 PUBLIC int
