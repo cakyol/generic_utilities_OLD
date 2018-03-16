@@ -1,13 +1,13 @@
 
 #include "stdio.h"
-#include "chunk_manager_object.h"
+#include "chunk_manager.h"
 
 #define CHUNK_SIZE		128
 #define MAX_CHUNKS		(1024 * 1024)
-#ifdef MEASURE_CHUNKS
-#define LOOP                    4000
+#ifdef USE_MALLOC
+#define LOOP                    150
 #else
-#define LOOP                    400
+#define LOOP                    2000
 #endif
 
 unsigned char *chunks [MAX_CHUNKS];
@@ -19,7 +19,7 @@ int main (int argc, char *argv[])
     int i, j;
     unsigned long long iter = 0;
 
-#ifdef MEASURE_CHUNKS
+#ifndef USE_MALLOC
     int rc = chunk_manager_init(&cmgr, 
                 0, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL);
     if (rc != 0) {
@@ -29,16 +29,17 @@ int main (int argc, char *argv[])
     }
 #endif
 
+    iter = 0;
     timer_start(&tp);
     for (j = 0; j < LOOP; j++) {
 
 	/* allocate chunks */
         //printf("allocating..\n");
 	for (i = 0; i < MAX_CHUNKS; i++) {
-#ifdef MEASURE_CHUNKS
-	    chunks[i] = chunk_manager_alloc(&cmgr);
-#else
+#ifdef USE_MALLOC
 	    chunks[i] = malloc(CHUNK_SIZE);
+#else
+	    chunks[i] = chunk_manager_alloc(&cmgr);
 #endif	
 	    if (NULL == chunks[i]) {
 		printf("chunk alloc failed outer loop %d inner loop %d\n",
@@ -53,10 +54,10 @@ int main (int argc, char *argv[])
         //printf("deleting..\n");
 	for (i = 0; i < MAX_CHUNKS; i++) {
 	    if (NULL != chunks[i]) {
-#ifdef MEASURE_CHUNKS
-		chunk_manager_free(&cmgr, chunks[i]);
-#else
+#ifdef USE_MALLOC
 		free(chunks[i]);
+#else
+		chunk_manager_free(&cmgr, chunks[i]);
 #endif
 		//printf("chunk %d addr 0x%p freed\n", i, chunks[i]);
                 iter++;

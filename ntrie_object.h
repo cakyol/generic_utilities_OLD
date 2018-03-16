@@ -74,7 +74,7 @@ extern "C" {
 #include "function_types.h"
 
 #ifdef USE_CHUNK_MANAGER
-#include "chunk_manager_object.h"
+#include "chunk_manager.h"
 #endif
 
 #define NTRIE_LOW_VALUE         0

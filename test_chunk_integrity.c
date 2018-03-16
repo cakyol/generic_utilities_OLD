@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "chunk_manager_object.h"
+#include "chunk_manager.h"
 
 #define CHUNK_SIZE		128
 #define MAX_CHUNKS		(2*1024*1024)

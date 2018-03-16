@@ -2,9 +2,8 @@
 CC =		gcc
 
 ## for debugging with gdb
-CFLAGS = 	-g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
-#CFLAGS = 	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
-CFLAGS += -DUSE_CHUNK_MANAGER
+# CFLAGS = 	-g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
+CFLAGS = 	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
@@ -23,7 +22,7 @@ LIB_OBJS =	timer_object.o \
 		stack_object.o \
 		queue_object.o \
 		linkedlist.o \
-		chunk_manager_object.o \
+		chunk_manager.o \
 		index_object.o \
 		avl_tree_object.o \
 		table.o \
@@ -71,28 +70,26 @@ test_queue_object:	test_queue_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_queue_object.c \
 			    -o test_queue_object $(LIBNAME) $(STATIC_LIBS)
 
-test_chunk_object:	test_chunk_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) \
-			-DMEASURE_CHUNKS test_chunk_object.c \
-			    -o test_chunk_object $(LIBNAME) $(STATIC_LIBS)
+test_chunk_manager:	test_chunk_manager.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_chunk_manager.c \
+			    -o test_chunk_manager $(LIBNAME) $(STATIC_LIBS)
 
 test_chunk_integrity:	test_chunk_integrity.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) \
-			-DMEASURE_CHUNKS test_chunk_integrity.c \
+			$(CC) $(CFLAGS) $(INCLUDES) test_chunk_integrity.c \
 			    -o test_chunk_integrity $(LIBNAME) $(STATIC_LIBS)
 
-test_malloc:		test_chunk_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_chunk_object.c \
-			    -o test_malloc $(LIBNAME) $(STATIC_LIBS)
+test_malloc:		test_chunk_manager.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) -DUSE_MALLOC \
+			    test_chunk_manager.c -o test_malloc \
+			    $(LIBNAME) $(STATIC_LIBS)
 
 test_index_object:	test_index_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_index_object.c \
 			    -o test_index_object $(LIBNAME) $(STATIC_LIBS)
 
 test_avl_object:	test_avl_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) -DUSE_CHUNK_MANAGER \
-			    test_avl_object.c -o test_avl_object \
-			    $(LIBNAME) $(STATIC_LIBS)
+			$(CC) $(CFLAGS) $(INCLUDES) test_avl_object.c \
+			    -o test_avl_object $(LIBNAME) $(STATIC_LIBS)
 
 test_ntrie:		test_ntrie.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie.c \
@@ -132,7 +129,7 @@ TESTS =		test_lock_object \
 		test_bitlist \
 		test_linkedlist \
 		test_queue_object \
-		test_chunk_object \
+		test_chunk_manager \
 		test_malloc \
 		test_chunk_integrity \
 		test_index_object \
@@ -146,9 +143,6 @@ TESTS =		test_lock_object \
 		test_delay \
 		test_scheduler \
 		\
-		### test_chunk_object \
-		### test_chunk_integrity \
-		### test_malloc \
 
 tests:		$(TESTS)
 
