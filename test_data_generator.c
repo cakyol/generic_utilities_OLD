@@ -1,17 +1,15 @@
 
-/*
- * A generic data structure created to test all the data structures.
- */
-#define KEY_SIZE                6
-#define FK                      'A'
-#define LK                      'Z'
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "test_data_generator.h"
 
-typedef struct test_data_s {
-
-    unsigned char key [KEY_SIZE];
-    void *data;
-
-} test_data_t;
+int
+compare_test_data (void *vt1, void *vt2)
+{
+    return
+	memcmp(vt1, vt2, KEY_SIZE);
+}
 
 test_data_t *
 generate_test_data (int how_many)
@@ -45,20 +43,6 @@ generate_test_data (int how_many)
     }
 finished:
     return data_malloced;
-}
-
-int
-verify_test_data (test_data_t *d1, test_data_t *d2)
-{
-    int i;
-
-    assert(d1 && d2);
-    if (d1 == d2) return 1;
-    if (d1->data != d2->data) return 0;
-    for (i = 0; i < KEY_SIZE; i++) {
-        if (d1->key[i] != d2->key[i]) return 0;
-    }
-    return 1;
 }
 
 
