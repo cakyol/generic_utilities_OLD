@@ -30,6 +30,7 @@ LIB_OBJS =	timer_object.o \
 		ntrie_object.o \
 		scheduler.o \
 		generic_object_database.o \
+		test_data_generator.o \
 		\
 		### utils_common.o \
 		### event_manager.o \

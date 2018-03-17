@@ -5,7 +5,7 @@
 /*
  * A generic data structure created to test all the data structures.
  */
-#define KEY_SIZE                6
+#define KEY_SIZE                7
 #define FK                      'A'
 #define LK                      'Z'
 
@@ -20,7 +20,7 @@ extern int
 compare_test_data (void *vt1, void *vt2);
 
 extern test_data_t *
-generate_test_data (int how_many);
+generate_test_data (int *how_many);
 
 #endif // __TEST_DATA_GENERATOR_H__
 

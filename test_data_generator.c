@@ -12,13 +12,13 @@ compare_test_data (void *vt1, void *vt2)
 }
 
 test_data_t *
-generate_test_data (int how_many)
+generate_test_data (int *how_many)
 {
-    int i, j, k, l, m, n;
+    int i, j, k, l, m, n, p;
     int count = 0;
     test_data_t *data_malloced, *tmp;
 
-    data_malloced = (test_data_t*) malloc(how_many * sizeof(test_data_t));
+    data_malloced = (test_data_t*) malloc(*how_many * (int) sizeof(test_data_t));
     assert(0 != data_malloced);
     for (i = FK; i <= LK; i++) {
         for (j = FK; j <= LK; j++) {
@@ -26,15 +26,18 @@ generate_test_data (int how_many)
                 for (l = FK; l <= LK; l++) {
                     for (m = FK; m <= LK; m++) {
                         for (n = FK; n <= LK; n++) {
-                            tmp = &data_malloced[count];
-                            tmp->key[0] = i;
-                            tmp->key[1] = j;
-                            tmp->key[2] = k;
-                            tmp->key[3] = l;
-                            tmp->key[4] = m;
-                            tmp->key[5] = n;
-                            tmp->data = tmp;
-                            if (++count >= how_many) goto finished;
+			    for (p = FK; p <= LK; p++) {
+				tmp = &data_malloced[count];
+				tmp->key[0] = i;
+				tmp->key[1] = j;
+				tmp->key[2] = k;
+				tmp->key[3] = l;
+				tmp->key[4] = m;
+				tmp->key[5] = n;
+				tmp->key[6] = p;
+				tmp->data = tmp;
+				if (++count >= *how_many) goto finished;
+			    }
                         }
                     }
                 }
@@ -42,7 +45,9 @@ generate_test_data (int how_many)
         }
     }
 finished:
-    return data_malloced;
+    *how_many = count;
+    return 
+	data_malloced;
 }
 
 
