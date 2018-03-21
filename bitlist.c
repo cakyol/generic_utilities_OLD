@@ -55,27 +55,20 @@
 extern "C" {
 #endif
 
-static inline unsigned int
-quick_bit_get (unsigned int *ints, int bit_number)
-{
-    return
-        ints[bit_number >> BITS_TO_INT_SHIFT] & 
-            (1 << (bit_number % BITS_PER_INT));
-}
+/*
+ * The "%" operator, much faster to do it like this
+ */
+#define MODULO(x) \
+    ((x) - (((x) >> BITS_TO_INT_SHIFT) << BITS_TO_INT_SHIFT))
 
-static inline void
-quick_bit_set (unsigned int *ints, int bit_number)
-{
-    ints[bit_number >> BITS_TO_INT_SHIFT] |= 
-            (1 << (bit_number % BITS_PER_INT));
-}
+#define BIT_GET(ints, bit) \
+    ((ints[bit >> BITS_TO_INT_SHIFT]) & (1 << MODULO(bit)))
 
-static inline void
-quick_bit_clear (unsigned int *ints, int bit_number)
-{
-    ints[bit_number >> BITS_TO_INT_SHIFT] &= 
-        (~(1 << (bit_number % BITS_PER_INT)));
-} 
+#define BIT_SET(ints, bit) \
+    ints[bit >> BITS_TO_INT_SHIFT] |= (1 << MODULO(bit))
+
+#define BIT_CLEAR(ints, bit) \
+    ints[bit >> BITS_TO_INT_SHIFT] &= ~(1 << MODULO(bit))
 
 static inline int
 _first_clear_bit (unsigned int value)
@@ -101,7 +94,7 @@ thread_unsafe_bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
     bit_number -= bl->lowest_valid_bit;
 
     /* get & return it */
-    value = quick_bit_get(bl->the_bits, bit_number);
+    value = BIT_GET(bl->the_bits, bit_number);
     *returned_bit = value ? 1 : 0;
 
     /* no error */
@@ -121,9 +114,9 @@ thread_unsafe_bitlist_set (bitlist_t *bl, int bit_number)
     bit_number -= bl->lowest_valid_bit;
 
     /* set it */
-    bit = quick_bit_get(bl->the_bits, bit_number);
+    bit = BIT_GET(bl->the_bits, bit_number);
     if (bit == 0) {
-	quick_bit_set(bl->the_bits, bit_number);
+	BIT_SET(bl->the_bits, bit_number);
 	bl->bits_set_count++;
     }
 
@@ -144,9 +137,9 @@ thread_unsafe_bitlist_clear (bitlist_t *bl, int bit_number)
     bit_number -= bl->lowest_valid_bit;
 
     /* clear it */
-    value = quick_bit_get(bl->the_bits, bit_number);
+    value = BIT_GET(bl->the_bits, bit_number);
     if (value) {
-	quick_bit_clear(bl->the_bits, bit_number);
+	BIT_CLEAR(bl->the_bits, bit_number);
 	bl->bits_set_count--;
     }
 
