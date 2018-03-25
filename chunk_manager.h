@@ -116,6 +116,25 @@ chunk_manager_alloc (chunk_manager_t *cmgr);
 extern void
 chunk_manager_free (chunk_manager_t *cmgr, void *chunk);
 
+/*
+ * This is an interesting function.  It should be called whenever
+ * the user thinks that his/her system has 'settled' into a stable
+ * state such that no more chunk allocations & deallocations will
+ * happen.  In such a state, if the chunk manager is holding on to
+ * a lot of unused chunks, they can all be freed up saving memory.
+ * However, this is completely under the control of the user.
+ * If it gets mistakenly called, the object may start behaving
+ * really inefficiently & thrashing between freeing up chunks and
+ * reallocating them coz the user asks for them again.
+ *
+ * When this function executes, it frees up ALL the unused
+ * chunks which are free on the stack.  Not even a single spare chunk
+ * will be left.  All of them (if any) will be returned back to
+ * the system.  Therefore, use it very carefully.
+ *
+ * The function return value indicates how many chunks have actually
+ * been returned to the system.
+ */
 extern int
 chunk_manager_trim (chunk_manager_t *cmgr);
 
