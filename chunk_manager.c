@@ -141,7 +141,7 @@ PUBLIC int
 chunk_manager_trim (chunk_manager_t *cmgr)
 {
     int current_index = cmgr->index;
-    int relinquished;
+    int freed;
     void *chunk;
 
     WRITE_LOCK(cmgr);
@@ -149,14 +149,14 @@ chunk_manager_trim (chunk_manager_t *cmgr)
 	chunk = cmgr->chunks[cmgr->index--];
 	MEM_MONITOR_FREE(cmgr, chunk);
     }
-    relinquished = current_index - cmgr->index;
-    if (relinquished > 0) {
-	cmgr->total_chunk_count -= relinquished;
+    freed = current_index - cmgr->index;
+    if (freed > 0) {
+	cmgr->total_chunk_count -= freed;
 	cmgr->trim_count++;
     }
     WRITE_UNLOCK(cmgr);
     return 
-	relinquished;
+	freed;
 }
 
 /*
