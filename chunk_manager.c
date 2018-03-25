@@ -55,7 +55,7 @@ chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
     for (i = 0; i < expansion_size; i++) {
         one_chunk = MEM_MONITOR_ALLOC(cmgr, cmgr->chunk_size);
         if (NULL == one_chunk) break;
-        chunks[++cmgr->index] = one_chunk;
+        cmgr->chunks[++cmgr->index] = one_chunk;
         cmgr->total_chunk_count++;
     }
 

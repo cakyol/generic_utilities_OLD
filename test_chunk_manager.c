@@ -70,9 +70,20 @@ int main (int argc, char *argv[])
     }
     timer_end(&tp);
     timer_report(&tp, iter);
+#ifndef USE_MALLOC
     assert(MAX_CHUNKS+1 == chunk_manager_trim(&cmgr));
     assert(0 == chunk_manager_trim(&cmgr));
-#ifndef USE_MALLOC
+
+    /* allocate more again just to se if it works after a trim */
+    void *ch1 = chunk_manager_alloc(&cmgr);
+    void *ch2 = chunk_manager_alloc(&cmgr);
+    assert(ch1 && ch2);
+    assert(EBUSY == chunk_manager_destroy(&cmgr));
+    chunk_manager_free(&cmgr, ch1);
+    chunk_manager_free(&cmgr, ch2);
+    int total = cmgr.total_chunk_count;
+    assert(total == chunk_manager_trim(&cmgr));
+    assert(0 == chunk_manager_trim(&cmgr));
     assert(0 == chunk_manager_destroy(&cmgr));
 #endif
     return 0;
