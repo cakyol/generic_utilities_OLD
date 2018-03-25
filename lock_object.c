@@ -159,7 +159,7 @@ release_write_lock (lock_obj_t *lck)
 void
 lock_obj_destroy (lock_obj_t *lck)
 {
-    memset(lck, 0, sizeof(lock_obj_t));
+    if (lck) memset(lck, 0, sizeof(lock_obj_t));
 }
 
 #ifdef __cplusplus

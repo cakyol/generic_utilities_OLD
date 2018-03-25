@@ -2,7 +2,7 @@
 CC =		gcc
 
 ## for debugging with gdb
-# CFLAGS = 	-g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
+CFLAGS = 	-g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
 CFLAGS = 	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
 
 ifeq ($(OS), APPLE)

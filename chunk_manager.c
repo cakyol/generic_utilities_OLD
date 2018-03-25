@@ -137,17 +137,68 @@ chunk_manager_free (chunk_manager_t *cmgr, void *chunk)
     WRITE_UNLOCK(cmgr);
 }
 
+/*
+ * This is an interesting function.  It should be called whenever
+ * the user thinks that his/her system has 'settled' into a stable
+ * state such that no more chunk allocations & deallocations will
+ * happen.  In such a state, if the chunk manager is holding on to
+ * a lot of unused chunks, they can all be freed up saving memory.
+ * However, this is completely under the control of the user.
+ * If it gets mistakenly called, the object may start behaving
+ * really inefficiently & thrashing between freeing up chunks and
+ * reallocating them coz the user asks for them again.
+ *
+ * When this function executes, it frees up ALL the unused
+ * chunks which are free on the stack.  Not even a single spare chunk
+ * will be left.  All of them (if any) will be returned back to
+ * the system.  Therefore, use it very carefully.
+ *
+ * The function return value indicates how many chunks have actually
+ * been returned to the system.
+ */
 PUBLIC int
 chunk_manager_trim (chunk_manager_t *cmgr)
 {
-    /* LATER */
-    cmgr->trim_count++;
-    return 0;
+    int current_index = cmgr->index;
+    int relinquished;
+    void *chunk;
+
+    WRITE_LOCK(cmgr);
+    while (cmgr->index >= 0) {
+	chunk = cmgr->chunks[cmgr->index--];
+	MEM_MONITOR_FREE(cmgr, chunk);
+    }
+    relinquished = current_index - cmgr->index;
+    if (relinquished > 0) {
+	cmgr->total_chunk_count -= relinquished;
+	cmgr->trim_count++;
+    }
+    WRITE_UNLOCK(cmgr);
+    return 
+	relinquished;
 }
 
-PUBLIC void
+/*
+ * The object cannot be destroyed if there are any chunks outstanding
+ * in the system which has not been returned back to the object.
+ */
+PUBLIC int
 chunk_manager_destroy (chunk_manager_t *cmgr)
 {
+    int total_elements;
+
+    WRITE_LOCK(cmgr);
+    if (cmgr->index < (cmgr->total_chunk_count - 1)) {
+	WRITE_UNLOCK(cmgr);
+	return EBUSY;
+    }
+    total_elements = cmgr->index + 1;
+    assert(total_elements == chunk_manager_trim(cmgr));
+    MEM_MONITOR_FREE(cmgr, cmgr->chunks);
+    WRITE_UNLOCK(cmgr);
+    lock_obj_destroy(cmgr->lock);
+
+    return 0;
 }
 
 #ifdef __cplusplus

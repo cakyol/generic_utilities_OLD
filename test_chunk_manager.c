@@ -2,12 +2,12 @@
 #include "stdio.h"
 #include "chunk_manager.h"
 
-#define CHUNK_SIZE		128
-#define MAX_CHUNKS		(1024 * 1024)
+#define CHUNK_SIZE		256
+#define MAX_CHUNKS		(10 * 1024 * 1024)
 #ifdef USE_MALLOC
 #define LOOP                    150
 #else
-#define LOOP                    2000
+#define LOOP                    500
 #endif
 
 unsigned char *chunks [MAX_CHUNKS];
@@ -20,6 +20,8 @@ int main (int argc, char *argv[])
     unsigned long long iter = 0;
 
 #ifndef USE_MALLOC
+    printf("initializing chunk object .. ");
+    fflush(stdout);
     int rc = chunk_manager_init(&cmgr, 
                 0, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL);
     if (rc != 0) {
@@ -27,9 +29,11 @@ int main (int argc, char *argv[])
 	    MAX_CHUNKS);
 	return -1;
     }
+    printf("done\n");
 #endif
 
     iter = 0;
+    printf("started chunk alloc/free test\n");
     timer_start(&tp);
     for (j = 0; j < LOOP; j++) {
 
@@ -66,6 +70,11 @@ int main (int argc, char *argv[])
     }
     timer_end(&tp);
     timer_report(&tp, iter);
+    assert(MAX_CHUNKS+1 == chunk_manager_trim(&cmgr));
+    assert(0 == chunk_manager_trim(&cmgr));
+#ifndef USE_MALLOC
+    assert(0 == chunk_manager_destroy(&cmgr));
+#endif
     return 0;
 } 
 

@@ -119,10 +119,11 @@ chunk_manager_free (chunk_manager_t *cmgr, void *chunk);
 extern int
 chunk_manager_trim (chunk_manager_t *cmgr);
 
-extern void
-chunk_manager_destroy (chunk_manager_t *cmgr);
-
-extern void
+/*
+ * Note that if there are any outstanding chunks not
+ * returned back to the object, EBUSY will be returned.
+ */
+extern int
 chunk_manager_destroy (chunk_manager_t *cmgr);
 
 #ifdef __cplusplus

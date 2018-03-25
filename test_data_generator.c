@@ -7,8 +7,18 @@
 int
 compare_test_data (void *vt1, void *vt2)
 {
+#if 0
     return
 	memcmp(vt1, vt2, KEY_SIZE);
+#else
+    int i, rv;
+
+    for (i = 0; i < KEY_SIZE; i++) {
+	rv = ((test_data_t*) vt1)->key[i] - ((test_data_t*) vt2)->key[i];
+	if (rv) return rv;
+    }
+    return 0;
+#endif
 }
 
 test_data_t *
