@@ -57,7 +57,12 @@ typedef struct avl_tree_s {
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
-    avl_node_t *root_node, *first_node, *last_node;
+    avl_node_t *root_node;
+    
+#if 0
+    *first_node, *last_node;
+#endif
+
     comparison_function_pointer cmpf;
 
 #ifdef USE_CHUNK_MANAGER

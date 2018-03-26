@@ -261,10 +261,13 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
 
     if (!parent) {
 	tree->root_node = node;
+#if 0
 	tree->first_node = tree->last_node = node;
+#endif
 	return 0;
     }
 
+#if 0
     if (is_left) {
 	if (parent == tree->first_node)
 	    tree->first_node = node;
@@ -272,6 +275,8 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
 	if (parent == tree->last_node)
 	    tree->last_node = node;
     }
+#endif
+
     node->parent = parent;
     set_child(node, parent, is_left);
     for (;;) {
@@ -383,10 +388,12 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     left = node->left;
     right = node->right;
 
+#if 0
     if (node == tree->first_node)
 	tree->first_node = avl_tree_next(node);
     if (node == tree->last_node)
 	tree->last_node = avl_tree_prev(node);
+#endif
 
     if (!left)
 	next = right;
@@ -596,7 +603,12 @@ avl_tree_init (avl_tree_t *tree,
 #endif // USE_CHUNK_MANAGER
 
     tree->n = 0;
-    tree->root_node = tree->first_node = tree->last_node = NULL;
+    tree->root_node = NULL;
+    
+#if 0
+    tree->first_node = tree->last_node = NULL;
+#endif
+
     WRITE_UNLOCK(tree);
 
     return 0;
@@ -797,7 +809,12 @@ avl_tree_destroy (avl_tree_t *tree)
     WRITE_LOCK(tree);
     avl_node_destroy_nodes(tree, tree->root_node, 0);
     assert(tree->n == 0);
-    tree->root_node = tree->first_node = tree->last_node = NULL;
+    tree->root_node = NULL;
+    
+#if 0
+    tree->first_node = tree->last_node = NULL;
+#endif
+
     tree->cmpf = NULL;
     WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
