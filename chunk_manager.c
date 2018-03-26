@@ -64,25 +64,6 @@ chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
         i ? 0 : ENOMEM;
 }
 
-static int
-thread_unsafe_chunk_manager_init (chunk_manager_t *cmgr,
-        int chunk_size, int initial_number_of_chunks, int expansion_size,
-        mem_monitor_t *parent_mem_monitor)
-{
-    if (chunk_size <= 0) return EINVAL;
-    MEM_MONITOR_SETUP(cmgr);
-    cmgr->chunks = NULL;
-    cmgr->chunk_size = chunk_size;
-    cmgr->potential_capacity = 0;
-    cmgr->total_chunk_count = 0;
-    cmgr->index = -1;   /* DONT CHANGE THIS */
-    cmgr->expansion_size = expansion_size;
-    cmgr->grow_count = -1;
-    cmgr->trim_count = 0;
-    return
-        chunk_manager_expand(cmgr, initial_number_of_chunks);
-}
-
 static void *
 thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgr)
 {
@@ -110,10 +91,28 @@ chunk_manager_init (chunk_manager_t *cmgr,
 {
     int rv;
 
+    /* check some sanity */
+    if (chunk_size <= 0) return EINVAL;
+    if (initial_number_of_chunks < 0) return EINVAL;
+    if (expansion_size < 0) return EINVAL;
+
+    MEM_MONITOR_SETUP(cmgr);
     LOCK_SETUP(cmgr);
-    rv = thread_unsafe_chunk_manager_init(cmgr,
-	    chunk_size, initial_number_of_chunks,
-	    expansion_size, parent_mem_monitor);
+
+    /* aligh chunk size to the next 8 bytes */
+    chunk_size += 7;
+    chunk_size &= (~7);
+    cmgr->chunk_size = chunk_size;
+
+    /* do the rest */
+    cmgr->chunks = NULL;
+    cmgr->potential_capacity = 0;
+    cmgr->total_chunk_count = 0;
+    cmgr->index = -1;   /* DONT CHANGE THIS */
+    cmgr->expansion_size = expansion_size;
+    cmgr->grow_count = -1;
+    cmgr->trim_count = 0;
+    rv = chunk_manager_expand(cmgr, initial_number_of_chunks);
     WRITE_UNLOCK(cmgr);
     return rv;
 }
