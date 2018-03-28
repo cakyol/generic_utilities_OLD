@@ -63,7 +63,7 @@ typedef struct avl_tree_s {
     *first_node, *last_node;
 #endif
 
-    comparison_function_pointer cmpf;
+    object_comparer cmpf;
 
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_t nodes;
@@ -84,7 +84,7 @@ avl_tree_size (avl_tree_t *tree)
 extern int 
 avl_tree_init (avl_tree_t *tree,
 	int make_it_thread_safe,
-	comparison_function_pointer cmpf,
+	object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
 
 /**************************** Insert *****************************************/

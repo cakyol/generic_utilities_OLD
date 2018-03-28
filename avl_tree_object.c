@@ -588,7 +588,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 PUBLIC int
 avl_tree_init (avl_tree_t *tree,
 	int make_it_thread_safe,
-	comparison_function_pointer cmpf,
+	object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;

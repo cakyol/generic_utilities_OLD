@@ -93,7 +93,7 @@ thread_unsafe_linkedlist_add (linkedlist_t *listp, void *user_data,
     cur = listp->head;
     prev = NULL;
     while (not_endof_linkedlist(cur)) {
-        result = listp->cmp_fn(cur->user_data, user_data);
+        result = listp->cmpf(cur->user_data, user_data);
         if (result >= 0) break;
         prev = cur;
         cur = cur->next;
@@ -124,7 +124,7 @@ thread_unsafe_linkedlist_search (linkedlist_t *listp, void *searched_data,
     *node_before = prev = NULL;
     while (not_endof_linkedlist(cur)) {
 
-        result = listp->cmp_fn(cur->user_data, searched_data);
+        result = listp->cmpf(cur->user_data, searched_data);
 
         /* an exact match */
         if (0 == result) {
@@ -248,13 +248,13 @@ thread_unsafe_linkedlist_delete (linkedlist_t *listp, void *data_to_be_deleted,
 PUBLIC int
 linkedlist_init (linkedlist_t *listp,
         int make_it_thread_safe,
-        comparison_function_pointer cmp_fn,
+        object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
     int rv = ENOMEM;
     linkedlist_node_t *last_node;
 
-    if (NULL == cmp_fn) return EINVAL;
+    if (NULL == cmpf) return EINVAL;
 
     MEM_MONITOR_SETUP(listp);
     LOCK_SETUP(listp);
@@ -267,7 +267,7 @@ linkedlist_init (linkedlist_t *listp,
         last_node->user_data = NULL;
         listp->head = last_node;
         listp->n = 0;
-        listp->cmp_fn = cmp_fn;
+        listp->cmpf = cmpf;
         rv = 0;
     }
     WRITE_UNLOCK(listp);

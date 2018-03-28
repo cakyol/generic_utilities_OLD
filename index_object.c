@@ -209,7 +209,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 PUBLIC int
 index_obj_init (index_obj_t *idx,
 	int make_it_thread_safe,
-	comparison_function_pointer cmpf,
+	object_comparer cmpf,
 	int maximum_size,
 	int expansion_size,
         mem_monitor_t *parent_mem_monitor)

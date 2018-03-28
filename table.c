@@ -35,7 +35,7 @@ extern "C" {
 PUBLIC int
 table_init (table_t *tablep,
 	int make_it_thread_safe,
-	comparison_function_pointer cmpf, 
+	object_comparer cmpf, 
         mem_monitor_t *parent_mem_monitor,
 	int use_avl_tree)
 {

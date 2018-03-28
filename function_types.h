@@ -41,7 +41,7 @@ typedef void (*simple_function_pointer) (void *arg);
  * A generic type for defining a pointer to a function which
  * compares two structures as interpreted by the user.
  */
-typedef int (*comparison_function_pointer) (void *v0, void *v1);
+typedef int (*object_comparer) (void *v0, void *v1);
 
 /*
  * A generic function pointer used in traversing trees or tries etc.

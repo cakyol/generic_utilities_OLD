@@ -242,7 +242,7 @@ extern void datum_list_free (datum_list_t *dlp);
  * to determine their ordering.  Like 'strcmp'
  * but for structures.
  */
-typedef int (*comparison_function_pointer) (datum_t p0, datum_t p1);
+typedef int (*object_comparer) (datum_t p0, datum_t p1);
 #endif // TYPE_COMPARISON_FUNCTION
 
 /*
