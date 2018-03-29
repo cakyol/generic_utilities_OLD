@@ -39,6 +39,9 @@ chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
     void **chunks = NULL;           // shut the compiler up
     void *one_chunk;
 
+    /*
+     * adjust the stack which holds the free chunks
+     */
     if (cmgr->potential_capacity > cmgr->total_chunk_count) {
         expansion_size = cmgr->potential_capacity - cmgr->total_chunk_count;
     } else {
@@ -52,6 +55,9 @@ chunk_manager_expand (chunk_manager_t *cmgr, int expansion_size)
         cmgr->grow_count++;
     }
 
+    /*
+     * now pre-allocate the actual chunk to each one of those stack entries
+     */
     for (i = 0; i < expansion_size; i++) {
         one_chunk = MEM_MONITOR_ALLOC(cmgr, cmgr->chunk_size);
         if (NULL == one_chunk) break;
