@@ -336,28 +336,28 @@ trie_destroy (trie_t *triep)
 #define HI_NIBBLE(value)            ((value) >> 4)
 
 static inline void 
-ntrie_node_init (ntrie_node_t *node, int value)
+radix_tree_node_init (radix_tree_node_t *node, int value)
 {
-    memset(node, 0, sizeof(ntrie_node_t));
+    memset(node, 0, sizeof(radix_tree_node_t));
     node->value = value;
 }
 
-static inline ntrie_node_t *
-ntrie_new_node (ntrie_t *ntp, int value)
+static inline radix_tree_node_t *
+radix_tree_new_node (radix_tree_t *ntp, int value)
 {
-    ntrie_node_t *node;
+    radix_tree_node_t *node;
 
-    node = (ntrie_node_t*) memory_allocate(ntp->memp, sizeof(ntrie_node_t));
+    node = (radix_tree_node_t*) memory_allocate(ntp->memp, sizeof(radix_tree_node_t));
     if (node) {
 	node->value = value;
     }
     return node;
 }
 
-static inline ntrie_node_t *
-ntrie_add_nibble (ntrie_t *ntp, ntrie_node_t *parent, int nibble)
+static inline radix_tree_node_t *
+radix_tree_add_nibble (radix_tree_t *ntp, radix_tree_node_t *parent, int nibble)
 {
-    ntrie_node_t *node;
+    radix_tree_node_t *node;
 
     node = parent->children[nibble];
 
@@ -367,7 +367,7 @@ ntrie_add_nibble (ntrie_t *ntp, ntrie_node_t *parent, int nibble)
     }
 
     /* new entry */
-    node = ntrie_new_node(ntp, nibble);
+    node = radix_tree_new_node(ntp, nibble);
     if (node) {
 	node->parent = parent;
 	parent->children[nibble] = node;
@@ -378,27 +378,27 @@ ntrie_add_nibble (ntrie_t *ntp, ntrie_node_t *parent, int nibble)
     return node;
 }
 
-static ntrie_node_t *
-ntrie_add_byte (ntrie_t *ntp, ntrie_node_t *parent, int value)
+static radix_tree_node_t *
+radix_tree_add_byte (radix_tree_t *ntp, radix_tree_node_t *parent, int value)
 {
-    ntrie_node_t *new_node;
+    radix_tree_node_t *new_node;
 
-    new_node = ntrie_add_nibble(ntp, parent, LO_NIBBLE(value));
+    new_node = radix_tree_add_nibble(ntp, parent, LO_NIBBLE(value));
     if (NULL == new_node) {
 	return NULL;
     }
-    new_node = ntrie_add_nibble(ntp, new_node, HI_NIBBLE(value));
+    new_node = radix_tree_add_nibble(ntp, new_node, HI_NIBBLE(value));
     return new_node;
 }
 
-static ntrie_node_t *
-ntrie_node_insert (ntrie_t *ntp, byte *key, int key_length)
+static radix_tree_node_t *
+radix_tree_node_insert (radix_tree_t *ntp, byte *key, int key_length)
 {
-    ntrie_node_t *new_node = NULL, *parent;
+    radix_tree_node_t *new_node = NULL, *parent;
 
-    parent = &ntp->ntrie_root;
+    parent = &ntp->radix_tree_root;
     while (key_length-- > 0) {
-	new_node = ntrie_add_byte(ntp, parent, *key);
+	new_node = radix_tree_add_byte(ntp, parent, *key);
 	if (new_node) {
 	    parent = new_node;
 	    key++;
@@ -409,10 +409,10 @@ ntrie_node_insert (ntrie_t *ntp, byte *key, int key_length)
     return new_node;
 }
 
-static ntrie_node_t *
-ntrie_node_find (ntrie_t *ntp, byte *key, int key_length)
+static radix_tree_node_t *
+radix_tree_node_find (radix_tree_t *ntp, byte *key, int key_length)
 {
-    ntrie_node_t *node = &ntp->ntrie_root;
+    radix_tree_node_t *node = &ntp->radix_tree_root;
 
     while (1) {
 
@@ -439,9 +439,9 @@ ntrie_node_find (ntrie_t *ntp, byte *key, int key_length)
 ** This is tricky, be careful
 */
 static void 
-ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
+radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
 {
-    ntrie_node_t *parent;
+    radix_tree_node_t *parent;
 
     /* do NOT delete root node, that is the ONLY one with no parent */
     while (node->parent) {
@@ -467,7 +467,7 @@ ntrie_remove_node (ntrie_t *ntp, ntrie_node_t *node)
 }
 
 static error_t
-ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node, 
+radix_tree_node_traverse (radix_tree_t *triep, radix_tree_node_t *node, 
     trie_traverse_function_pointer tfn,
     byte *key, int level,
     void *p0, void *p1, void *p2, void *p3)
@@ -488,7 +488,7 @@ ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node,
 
     for (i = n = 0; (i < FASTMAP_ALPHABET_SIZE) && (n < node->n_children); i++) {
 	if (node->children[i]) {
-	    if (ntrie_node_traverse(triep, node->children[i], tfn, 
+	    if (radix_tree_node_traverse(triep, node->children[i], tfn, 
 		key, level+1, p0, p1, p2, p3) != ok) {
 		    return error;
 	    }
@@ -499,25 +499,25 @@ ntrie_node_traverse (ntrie_t *triep, ntrie_node_t *node,
 }
 
 PUBLIC void 
-ntrie_init (ntrie_t *ntp, mem_monitor_t *parent_mem_monitor)
+radix_tree_init (radix_tree_t *ntp, mem_monitor_t *parent_mem_monitor)
 {
     mem_monitor_init(&ntp->memory);
     ntp->memp =
 	parent_mem_monitor ? parent_mem_monitor : &ntp->memory;
     ntp->node_count = 0;
-    ntrie_node_init(&ntp->ntrie_root, 0);
+    radix_tree_node_init(&ntp->radix_tree_root, 0);
 }
 
 PUBLIC error_t
-ntrie_insert (ntrie_t *ntp, void *key, int key_length, 
+radix_tree_insert (radix_tree_t *ntp, void *key, int key_length, 
     void *user_data, void **found_data)
 {
-    ntrie_node_t *node;
+    radix_tree_node_t *node;
 
     /* assume failure */
     SAFE_POINTER_SET(found_data, NULL);
 
-    node = ntrie_node_insert(ntp, key, key_length);
+    node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
         if (node->user_data) {
             SAFE_POINTER_SET(found_data, node->user_data);
@@ -531,14 +531,14 @@ ntrie_insert (ntrie_t *ntp, void *key, int key_length,
 }
 
 PUBLIC int
-ntrie_search (ntrie_t *ntp, void *key, int key_length, void **found_data)
+radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **found_data)
 {
-    ntrie_node_t *node;
+    radix_tree_node_t *node;
     
     /* assume failure */
     SAFE_POINTER_SET(found_data, NULL);
 
-    node = ntrie_node_find(ntp, key, key_length);
+    node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
         SAFE_POINTER_SET(found_data, node->user_data);
 	return ok;
@@ -548,38 +548,38 @@ ntrie_search (ntrie_t *ntp, void *key, int key_length, void **found_data)
 }
 
 PUBLIC int 
-ntrie_remove (ntrie_t *ntp, void *key, int key_length, void **removed_data)
+radix_tree_remove (radix_tree_t *ntp, void *key, int key_length, void **removed_data)
 {
-    ntrie_node_t *node;
+    radix_tree_node_t *node;
 
     /* assume failure */
     SAFE_POINTER_SET(removed_data, NULL);
 
-    node = ntrie_node_find(ntp, key, key_length);
+    node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
         SAFE_POINTER_SET(removed_data, node->user_data);
         node->user_data = NULL;
-	ntrie_remove_node(ntp, node);
+	radix_tree_remove_node(ntp, node);
 	return ok;
     }
     return error;
 }
 
 PUBLIC error_t
-ntrie_traverse (ntrie_t *ntriep, trie_traverse_function_pointer tfn,
+radix_tree_traverse (radix_tree_t *ntriep, trie_traverse_function_pointer tfn,
     void *p0, void *p1, void *p2, void *p3)
 {
     int i;
     byte *key;
-    ntrie_node_t *node;
+    radix_tree_node_t *node;
     error_t err = ok;
 
     key = malloc(2 * 8192);
     if (NULL == key) return error;
-    node = &ntriep->ntrie_root;
+    node = &ntriep->radix_tree_root;
     for (i = 0; i < FASTMAP_ALPHABET_SIZE; i++) {
 	if (node->children[i]) {
-	    if (ntrie_node_traverse(ntriep, node->children[i], tfn, 
+	    if (radix_tree_node_traverse(ntriep, node->children[i], tfn, 
 		key, 0, p0, p1, p2, p3) != ok) {
 		    err = error;
 		    goto DONE;
@@ -592,22 +592,22 @@ DONE:
 }
 
 PUBLIC uint64
-ntrie_memory_usage (ntrie_t *ntp, double *mega_bytes)
+radix_tree_memory_usage (radix_tree_t *ntp, double *mega_bytes)
 {
-    uint64 size = sizeof(ntrie_t) + ntp->memp->bytes_used;
+    uint64 size = sizeof(radix_tree_t) + ntp->memp->bytes_used;
 
     SAFE_POINTER_SET(mega_bytes, ((double) size / (double) MEGA));
     return size;
 }
 
 PUBLIC void
-ntrie_reset (ntrie_t *ntp)
+radix_tree_reset (radix_tree_t *ntp)
 {
     // LATER
 }
 
 PUBLIC void
-ntrie_destroy (ntrie_t *ntp)
+radix_tree_destroy (radix_tree_t *ntp)
 {
     // LATER
 }

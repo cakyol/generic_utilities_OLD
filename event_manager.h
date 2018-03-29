@@ -34,7 +34,7 @@ extern "C" {
 #include "utils_common.h"
 #include "lock_object.h"
 #include "sll_object.h"
-#include "dynamic_array.h"
+#include "dynamic_array_object.h"
 #include "event_types.h"
 #include "object_types.h"
 

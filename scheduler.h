@@ -39,7 +39,7 @@ extern "C" {
 
 #include "function_types.h"
 #include "timer_object.h"
-#include "linkedlist.h"
+#include "linkedlist_object.h"
 
 /*
  * A task has an absolute execution time, a function to execute

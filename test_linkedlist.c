@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "linkedlist.h"
+#include "linkedlist_object.h"
 #include "pointer_manipulations.h"
 
 #define START_INT   1

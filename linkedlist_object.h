@@ -43,8 +43,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __LINKEDLIST_H__
-#define __LINKEDLIST_H__
+#ifndef __LINKEDLIST_OBJECT_H__
+#define __LINKEDLIST_OBJECT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,7 +53,7 @@ extern "C" {
 #include <errno.h>
 
 #include "function_types.h"
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 
 typedef struct linkedlist_s linkedlist_t;
@@ -248,7 +248,7 @@ linkedlist_destroy (linkedlist_t *listp);
 } // extern C
 #endif 
 
-#endif // __LINKEDLIST_H__
+#endif // __LINKEDLIST_OBJECT_H__
 
 
 

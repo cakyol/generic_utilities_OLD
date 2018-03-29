@@ -51,8 +51,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __LOCK_OBJ_H__
-#define __LOCK_OBJ_H__
+#ifndef __LOCK_OBJECT_H__
+#define __LOCK_OBJECT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -151,6 +151,6 @@ lock_obj_destroy (lock_obj_t *lck);
 } // extern C
 #endif 
 
-#endif // __LOCK_OBJ_H__
+#endif // __LOCK_OBJECT_H__
 
 

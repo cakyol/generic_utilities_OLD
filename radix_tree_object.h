@@ -59,8 +59,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __NTRIE_OBJECT_H__
-#define __NTRIE_OBJECT_H__
+#ifndef __RADIX_TREE_OBJECT_H__
+#define __RADIX_TREE_OBJECT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,7 +69,7 @@ extern "C" {
 #include <errno.h>
 
 #include "pointer_manipulations.h"
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 #include "function_types.h"
 
@@ -81,19 +81,19 @@ extern "C" {
 #define NTRIE_HI_VALUE		(0xF)
 #define NTRIE_ALPHABET_SIZE     (NTRIE_HI_VALUE - NTRIE_LOW_VALUE + 1)
 
-typedef struct ntrie_node_s ntrie_node_t;
+typedef struct radix_tree_node_s radix_tree_node_t;
 
-struct ntrie_node_s {
+struct radix_tree_node_s {
 
-    ntrie_node_t* parent;
-    ntrie_node_t *children [NTRIE_ALPHABET_SIZE];
+    radix_tree_node_t* parent;
+    radix_tree_node_t *children [NTRIE_ALPHABET_SIZE];
     void *user_data;
     byte current;	// used for non recursive traversal
     byte value;
     byte n_children;
 };
 
-typedef struct ntrie_s {
+typedef struct radix_tree_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
@@ -101,42 +101,42 @@ typedef struct ntrie_s {
     chunk_manager_t nodes;
 #endif
     int node_count;
-    ntrie_node_t ntrie_root;
+    radix_tree_node_t radix_tree_root;
 
-} ntrie_t;
+} radix_tree_t;
 
 extern int 
-ntrie_init (ntrie_t *ntp, 
+radix_tree_init (radix_tree_t *ntp, 
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor);
 
 extern int 
-ntrie_insert (ntrie_t *ntp,
+radix_tree_insert (radix_tree_t *ntp,
         void *key, int key_length, 
         void *data_to_be_inserted,
         void **data_found);
 
 extern int 
-ntrie_search (ntrie_t *ntp, 
+radix_tree_search (radix_tree_t *ntp, 
         void *key, int key_length, 
         void **data_found);
 
 extern int 
-ntrie_remove (ntrie_t *ntp, 
+radix_tree_remove (radix_tree_t *ntp, 
         void *key, int key_length, 
         void **data_removed);
 
 extern void
-ntrie_traverse (ntrie_t *ntp, traverse_function_pointer tfn,
+radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
 	void *user_param_1, void *user_param_2);
 
 extern void 
-ntrie_destroy (ntrie_t *ntp);
+radix_tree_destroy (radix_tree_t *ntp);
 
 #ifdef __cplusplus
 } // extern C
 #endif 
 
-#endif // __NTRIE_OBJECT_H__
+#endif // __RADIX_TREE_OBJECT_H__
 
 

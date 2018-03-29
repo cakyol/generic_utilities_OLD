@@ -35,7 +35,7 @@ extern "C" {
 #include <string.h>
 #include <errno.h>
 
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 
 typedef struct stack_obj_s {

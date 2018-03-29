@@ -41,9 +41,16 @@
 *******************************************************************************
 ******************************************************************************/
 
+#ifndef __DL_LIST_OBJECT_H__
+#define __DL_LIST_OBJECT_H__
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
+
+#include "function_types.h"
+#include "mem_monitor_object.h"
+#include "lock_object.h"
 
 typedef struct dl_list_element_s dl_list_element_t;
 
@@ -113,5 +120,5 @@ dl_list_destroy (dl_list_t *list);
 } // extern C
 #endif 
 
-#endif // __UTILS_H__
+#endif // __DL_LIST_OBJECT_H__
 

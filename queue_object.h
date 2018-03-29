@@ -34,7 +34,7 @@ extern "C" {
 #include <errno.h>
 #include <string.h>
 
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 
 /*

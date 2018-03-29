@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "ntrie_object.h"
+#include "radix_tree_object.h"
 
 #define MAX_REF		10
 #define MAX_BYTE 	255
@@ -48,21 +48,21 @@ int main (argc, argv)
 int argc;
 char *argv [];
 {
-    ntrie_t ntrie_obj;
+    radix_tree_t radix_tree_obj;
     int i, rc;
     void *found;
 
     printf("\nPOPULATING FASTMAP\n");
-    ntrie_init(&ntrie_obj, 0, NULL);
-    printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(ntrie_node_t));
+    radix_tree_init(&radix_tree_obj, 0, NULL);
+    printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(radix_tree_node_t));
     for (i = 0; i < (int) MAX_STRINGS; i++) {
-        ntrie_insert(&ntrie_obj, strings[i], strlen(strings[i]),
+        radix_tree_insert(&radix_tree_obj, strings[i], strlen(strings[i]),
 	    strings[i], &found);
     }
 
     /* these should NOT be found */
     printf("searching %s in ntrie, it should NOT be there\n", not_there1);
-    rc = ntrie_search(&ntrie_obj, not_there1, strlen(not_there1), &found);
+    rc = radix_tree_search(&radix_tree_obj, not_there1, strlen(not_there1), &found);
     if ((rc == 0) || found) {
         fprintf(stderr, "string %s should NOT be found but was\n", not_there1);
     } else {
@@ -70,7 +70,7 @@ char *argv [];
     }
 
     printf("searching %s in ntrie, it should NOT be there\n", not_there2);
-    rc = ntrie_search(&ntrie_obj, not_there2, strlen(not_there2), &found);
+    rc = radix_tree_search(&radix_tree_obj, not_there2, strlen(not_there2), &found);
     if ((rc == 0) || found) {
         fprintf(stderr, "string %s should NOT be found but was\n", not_there2);
     } else {
@@ -79,11 +79,11 @@ char *argv [];
     fflush(stdout);
 
     /* print out contents */
-    ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
+    radix_tree_traverse(&radix_tree_obj, print_key, NULL, NULL);
     printf("\n");
-    ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
+    radix_tree_traverse(&radix_tree_obj, print_key, NULL, NULL);
     printf("\n");
-    ntrie_traverse(&ntrie_obj, print_key, NULL, NULL);
+    radix_tree_traverse(&radix_tree_obj, print_key, NULL, NULL);
 
     return 0;
 }

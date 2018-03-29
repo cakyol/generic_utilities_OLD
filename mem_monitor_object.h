@@ -19,8 +19,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __MEM_MONITOR_H__
-#define __MEM_MONITOR_H__
+#ifndef __MEM_MONITOR_OBJECT_H__
+#define __MEM_MONITOR_OBJECT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,5 +78,5 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
 } // extern C
 #endif 
 
-#endif // __MEM_MONITOR_H__
+#endif // __MEM_MONITOR_OBJECT_H__
 

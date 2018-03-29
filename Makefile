@@ -16,29 +16,30 @@ INCLUDES =	-I.
 LIBNAME =	utils_lib.a
 
 LIB_OBJS =	timer_object.o \
-		mem_monitor.o \
+		mem_monitor_object.o \
 		lock_object.o \
-		bitlist.o \
+		bitlist_object.o \
 		stack_object.o \
 		queue_object.o \
-		linkedlist.o \
+		linkedlist_object.o \
 		chunk_manager.o \
 		index_object.o \
 		avl_tree_object.o \
 		table.o \
-		dynamic_array.o \
-		ntrie_object.o \
+		dynamic_array_object.o \
+		radix_tree_object.o \
 		scheduler.o \
 		generic_object_database.o \
 		test_data_generator.o \
 		\
+		### dl_list_object.o \
 		### utils_common.o \
 		### event_manager.o \
 
 %.o:		%.c %.h \
 		pointer_manipulations.h \
 		function_types.h \
-		mem_monitor.h \
+		mem_monitor_object.h \
 		object_types.h \
 		event_types.h 
 		$(CC) -c $(CFLAGS) $<
@@ -92,13 +93,13 @@ test_avl_object:	test_avl_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_avl_object.c \
 			    -o test_avl_object $(LIBNAME) $(STATIC_LIBS)
 
-test_ntrie:		test_ntrie.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie.c \
-			    -o test_ntrie $(LIBNAME) $(STATIC_LIBS)
+test_radix_tree:		test_radix_tree.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_radix_tree.c \
+			    -o test_radix_tree $(LIBNAME) $(STATIC_LIBS)
 
-test_ntrie2:		test_ntrie2.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_ntrie2.c \
-			    -o test_ntrie2 $(LIBNAME) $(STATIC_LIBS)
+test_radix_tree2:		test_radix_tree2.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_radix_tree2.c \
+			    -o test_radix_tree2 $(LIBNAME) $(STATIC_LIBS)
 
 test_dynamic_array:	test_dynamic_array.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_dynamic_array.c \
@@ -136,8 +137,8 @@ TESTS =		test_lock_object \
 		test_index_object \
 		test_avl_object \
 		test_dynamic_array \
-		test_ntrie \
-		test_ntrie2 \
+		test_radix_tree \
+		test_radix_tree2 \
 		test_db \
 		test_db_load \
 		test_db_speed \

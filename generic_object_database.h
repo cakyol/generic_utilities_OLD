@@ -98,11 +98,11 @@ extern "C" {
 #include <unistd.h>
 #include <assert.h>
 
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 #include "pointer_manipulations.h"
 #include "table.h"
-#include "dynamic_array.h"
+#include "dynamic_array_object.h"
 #include "object_types.h"
 #include "event_types.h"
 

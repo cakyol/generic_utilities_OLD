@@ -54,8 +54,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __DYNAMIC_ARRAY_H__
-#define __DYNAMIC_ARRAY_H__
+#ifndef __DYNAMIC_ARRAY_OBJECT_H__
+#define __DYNAMIC_ARRAY_OBJECT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,7 +64,7 @@ extern "C" {
 #include <errno.h>
 #include <assert.h>
 
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 
 typedef struct dynamic_array_s {
@@ -120,5 +120,5 @@ dynamic_array_destroy (dynamic_array_t *datp);
 } // extern C
 #endif 
 
-#endif // __DYNAMIC_ARRAY_H__
+#endif // __DYNAMIC_ARRAY_OBJECT_H__
 

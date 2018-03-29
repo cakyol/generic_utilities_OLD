@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "dynamic_array.h"
+#include "dynamic_array_object.h"
 
 #define EXCESS              10000
 #define VALID_START         -5000

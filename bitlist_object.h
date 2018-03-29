@@ -44,8 +44,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __BITLIST_H__
-#define __BITLIST_H__
+#ifndef __BITLIST_OBJECT_H__
+#define __BITLIST_OBJECT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,7 +55,7 @@ extern "C" {
 #include <stdlib.h>
 #include <strings.h>
 
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 
 typedef struct bitlist_s {
@@ -111,7 +111,7 @@ bitlist_destroy (bitlist_t *bl);
 } // extern C
 #endif
 
-#endif // __BITLIST_H__
+#endif // __BITLIST_OBJECT_H__
 
 
 

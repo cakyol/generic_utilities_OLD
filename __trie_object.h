@@ -151,50 +151,50 @@ trie_destroy (trie_t *triep);
 #define FASTMAP_ALPHABET_SIZE				\
     (HIGHEST_FASTMAP_ALPHABET_VALUE - LOWEST_FASTMAP_ALPHABET_VALUE + 1)
 
-typedef struct ntrie_node_s ntrie_node_t;
+typedef struct radix_tree_node_s radix_tree_node_t;
 
-struct ntrie_node_s {
+struct radix_tree_node_s {
 
-    ntrie_node_t *children [FASTMAP_ALPHABET_SIZE];
-    ntrie_node_t* parent;
+    radix_tree_node_t *children [FASTMAP_ALPHABET_SIZE];
+    radix_tree_node_t* parent;
     datum_t user_data;
     byte value;
     byte n_children;
 };
 
-typedef struct ntrie_s {
+typedef struct radix_tree_s {
 
     mem_monitor_t memory, *memp;
     int node_count;
-    ntrie_node_t ntrie_root;
+    radix_tree_node_t radix_tree_root;
 
-} ntrie_t;
+} radix_tree_t;
 
 extern void 
-ntrie_init (ntrie_t *ntp, mem_monitor_t *parent_mem_monitor);
+radix_tree_init (radix_tree_t *ntp, mem_monitor_t *parent_mem_monitor);
 
 extern error_t 
-ntrie_insert (ntrie_t *ntp, void *key, int key_length, 
+radix_tree_insert (radix_tree_t *ntp, void *key, int key_length, 
     void *user_data, void **found_data);
 
 extern error_t 
-ntrie_search (ntrie_t *ntp, void *key, int key_length, void **found_data);
+radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **found_data);
 
 extern error_t 
-ntrie_remove (ntrie_t *ntp, void *key, int key_length, void **removed_data);
+radix_tree_remove (radix_tree_t *ntp, void *key, int key_length, void **removed_data);
 
 extern error_t
-ntrie_traverse (ntrie_t *triep, trie_traverse_function_pointer tfn,
+radix_tree_traverse (radix_tree_t *triep, trie_traverse_function_pointer tfn,
     void *p0, void *p1, void *p2, void *p3);
 
 extern uint64
-ntrie_memory_usage (ntrie_t *ntp, double *mega_bytes);
+radix_tree_memory_usage (radix_tree_t *ntp, double *mega_bytes);
 
 extern void 
-ntrie_reset (ntrie_t *ntp);
+radix_tree_reset (radix_tree_t *ntp);
 
 extern void 
-ntrie_destroy (ntrie_t *ntp);
+radix_tree_destroy (radix_tree_t *ntp);
 
 #ifdef __cplusplus
 } // extern C

@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "bitlist.h"
+#include "bitlist_object.h"
 
 #define LOW	-100000
 #define HI	100000

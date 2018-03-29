@@ -42,14 +42,14 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __CHUNK_MANAGER_OBJECT_H__
-#define __CHUNK_MANAGER_OBJECT_H__
+#ifndef __CHUNK_MANAGER_H__
+#define __CHUNK_MANAGER_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "mem_monitor.h"
+#include "mem_monitor_object.h"
 #include "lock_object.h"
 
 typedef struct chunk_manager_s {
@@ -149,6 +149,6 @@ chunk_manager_destroy (chunk_manager_t *cmgr);
 } // extern C
 #endif 
 
-#endif // __CHUNK_MANAGER_OBJECT_H__
+#endif // __CHUNK_MANAGER_H__
 
 

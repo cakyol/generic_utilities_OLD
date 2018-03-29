@@ -29,7 +29,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include "linkedlist.h"
+#include "linkedlist_object.h"
 
 #define PUBLIC
 
