@@ -72,8 +72,10 @@ typedef struct dl_list_s {
 } dl_list_t;
 
 extern int
-dl_list_init (dl_list_t *list, object_comparer
-        objects_match_function);
+dl_list_init (dl_list_t *list,
+    int make_it_thread_safe,
+    object_comparer objects_match_function,
+    mem_monitor_t *parent_mem_monitor);
 
 extern int 
 dl_list_prepend_object (dl_list_t *list, void *object);

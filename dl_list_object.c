@@ -158,7 +158,7 @@ thread_unsafe_dl_list_prepend_object (dl_list_t *list, void *object)
     int err = ENOMEM;
     dl_list_element_t *elem;
     
-    elem = dl_list_new_element(object);
+    elem = dl_list_new_element(list, object);
     if (elem) {
         thread_unsafe_dl_list_prepend_element(list, elem);
         err = 0;
@@ -172,7 +172,7 @@ thread_unsafe_dl_list_append_object (dl_list_t *list, void *object)
     int err = ENOMEM;
     dl_list_element_t *elem;
     
-    elem = dl_list_new_element(object);
+    elem = dl_list_new_element(list, object);
     if (elem) {
         thread_unsafe_dl_list_append_element(list, elem);
         err = 0;
@@ -188,8 +188,6 @@ dl_list_init (dl_list_t *list,
         object_comparer objects_match_function,
         mem_monitor_t *parent_mem_monitor)
 {
-    int err;
-
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
 
@@ -237,7 +235,7 @@ dl_list_find_object (dl_list_t *list, void *object,
 }
 
 void
-dl_list_iterate (dl_list_t *list, object_comparer iterator_fnp,
+dl_list_iterate (dl_list_t *list, object_comparer iterator,
         void *extra_arg, int stop_if_fails)
 {
     dl_list_element_t *elem;
@@ -245,7 +243,7 @@ dl_list_iterate (dl_list_t *list, object_comparer iterator_fnp,
     READ_LOCK(list);
     elem = list->head;
     while (elem) {
-        if (iterator_fnp(elem->object, extra_arg) && stop_if_fails) break;
+        if (iterator(elem->object, extra_arg) && stop_if_fails) break;
         elem = elem->next;
     }
     READ_UNLOCK(list);
@@ -275,7 +273,7 @@ dl_list_destroy (dl_list_t *list)
     assert(list->head == NULL);
     assert(list->tail == NULL);
     WRITE_UNLOCK(list);
-    lock_obj_destroy(&list->lock);
+    lock_obj_destroy(list->lock);
 }
 
 #ifdef __cplusplus

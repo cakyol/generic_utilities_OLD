@@ -22,6 +22,7 @@ LIB_OBJS =	timer_object.o \
 		stack_object.o \
 		queue_object.o \
 		linkedlist_object.o \
+		dl_list_object.o \
 		chunk_manager.o \
 		index_object.o \
 		avl_tree_object.o \
@@ -32,7 +33,6 @@ LIB_OBJS =	timer_object.o \
 		generic_object_database.o \
 		test_data_generator.o \
 		\
-		### dl_list_object.o \
 		### utils_common.o \
 		### event_manager.o \
 
