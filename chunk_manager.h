@@ -104,11 +104,30 @@ typedef struct chunk_manager_s {
 
 } chunk_manager_t;
 
+/*
+ * If a chunk manager is to be used with any of the objects,
+ * then a pointer to this structure is passed, which contains 
+ * all the parameters that are needed to initialize & use the
+ * chunk manager.  Otherwise, a NULL is passed indicating 
+ * that the object is simply using malloc'ed memory instead
+ * of the chunk manager.
+ */
+typedef struct chunk_manager_parameters_s {
+
+    int initial_number_of_chunks;
+    int grow_size;
+
+} chunk_manager_parameters_t;
+
 extern int
 chunk_manager_init (chunk_manager_t *cmgr,
 	int make_it_thread_safe,
         int chunk_size, int initial_number_of_chunks, int grow,
         mem_monitor_t *parent_mem_monitor);
+
+#define CHUNK_MANAGER_VARIABLES \
+    chunk_manager_t chunk_structure; \
+    chunk_manager_t *chunks
 
 extern void *
 chunk_manager_alloc (chunk_manager_t *cmgr);
@@ -144,6 +163,30 @@ chunk_manager_trim (chunk_manager_t *cmgr);
  */
 extern int
 chunk_manager_destroy (chunk_manager_t *cmgr);
+
+#define CHUNK_MANAGER_SETUP(obj, chunk_size, cmpp) \
+    if (cmpp) { \
+	int __rv__; \
+	obj->chunks = &obj->chunk_structure; \
+	__rv__ = chunk_manager_init(obj->chunks, 0, \
+		    chunk_size, \
+		    cmpp->initial_number_of_chunks, \
+		    cmpp->grow_size, (obj)->mem_mon_p); \
+	if (__rv__) return __rv__; \
+    } else { \
+	obj->chunks = 0; \
+    }
+
+#define CHUNK_ALLOC(obj, size) \
+    (obj)->chunks ? \
+	chunk_manager_alloc((obj)->chunks) : \
+	MEM_MONITOR_ALLOC((obj), size);
+
+#define CHUNK_FREE(obj, ptr) \
+    if ((obj)->chunks) \
+	chunk_manager_free((obj)->chunks, ptr); \
+    else \
+	MEM_MONITOR_FREE((obj), ptr);
 
 #ifdef __cplusplus
 } // extern C

@@ -43,7 +43,7 @@ table_init (table_t *tablep,
     if (use_avl_tree) {
 	return
 	    avl_tree_init(&tablep->u.avl, 
-                make_it_thread_safe, cmpf, parent_mem_monitor);
+                make_it_thread_safe, cmpf, parent_mem_monitor, NULL);
     }
     return
 	index_obj_init(&tablep->u.idx, 

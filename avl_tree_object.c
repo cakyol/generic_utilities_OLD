@@ -162,24 +162,15 @@ avl_lookup_engine (avl_tree_t *tree,
 static inline void
 free_avl_node (avl_tree_t *tree, avl_node_t *node)
 {
-#ifdef USE_CHUNK_MANAGER
-    chunk_manager_free(&tree->nodes, node);
-#else
-    MEM_MONITOR_FREE(tree, node);
-#endif
+    CHUNK_FREE(tree, node);
     tree->n--;
 }
 
 static inline avl_node_t *
 new_avl_node (avl_tree_t *tree, void *user_data)
 {
-    avl_node_t *node;
+    avl_node_t *node = CHUNK_ALLOC(tree, sizeof(avl_node_t));
 
-#ifdef USE_CHUNK_MANAGER
-    node = chunk_manager_alloc(&tree->nodes);
-#else
-    node = MEM_MONITOR_ALLOC(tree, sizeof(avl_node_t));
-#endif
     if (node) {
         node->parent = node->left = node->right = NULL;
         node->balance = 0;
@@ -589,25 +580,17 @@ PUBLIC int
 avl_tree_init (avl_tree_t *tree,
 	int make_it_thread_safe,
 	object_comparer cmpf,
-        mem_monitor_t *parent_mem_monitor)
+        mem_monitor_t *parent_mem_monitor,
+	chunk_manager_parameters_t *cmpp)
 {
     if (NULL == cmpf) return EINVAL;
     MEM_MONITOR_SETUP(tree);
     LOCK_SETUP(tree);
+    CHUNK_MANAGER_SETUP(tree, sizeof(avl_node_t), cmpp);
+
     tree->cmpf = cmpf;
-
-#ifdef USE_CHUNK_MANAGER
-    chunk_manager_init(&tree->nodes, 
-        0, 
-        sizeof(avl_node_t), 1024, 1024, tree->mem_mon_p);
-#endif // USE_CHUNK_MANAGER
-
     tree->n = 0;
     tree->root_node = NULL;
-    
-#if 0
-    tree->first_node = tree->last_node = NULL;
-#endif
 
     WRITE_UNLOCK(tree);
 

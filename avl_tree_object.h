@@ -36,11 +36,8 @@ extern "C" {
 
 #include "mem_monitor_object.h"
 #include "lock_object.h"
-#include "function_types.h"
-
-#ifdef USE_CHUNK_MANAGER
 #include "chunk_manager.h"
-#endif // USE_CHUNK_MANAGER
+#include "function_types.h"
 
 typedef struct avl_node_s avl_node_t;
 
@@ -56,19 +53,10 @@ typedef struct avl_tree_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    CHUNK_MANAGER_VARIABLES;
 
     avl_node_t *root_node;
-    
-#if 0
-    *first_node, *last_node;
-#endif
-
     object_comparer cmpf;
-
-#ifdef USE_CHUNK_MANAGER
-    chunk_manager_t nodes;
-#endif // USE_CHUNK_MANAGER
-
     int n;
 
 } avl_tree_t;
@@ -85,7 +73,8 @@ extern int
 avl_tree_init (avl_tree_t *tree,
 	int make_it_thread_safe,
 	object_comparer cmpf,
-        mem_monitor_t *parent_mem_monitor);
+        mem_monitor_t *parent_mem_monitor,
+	chunk_manager_parameters_t *cmpp);
 
 /**************************** Insert *****************************************/
 
