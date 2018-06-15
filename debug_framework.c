@@ -53,13 +53,9 @@ print_debug_message (int module, int level,
     size_left = STATIC_MESSAGE_BUFFER_SIZE;
     index = 0;
 
-    /* write filename */
-    len = vsnprintf(msg_buffer, size_left, "%s: ", filename);
-    size_left -= len;
-    index += len;
-
-    /* write line number */
-    len = vsnprintf(&msg_buffer[index], size_left, "%d: ", line_number);
+    /* write module number in case grep on module is needed */
+    len = vsnprintf(&msg_buffer[index], size_left,
+                "M: %d, F: %s, L: %d >> ", module, filename, line_number);
     size_left -= len;
     index += len;
 
