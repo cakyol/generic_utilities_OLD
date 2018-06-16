@@ -39,10 +39,41 @@ extern "C" {
 #include <stdio.h>
 #include <assert.h>
 
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
+
 /*
  * How many modules this debug infrastructure supports
  */
 #define MAX_MODULES                 1024
+
+#define REPORT_DEBUG(module, fmt, args...) \
+    if (module_can_report(module, DEBUG_DEBUG_LEVEL) \
+        print_debug_message(module, DEBUG_DEBUG_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args))
+
+#define REPORT_INFORMATION(module, fmt, args...) \
+    if (module_can_report(module, INFORMATION_DEBUG_LEVEL) \
+        print_debug_message(module, INFORMATION_DEBUG_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args))
+
+#define REPORT_WARNING(module, fmt, args...) \
+    if (module_can_report(module, WARNING_DEBUG_LEVEL) \
+        print_debug_message(module, WARNING_DEBUG_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args)
+
+#define REPORT_ERROR(module, fmt, args...) \
+    if (module_can_report(module, ERROR_DEBUG_LEVEL) \
+        print_debug_message(module, ERROR_DEBUG_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args))
+
+#define REPORT_FATAL_ERROR(module, fmt, args...) \
+    print_debug_message(module, FATAL_DEBUG_LEVEL, \
+        __FUNCTION__, __LINE__, fmt, ## args)
+
+extern int
+set_module_debug_level (int module, int level);
+
+/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 
 #define MIN_DEBUG_LEVEL             0
 #define DEBUG_DEBUG_LEVEL           MIN_DEBUG_LEVEL
@@ -56,33 +87,19 @@ extern "C" {
     #error  "max debug level must be < 256"
 #endif
 
-extern int
-set_module_debug_level (int module, int level);
+extern unsigned char 
+module_debug_levels [MAX_MODULES];
 
-#define REPORT_DEBUG(module, fmt, args...) \
-    print_debug_message(module, DEBUG_DEBUG_LEVEL, \
-        __FUNCTION__, __LINE__, fmt, ## args)
+static inline int
+module_can_report (int module, int level) 
+{
+    return 
+        (module >= 0) && (module < MAX_MODULES) &&
+        (level >= module_debug_levels[level]);
 
-#define REPORT_INFORMATION(module, fmt, args...) \
-    print_debug_message(module, INFORMATION_DEBUG_LEVEL, \
-        __FUNCTION__, __LINE__, fmt, ## args)
+}
 
-#define REPORT_WARNING(module, fmt, args...) \
-    print_debug_message(module, WARNING_DEBUG_LEVEL, \
-        __FUNCTION__, __LINE__, fmt, ## args)
-
-#define REPORT_ERROR(module, fmt, args...) \
-    print_debug_message(module, ERROR_DEBUG_LEVEL, \
-        __FUNCTION__, __LINE__, fmt, ## args)
-
-#define REPORT_FATAL_ERROR(module, fmt, args...) \
-    print_debug_message(module, FATAL_DEBUG_LEVEL, \
-        __FUNCTION__, __LINE__, fmt, ## args)
-
-/*
- * Do not use this directly, always use the macros above instead
- */
-extern int
+extern void
 print_debug_message (int module, int level,
     char *function_name, int line_number,
     char *fmt, ...);

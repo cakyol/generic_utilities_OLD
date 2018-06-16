@@ -36,12 +36,13 @@ extern "C" {
 /*
  * all modules' default error reporting level is set to ERROR_DEBUG_LEVEL
  */
-static unsigned char module_debug_levels [MAX_MODULES] = { ERROR_DEBUG_LEVEL };
+unsigned char module_debug_levels [MAX_MODULES] = { ERROR_DEBUG_LEVEL };
 
 /*
  * set a single module's error/debug reporting thereshold
  */
-int set_module_debug_level (int module, int level)
+int 
+set_module_debug_level (int module, int level)
 {
     /* check module validity */
     if ((module < 0) || (module >= MAX_MODULES)) return EINVAL;
@@ -59,7 +60,7 @@ int set_module_debug_level (int module, int level)
     return 0;
 }
 
-int
+void
 print_debug_message (int module, int level,
     char *function_name, int line_number,
     char *fmt, ...)
@@ -70,18 +71,6 @@ print_debug_message (int module, int level,
     va_list args;
     char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
     int index, size_left, len;
-
-    /* invalid module */
-    if ((module < 0) || (module >= MAX_MODULES)) return EINVAL;
-
-    /*
-     * fatal errors are ALWAYS processed regardless of what the current
-     * debug level has been set to.  Otherwise, error is processed only if
-     * its level is >= to the threshold value set for this specific module.
-     */
-    if (level < FATAL_DEBUG_LEVEL) {
-        if (level < module_debug_levels[module]) return EPERM;
-    }
 
     size_left = DEBUG_MESSAGE_BUFFER_SIZE;
     index = 0;
@@ -100,9 +89,6 @@ print_debug_message (int module, int level,
 
     /* fatal error MUST ALWAYS crash the system */
     if (level >= FATAL_DEBUG_LEVEL) assert(1);
-
-    /* done */
-    return 0;
 }
 
 #ifdef __cplusplus
