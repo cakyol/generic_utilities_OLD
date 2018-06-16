@@ -1,19 +1,46 @@
 
-#define MAX_MODULES             256
+/******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+**
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com, gee_akyol@yahoo.com
+** Copyright: Cihangir Metin Akyol, April 2014 -> ....
+**
+** All this code has been personally developed by and belongs to 
+** Mr. Cihangir Metin Akyol.  It has been developed in his own 
+** personal time using his own personal resources.  Therefore,
+** it is NOT owned by any establishment, group, company or 
+** consortium.  It is the sole property and work of the named
+** individual.
+**
+** It CAN be used by ANYONE or ANY company for ANY purpose as long 
+** as ownership and/or patent claims are NOT made to it by ANYONE
+** or ANY ENTITY.
+**
+** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+**
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+******************************************************************************/
 
-#define MIN_DEBUG_LEVEL         0
-#define DEBUG                   (MIN_DEBUG_LEVEL)
-#define INFO                    (DEBUG + 1)
-#define WARN                    (INFO + 1)
-#define ERROR                   (WARN + 1)
-#define FATAL                   (ERROR + 1)
-#define MAX_DEBUG_LEVEL         FATAL
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "debug_framework.h"
 
 /*
- * by default, all errors and higher levels are enabled
+ * all modules' default error reporting level is set to ERROR_DEBUG_LEVEL
  */
-static module_debug_levels [MAX_MODULES] = { ERROR };
+static unsigned char module_debug_levels [MAX_MODULES] = { ERROR_DEBUG_LEVEL };
 
+/*
+ * set a single module's error/debug reporting thereshold
+ */
 int set_module_debug_level (int module, int level)
 {
     /* check module validity */
@@ -26,7 +53,7 @@ int set_module_debug_level (int module, int level)
         level = MAX_DEBUG_LEVEL;
 
     /* set it */
-    module_debug_levels[module] = level;
+    module_debug_levels[module] = (unsigned char) level;
 
     /* done */
     return 0;
@@ -34,28 +61,34 @@ int set_module_debug_level (int module, int level)
 
 int
 print_debug_message (int module, int level,
-    char *filename, int line_number,
+    char *function_name, int line_number,
     char *fmt, ...)
 {
 
-#define STATIC_MESSAGE_BUFFER_SIZE      512
+#define DEBUG_MESSAGE_BUFFER_SIZE      512
 
     va_list args;
-    char msg_buffer [STATIC_MESSAGE_BUFFER_SIZE];
+    char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
     int index, size_left, len;
 
     /* invalid module */
     if ((module < 0) || (module >= MAX_MODULES)) return EINVAL;
 
-    /* not allowed, level threshold is higher than requested level */
-    if (level < module_debug_levels[module]) return EPERM;
+    /*
+     * fatal errors are ALWAYS processed regardless of what the current
+     * debug level has been set to.  Otherwise, error is processed only if
+     * its level is >= to the threshold value set for this specific module.
+     */
+    if (level < FATAL_DEBUG_LEVEL) {
+        if (level < module_debug_levels[module]) return EPERM;
+    }
 
-    size_left = STATIC_MESSAGE_BUFFER_SIZE;
+    size_left = DEBUG_MESSAGE_BUFFER_SIZE;
     index = 0;
 
     /* write module number in case grep on module is needed */
-    len = vsnprintf(&msg_buffer[index], size_left,
-                "M: %d, F: %s, L: %d >> ", module, filename, line_number);
+    len = snprintf(&msg_buffer[index], size_left,
+                "M: %d, F: %s, L: %d >> ", module, function_name, line_number);
     size_left -= len;
     index += len;
 
@@ -63,11 +96,18 @@ print_debug_message (int module, int level,
     vsnprintf(&msg_buffer[index], size_left, fmt, args);
     va_end(args);
 
-    /* print here */
+    /* do the actual printing operation here */
+
+    /* fatal error MUST ALWAYS crash the system */
+    if (level >= FATAL_DEBUG_LEVEL) assert(1);
 
     /* done */
     return 0;
 }
+
+#ifdef __cplusplus
+} // extern C
+#endif
 
 
 
