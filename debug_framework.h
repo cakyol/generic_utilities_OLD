@@ -46,33 +46,41 @@ extern "C" {
  */
 #define MAX_MODULES                 1024
 
+extern int
+set_module_debug_level (int module, int level);
+
 #define REPORT_DEBUG(module, fmt, args...) \
     if (module_can_report(module, DEBUG_DEBUG_LEVEL) \
-        print_debug_message(module, DEBUG_DEBUG_LEVEL, \
+        report_debug_message(module, DEBUG_DEBUG_LEVEL, \
             __FUNCTION__, __LINE__, fmt, ## args))
 
 #define REPORT_INFORMATION(module, fmt, args...) \
     if (module_can_report(module, INFORMATION_DEBUG_LEVEL) \
-        print_debug_message(module, INFORMATION_DEBUG_LEVEL, \
+        report_debug_message(module, INFORMATION_DEBUG_LEVEL, \
             __FUNCTION__, __LINE__, fmt, ## args))
 
 #define REPORT_WARNING(module, fmt, args...) \
     if (module_can_report(module, WARNING_DEBUG_LEVEL) \
-        print_debug_message(module, WARNING_DEBUG_LEVEL, \
+        report_debug_message(module, WARNING_DEBUG_LEVEL, \
             __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_ERROR(module, fmt, args...) \
     if (module_can_report(module, ERROR_DEBUG_LEVEL) \
-        print_debug_message(module, ERROR_DEBUG_LEVEL, \
+        report_debug_message(module, ERROR_DEBUG_LEVEL, \
             __FUNCTION__, __LINE__, fmt, ## args))
 
+/*
+ * fatal errors ALWAYS dump, no need to check
+ */
 #define REPORT_FATAL_ERROR(module, fmt, args...) \
-    print_debug_message(module, FATAL_DEBUG_LEVEL, \
+    report_debug_message(module, FATAL_DEBUG_LEVEL, \
         __FUNCTION__, __LINE__, fmt, ## args)
 
-extern int
-set_module_debug_level (int module, int level);
-
+/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
+/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
+/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
+/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
+/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 
 #define MIN_DEBUG_LEVEL             0
@@ -90,17 +98,21 @@ set_module_debug_level (int module, int level);
 extern unsigned char 
 module_debug_levels [MAX_MODULES];
 
+/*
+ * module 0 ALWAYS gets printed, wildcard.
+ * Otherwise, the level must be allowed for that particular module to print.
+ */
 static inline int
 module_can_report (int module, int level) 
 {
     return 
-        (module >= 0) && (module < MAX_MODULES) &&
-        (level >= module_debug_levels[level]);
-
+        (module == 0) ||
+        ((module > 0) && (module < MAX_MODULES) && 
+            (level >= module_debug_levels[level]));
 }
 
 extern void
-print_debug_message (int module, int level,
+report_debug_message (int module, int level,
     char *function_name, int line_number,
     char *fmt, ...);
 

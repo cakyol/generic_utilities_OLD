@@ -45,7 +45,7 @@ int
 set_module_debug_level (int module, int level)
 {
     /* check module validity */
-    if ((module < 0) || (module >= MAX_MODULES)) return EINVAL;
+    if ((module < 1) || (module >= MAX_MODULES)) return EINVAL;
 
     /* trim debug level to limits */
     if (level < MIN_DEBUG_LEVEL) 
@@ -61,7 +61,7 @@ set_module_debug_level (int module, int level)
 }
 
 void
-print_debug_message (int module, int level,
+report_debug_message (int module, int level,
     char *function_name, int line_number,
     char *fmt, ...)
 {
@@ -85,7 +85,7 @@ print_debug_message (int module, int level,
     vsnprintf(&msg_buffer[index], size_left, fmt, args);
     va_end(args);
 
-    /* do the actual printing operation here */
+    /* do the actual printing/reporting operation here */
 
     /* fatal error MUST ALWAYS crash the system */
     if (level >= FATAL_DEBUG_LEVEL) assert(1);
