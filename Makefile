@@ -49,6 +49,10 @@ utils_lib.a:	$(LIB_OBJS)
 		ar -r $(LIBNAME) $(LIB_OBJS)
 		ranlib $(LIBNAME)
 
+test_debug_framework:	test_debug_framework.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_debug_framework.c \
+			    -o test_debug_framework $(LIBNAME) $(STATIC_LIBS)
+
 test_lock_object:	test_lock_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_lock_object.c \
 			    -o test_lock_object $(LIBNAME) $(STATIC_LIBS)
@@ -126,7 +130,8 @@ test_scheduler:		test_scheduler.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_scheduler.c \
 			    -o test_scheduler $(LIBNAME) $(STATIC_LIBS)
 
-TESTS =		test_lock_object \
+TESTS =		test_debug_framework \
+		test_lock_object \
 		test_lock_speed \
 		test_stack_object \
 		test_bitlist \

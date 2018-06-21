@@ -46,34 +46,59 @@ extern "C" {
  */
 #define MAX_MODULES                 1024
 
+#define DEBUG_LEVEL                 0
+#define INFORMATION_LEVEL           1
+#define WARNING_LEVEL               2
+#define ERROR_LEVEL                 3
+#define FATAL_ERROR_LEVEL           4
+#define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
+
+/*
+ * This is a function which takes a printable string and 'reports' it.
+ * The 'reporting' is up to the user, it can be a printf, kernel print,
+ * write to a file, etc, etc....
+ */
+typedef void (*debug_reporting_function_t)(char*);
+
 extern int
 set_module_debug_level (int module, int level);
 
+extern int
+register_module_name (int module, char *module_name);
+
+/*
+ * Register your own debug reporting function to be called.  If NULL is passed,
+ * the default reporting function will be used, which is printing to the 
+ * standard error file.
+ */
+extern void
+register_debug_reporting_function (debug_reporting_function_t drf);
+
 #define REPORT_DEBUG(module, fmt, args...) \
-    if (module_can_report(module, DEBUG_DEBUG_LEVEL) \
-        report_debug_message(module, DEBUG_DEBUG_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args))
+    if (module_can_report(module, DEBUG_LEVEL)) \
+        report_debug_message(module, DEBUG_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_INFORMATION(module, fmt, args...) \
-    if (module_can_report(module, INFORMATION_DEBUG_LEVEL) \
-        report_debug_message(module, INFORMATION_DEBUG_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args))
+    if (module_can_report(module, INFORMATION_LEVEL)) \
+        report_debug_message(module, INFORMATION_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_WARNING(module, fmt, args...) \
-    if (module_can_report(module, WARNING_DEBUG_LEVEL) \
-        report_debug_message(module, WARNING_DEBUG_LEVEL, \
+    if (module_can_report(module, WARNING_LEVEL)) \
+        report_debug_message(module, WARNING_LEVEL, \
             __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_ERROR(module, fmt, args...) \
-    if (module_can_report(module, ERROR_DEBUG_LEVEL) \
-        report_debug_message(module, ERROR_DEBUG_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args))
+    if (module_can_report(module, ERROR_LEVEL)) \
+        report_debug_message(module, ERROR_LEVEL, \
+            __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
- * fatal errors ALWAYS dump, no need to check
+ * fatal errors ALWAYS report, no need to check
  */
 #define REPORT_FATAL_ERROR(module, fmt, args...) \
-    report_debug_message(module, FATAL_DEBUG_LEVEL, \
+    report_debug_message(module, FATAL_ERROR_LEVEL, \
         __FUNCTION__, __LINE__, fmt, ## args)
 
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
@@ -82,14 +107,6 @@ set_module_debug_level (int module, int level);
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
-
-#define MIN_DEBUG_LEVEL             0
-#define DEBUG_DEBUG_LEVEL           MIN_DEBUG_LEVEL
-#define INFORMATION_DEBUG_LEVEL     10
-#define WARNING_DEBUG_LEVEL         20
-#define ERROR_DEBUG_LEVEL           30
-#define FATAL_DEBUG_LEVEL           40
-#define MAX_DEBUG_LEVEL             FATAL_DEBUG_LEVEL
 
 #if MAX_DEBUG_LEVEL > 255
     #error  "max debug level must be < 256"
@@ -108,12 +125,12 @@ module_can_report (int module, int level)
     return 
         (module == 0) ||
         ((module > 0) && (module < MAX_MODULES) && 
-            (level >= module_debug_levels[level]));
+            (level >= module_debug_levels[module]));
 }
 
 extern void
 report_debug_message (int module, int level,
-    char *function_name, int line_number,
+    const char *function_name, int line_number,
     char *fmt, ...);
 
 #ifdef __cplusplus

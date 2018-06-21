@@ -34,9 +34,22 @@ extern "C" {
 #include "debug_framework.h"
 
 /*
- * all modules' default error reporting level is set to ERROR_DEBUG_LEVEL
+ * all modules' default error reporting level is set to ERROR_LEVEL
  */
-unsigned char module_debug_levels [MAX_MODULES] = { ERROR_DEBUG_LEVEL };
+unsigned char module_debug_levels [MAX_MODULES] = { ERROR_LEVEL };
+static char *module_names [MAX_MODULES] = { 0 };
+static char *debug_level_names [DEBUG_LEVEL_SPAN] =
+    { "DEBUG", "INFO", "WARNING", "ERROR", "FATAL_ERROR" };
+
+static void
+default_debug_reporting_function (char *debug_string)
+{
+    fprintf(stderr, "%s", debug_string);
+    fflush(stderr);
+}
+
+static
+debug_reporting_function_t current_drf = &default_debug_reporting_function;
 
 /*
  * set a single module's error/debug reporting thereshold
@@ -48,10 +61,10 @@ set_module_debug_level (int module, int level)
     if ((module < 1) || (module >= MAX_MODULES)) return EINVAL;
 
     /* trim debug level to limits */
-    if (level < MIN_DEBUG_LEVEL) 
-        level = MIN_DEBUG_LEVEL;
-    else if (level > MAX_DEBUG_LEVEL) 
-        level = MAX_DEBUG_LEVEL;
+    if (level < DEBUG_LEVEL) 
+        level = DEBUG_LEVEL;
+    else if (level > FATAL_ERROR_LEVEL) 
+        level = FATAL_ERROR_LEVEL;
 
     /* set it */
     module_debug_levels[module] = (unsigned char) level;
@@ -60,9 +73,25 @@ set_module_debug_level (int module, int level)
     return 0;
 }
 
+int
+register_module_name (int module, char *module_name)
+{
+    if ((module > 0) && (module < MAX_MODULES)) {
+        module_names[module] = module_name;
+        return 0;
+    }
+    return -1;
+}
+
+void
+register_debug_reporting_function (debug_reporting_function_t drf)
+{
+    current_drf = drf ? drf : &default_debug_reporting_function;
+}
+
 void
 report_debug_message (int module, int level,
-    char *function_name, int line_number,
+    const char *function_name, int line_number,
     char *fmt, ...)
 {
 
@@ -75,20 +104,33 @@ report_debug_message (int module, int level,
     size_left = DEBUG_MESSAGE_BUFFER_SIZE;
     index = 0;
 
+    if (0 == module_names[module]) {
+
+    }
+
     /* write module number in case grep on module is needed */
     len = snprintf(&msg_buffer[index], size_left,
-                "M: %d, F: %s, L: %d >> ", module, function_name, line_number);
+                "%s: mod: %d, fn: %s, ln: %d >> ",
+                debug_level_names[level], module, function_name, line_number);
     size_left -= len;
     index += len;
 
     va_start(args, fmt);
-    vsnprintf(&msg_buffer[index], size_left, fmt, args);
+    len += vsnprintf(&msg_buffer[index], size_left, fmt, args);
     va_end(args);
 
-    /* do the actual printing/reporting operation here */
+    /* add a newline and terminate with a null */
+    msg_buffer[len] = '\n';
+    msg_buffer[len + 1] = 0;
+
+    /*
+     * do the actual printing/reporting operation here using
+     * the currently registered debug printing function
+     */
+    current_drf(msg_buffer);
 
     /* fatal error MUST ALWAYS crash the system */
-    if (level >= FATAL_DEBUG_LEVEL) assert(1);
+    if (level >= FATAL_ERROR_LEVEL) assert(1);
 }
 
 #ifdef __cplusplus
