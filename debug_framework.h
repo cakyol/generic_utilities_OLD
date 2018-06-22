@@ -55,26 +55,41 @@ extern "C" {
 #define FATAL_ERROR_LEVEL           4
 #define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
 
-/*
- * This is a function which takes a printable string and 'reports' it.
- * The 'reporting' is up to the user, it can be a printf, kernel print,
- * write to a file, etc, etc....
- */
 typedef void (*debug_reporting_function_t)(char*);
 
+/*
+ * This function sets the debug level for a module such that reporting
+ * requests lower than this value will not be reported.
+ */
 extern int
 set_module_debug_level (int module, int level);
 
+/*
+ * This function updates the module name of a module so it can be 
+ * reported more verbosely.  If NULL is passed, the name is cancelled
+ * and the numeric form of the module will be reported. Valid modules
+ * are 1 to MAX_MODULES.  Note that module 0 is special and matches
+ * 'all modules'.
+ */
 extern int
 register_module_name (int module, char *module_name);
 
 /*
- * Register your own debug reporting function to be called.  If NULL is passed,
- * the default reporting function will be used, which is printing to the 
- * standard error file.
+ * This is a function which registers a function to be called when a
+ * message needs to be reported.
+ * The 'reporting' is up to the user, it can be a printf, kernel print,
+ * write to a file, etc, etc.... The user can do anything with that
+ * printable string.  
+ *
+ * By default, the reporting function prints to stderr.  Setting 
+ * this to NULL also defaults the behaviour.
  */
 extern void
 register_debug_reporting_function (debug_reporting_function_t drf);
+
+/*
+ * passing 0 for 'module' below will ALWAYS report the message
+ */
 
 #define REPORT_DEBUG(module, fmt, args...) \
     if (module_can_report(module, DEBUG_LEVEL)) \

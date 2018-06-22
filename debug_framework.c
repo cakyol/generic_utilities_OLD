@@ -94,7 +94,7 @@ register_module_name (int module, char *module_name)
     } else {
         module_names[module] = malloc(64);
         if (NULL == module_names[module]) return ENOMEM;
-        strncpy(module_names[module], module_name, 64);
+        strncpy(module_names[module], module_name, 63);
     }
 
     return 0;
