@@ -76,11 +76,28 @@ set_module_debug_level (int module, int level)
 int
 register_module_name (int module, char *module_name)
 {
-    if ((module > 0) && (module < MAX_MODULES)) {
-        module_names[module] = module_name;
-        return 0;
+    /* check module limits */
+    if ((module <= 0) || (module >= MAX_MODULES)) return EINVAL;
+
+    /* free up older module name, if specified */
+    if (module_names[module]) {
+        free(module_names[module]);
+        module_names[module] = NULL;
     }
-    return -1;
+
+    /* name is being cleared, so register its number form */
+    if (NULL == module_name) {
+        module_names[module] = malloc(16);
+        if (NULL == module_names[module]) return ENOMEM;
+	sprintf(module_names[module], "%d", module);
+    /* name is specified, so record it */
+    } else {
+        module_names[module] = malloc(64);
+        if (NULL == module_names[module]) return ENOMEM;
+        strncpy(module_names[module], module_name, 64);
+    }
+
+    return 0;
 }
 
 void
@@ -102,16 +119,36 @@ report_debug_message (int module, int level,
     int index, size_left, len;
 
     size_left = DEBUG_MESSAGE_BUFFER_SIZE;
-    index = 0;
+    len = index = 0;
 
-    if (0 == module_names[module]) {
+    /* module number 0 ALWAYS reports */
+    if (0 == module) {
+        len += snprintf(&msg_buffer[index], size_left,
+                    "%s: function %s, line %d: ",
+                    debug_level_names[level],
+		    function_name,
+		    line_number);
 
+    /* for others, check if module is allowed to report */
+    } else if ((module > 0) && (module < MAX_MODULES)) {
+
+        /* if module name is not specified, create its number form */
+        if (NULL == module_names[module]) {
+            register_module_name(module, NULL);
+        }
+
+        len += snprintf(&msg_buffer[index], size_left,
+                    "%s: module %s, function: %s, line %d: ",
+                    debug_level_names[level],
+		    module_names[module],
+		    function_name,
+		    line_number);
+
+    /* invalid module number */
+    } else {
+        return;
     }
-
-    /* write module number in case grep on module is needed */
-    len = snprintf(&msg_buffer[index], size_left,
-                "%s: mod: %d, fn: %s, ln: %d >> ",
-                debug_level_names[level], module, function_name, line_number);
+    
     size_left -= len;
     index += len;
 
