@@ -68,7 +68,7 @@ debug_framework_init (debug_reporting_function_t drf)
     debug_level_names[INFORMATION_LEVEL] = "INFORMATION MESSAGE";
     debug_level_names[WARNING_LEVEL] = "WARNING MESSAGE";
     debug_level_names[ERROR_LEVEL] = "ERROR MESSAGE";
-    debug_level_names[FATAL_ERROR_LEVEL] = "FATAL ERROR MESSAGE";
+    debug_level_names[FATAL_ERROR_LEVEL] = "FATAL MESSAGE";
 
     register_debug_reporting_function(drf);
 
@@ -134,7 +134,7 @@ register_debug_reporting_function (debug_reporting_function_t drf)
 }
 
 void
-report_debug_message (int module, int level,
+process_debug_message (int module, int level,
     const char *function_name, int line_number,
     char *fmt, ...)
 {
