@@ -39,8 +39,19 @@ extern "C" {
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+
+/*
+ * Undefine this otherwise assrt does not do anything
+ */
+#undef NDEBUG
 #include <assert.h>
 
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
+/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
 /******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
 
 /*
@@ -48,14 +59,13 @@ extern "C" {
  */
 #define MAX_MODULES                 1024
 
-#define DEBUG_LEVEL                 0
-#define INFORMATION_LEVEL           1
-#define WARNING_LEVEL               2
-#define ERROR_LEVEL                 3
-#define FATAL_ERROR_LEVEL           4
-#define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
-
 typedef void (*debug_reporting_function_t)(char*);
+
+/*
+ * call this to initialize the debug framework
+ */
+extern void
+debug_framework_init (void);
 
 /*
  * This function sets the debug level for a module such that reporting
@@ -124,6 +134,13 @@ register_debug_reporting_function (debug_reporting_function_t drf);
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
 /******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
+
+#define DEBUG_LEVEL                 0
+#define INFORMATION_LEVEL           1
+#define WARNING_LEVEL               2
+#define ERROR_LEVEL                 3
+#define FATAL_ERROR_LEVEL           4
+#define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
 
 #if MAX_DEBUG_LEVEL > 255
     #error  "max debug level must be < 256"
