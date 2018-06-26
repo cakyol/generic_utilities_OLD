@@ -60,7 +60,7 @@ static
 debug_reporting_function_t current_drf = &default_debug_reporting_function;
 
 void
-debug_framework_init (void)
+debug_framework_init (debug_reporting_function_t drf)
 {
     int i;
 
@@ -70,7 +70,7 @@ debug_framework_init (void)
     debug_level_names[ERROR_LEVEL] = "ERROR MESSAGE";
     debug_level_names[FATAL_ERROR_LEVEL] = "FATAL ERROR MESSAGE";
 
-    register_debug_reporting_function(default_debug_reporting_function);
+    register_debug_reporting_function(drf);
 
     for (i = 0; i < MAX_MODULES; i++) {
 	module_debug_levels[i] = ERROR_LEVEL;

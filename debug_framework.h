@@ -65,7 +65,7 @@ typedef void (*debug_reporting_function_t)(char*);
  * call this to initialize the debug framework
  */
 extern void
-debug_framework_init (void);
+debug_framework_init (debug_reporting_function_t drf);
 
 /*
  * This function sets the debug level for a module such that reporting

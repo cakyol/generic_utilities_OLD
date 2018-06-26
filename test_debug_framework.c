@@ -7,7 +7,7 @@ int main (int argc, char *argv[])
     int m;
     char name [64];
 
-    debug_framework_init();
+    debug_framework_init(NULL);
     for (m = 0; m < 25; m++) {
 	sprintf(name, "MODULE%d", m);
 	register_module_name(m, name);
