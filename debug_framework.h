@@ -108,7 +108,7 @@ debug_init (debug_reporting_function_t drf);
  * ignore it if 0 is passed as the module.
  */
 extern int
-debug_level_set (int module, int level);
+debug_module_level_set (int module, int level);
 
 /*
  * This function updates the module name of a module so it can be 

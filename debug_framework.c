@@ -82,7 +82,7 @@ debug_init (debug_reporting_function_t drf)
  * set a single module's error/debug reporting thereshold
  */
 int 
-debug_level_set (int module, int level)
+debug_module_level_set (int module, int level)
 {
     /* check module validity */
     if ((module < 1) || (module >= MAX_MODULES)) return EINVAL;
@@ -168,7 +168,7 @@ debug_message_process (int module, int level,
 #endif
 
         len += snprintf(&msg_buffer[index], size_left,
-                    "module %s %s <%s:%s:%d> ",
+                    "%s %s <%s:%s:%d> ",
 		    module_names[module],
 		    debug_level_names[level],
 		    file_name,
