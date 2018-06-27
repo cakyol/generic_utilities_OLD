@@ -71,18 +71,10 @@ extern "C" {
 #include <stdio.h>
 
 /*
- * Undefine this otherwise assrt does not do anything
+ * Undefine this otherwise assert may not work properly.
  */
 #undef NDEBUG
 #include <assert.h>
-
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
-/******* ONLY USE THESE, REST IS PRIVATE AND SHOULD NOT BE USED **************/
 
 /*
  * How many modules this debug infrastructure supports.
@@ -93,17 +85,19 @@ extern "C" {
 /*
  * Generic string 'reporting' function.  User specified function of what
  * needs to be done with the message.  It can be printf'd, kprintf'd, 
- * written to a file, whatever.
+ * written to a file, whatever.  The string is formatted, null terminated
+ * and passed to the user registered function.  Rest is up to the function
+ * itself to do whatever it wants with the passed string.
  */
 typedef void (*debug_reporting_function_t)(char*);
 
 /*
  * call this to initialize the debug framework.  If drf is NULL,
  * the default reporting funtion will be used.  The default
- * reporting function writes to stderr.
+ * reporting function simply writes to stderr.
  */
 extern void
-debug_framework_init (debug_reporting_function_t drf);
+debug_init (debug_reporting_function_t drf);
 
 /*
  * This function sets the debug level for a module such that reporting
@@ -114,7 +108,7 @@ debug_framework_init (debug_reporting_function_t drf);
  * ignore it if 0 is passed as the module.
  */
 extern int
-set_module_debug_level (int module, int level);
+debug_level_set (int module, int level);
 
 /*
  * This function updates the module name of a module so it can be 
@@ -124,7 +118,7 @@ set_module_debug_level (int module, int level);
  * 'all modules' and no name will be printed for module 0.
  */
 extern int
-register_module_name (int module, char *module_name);
+debug_module_name_set (int module, char *module_name);
 
 /*
  * This is a function which registers a function to be called when a
@@ -138,44 +132,45 @@ register_module_name (int module, char *module_name);
  * this to NULL also defaults the behaviour.
  */
 extern void
-register_debug_reporting_function (debug_reporting_function_t drf);
+debug_reporting_function_set (debug_reporting_function_t drf);
 
 /*
  * passing 0 for 'module' below will ALWAYS report the message.
  */
 #define REPORT_DEBUG(module, fmt, args...) \
-    if (module_can_report(module, DEBUG_LEVEL)) \
-        process_debug_message(module, DEBUG_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args)
+    if (debug_module_can_report(module, DEBUG_LEVEL)) \
+        debug_message_process(module, DEBUG_LEVEL, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_INFORMATION(module, fmt, args...) \
-    if (module_can_report(module, INFORMATION_LEVEL)) \
-        process_debug_message(module, INFORMATION_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args)
+    if (debug_module_can_report(module, INFORMATION_LEVEL)) \
+        debug_message_process(module, INFORMATION_LEVEL, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_WARNING(module, fmt, args...) \
-    if (module_can_report(module, WARNING_LEVEL)) \
-        process_debug_message(module, WARNING_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args)
+    if (debug_module_can_report(module, WARNING_LEVEL)) \
+        debug_message_process(module, WARNING_LEVEL, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_ERROR(module, fmt, args...) \
-    if (module_can_report(module, ERROR_LEVEL)) \
-        process_debug_message(module, ERROR_LEVEL, \
-            __FUNCTION__, __LINE__, fmt, ## args)
+    if (debug_module_can_report(module, ERROR_LEVEL)) \
+        debug_message_process(module, ERROR_LEVEL, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
  * fatal errors ALWAYS report, no need to check
  */
 #define REPORT_FATAL_ERROR(module, fmt, args...) \
-    process_debug_message(module, FATAL_ERROR_LEVEL, \
-        __FUNCTION__, __LINE__, fmt, ## args)
+    debug_message_process(module, FATAL_ERROR_LEVEL, \
+        __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
-/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
-/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
-/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
-/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
-/******* PRIVATE, DO NOT USE; PRIVATE, DO NOT USE; PRIVATE, DO NOT USE *******/
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
 
 #define DEBUG_LEVEL                 0
 #define INFORMATION_LEVEL           1
@@ -196,7 +191,7 @@ module_debug_levels [MAX_MODULES];
  * Otherwise, the level must be allowed for that particular module to report.
  */
 static inline int
-module_can_report (int module, int level) 
+debug_module_can_report (int module, int level) 
 {
     return 
         (module == 0) ||
@@ -205,8 +200,8 @@ module_can_report (int module, int level)
 }
 
 extern void
-process_debug_message (int module, int level,
-    const char *function_name, int line_number,
+debug_message_process (int module, int level,
+    const char *file_name, const char *function_name, int line_number,
     char *fmt, ...);
 
 #ifdef __cplusplus
