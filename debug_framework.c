@@ -139,7 +139,7 @@ debug_message_process (int module, int level,
     char *fmt, ...)
 {
 
-#define DEBUG_MESSAGE_BUFFER_SIZE      512
+#define DEBUG_MESSAGE_BUFFER_SIZE      256
 
     va_list args;
     char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
@@ -160,6 +160,7 @@ debug_message_process (int module, int level,
     /* for others, check if module is allowed to report */
     } else if ((module > 0) && (module < MAX_MODULES)) {
 
+/* This should have been done by 'debug_init' */
 #if 0
         /* if module name is not specified, create its number form */
         if (NULL == module_names[module]) {
@@ -168,9 +169,9 @@ debug_message_process (int module, int level,
 #endif
 
         len += snprintf(&msg_buffer[index], size_left,
-                    "%s %s <%s:%s:%d> ",
-		    module_names[module],
+                    "%s <%s:%s:%s:%d> ",
 		    debug_level_names[level],
+		    module_names[module],
 		    file_name,
 		    function_name,
 		    line_number);
