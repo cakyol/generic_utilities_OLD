@@ -33,36 +33,30 @@ extern "C" {
 
 #include "debug_framework.h"
 
-/*
- * all modules' default error reporting level is set to ERROR_LEVEL
- */
-unsigned char module_debug_levels [MAX_MODULES] = { ERROR_LEVEL };
-
-/*
- * If user registers a module name, that gets reported instead of
- * just the module number (by default).
- */
-static char *module_names [MAX_MODULES] = { NULL };
+debug_module_data_t modules [MAX_MODULES] = {
+    {
+	{ 0 },
+	default_debug_reporting_function,
+	ERROR_LEVEL
+    }
+};
 
 /*
  * debug level number to debug level name string lookup table.
  */
 static char *debug_level_names [DEBUG_LEVEL_SPAN] = { "???" };
 
-static void
+void
 default_debug_reporting_function (char *debug_string)
 {
     fprintf(stderr, "%s", debug_string);
     fflush(stderr);
 }
 
-static
-debug_reporting_function_t current_drf = &default_debug_reporting_function;
-
 void
-debug_init (debug_reporting_function_t drf)
+debug_init (void)
 {
-    int i;
+    int m;
 
     debug_level_names[DEBUG_LEVEL] = "DEBUG";
     debug_level_names[INFORMATION_LEVEL] = "INFO";
@@ -70,22 +64,34 @@ debug_init (debug_reporting_function_t drf)
     debug_level_names[ERROR_LEVEL] = "ERROR";
     debug_level_names[FATAL_ERROR_LEVEL] = "FATAL";
 
-    debug_reporting_function_set(drf);
-
-    for (i = 0; i < MAX_MODULES; i++) {
-	module_debug_levels[i] = ERROR_LEVEL;
-	debug_module_name_set(i, NULL);
+    for (m = 0; m < MAX_MODULES; m++) {
+	sprintf(modules[m].name, "m%d", m);
+	modules[m].level = ERROR_LEVEL;
+	modules[m].drf = default_debug_reporting_function;
     }
 }
 
-/*
- * set a single module's error/debug reporting thereshold
- */
-int 
-debug_module_level_set (int module, int level)
+#define BAIL_IF_BAD_MODULE_INDEX(m) \
+    if (((m) < 1) || ((m) >= MAX_MODULES)) return EINVAL
+
+int
+debug_module_set_name (int module, char *module_name)
 {
-    /* check module validity */
-    if ((module < 1) || (module >= MAX_MODULES)) return EINVAL;
+    BAIL_IF_BAD_MODULE_INDEX(module);
+
+    if (NULL == module_name) {
+	sprintf(modules[module].name, "m%d", module);
+    } else {
+        strncpy(modules[module].name, module_name, (MODULE_NAME_SIZE - 1));
+    }
+
+    return 0;
+}
+
+int 
+debug_module_set_level (int module, int level)
+{
+    BAIL_IF_BAD_MODULE_INDEX(module);
 
     /* trim debug level to limits */
     if (level < DEBUG_LEVEL) 
@@ -94,43 +100,19 @@ debug_module_level_set (int module, int level)
         level = FATAL_ERROR_LEVEL;
 
     /* set it */
-    module_debug_levels[module] = (unsigned char) level;
+    modules[module].level = (unsigned char) level;
 
     /* done */
     return 0;
 }
 
 int
-debug_module_name_set (int module, char *module_name)
+debug_module_set_reporting_function (int module,
+	debug_reporting_function_t drf)
 {
-    /* check module limits */
-    if ((module <= 0) || (module >= MAX_MODULES)) return EINVAL;
-
-    /* free up older module name, if specified */
-    if (module_names[module]) {
-        free(module_names[module]);
-        module_names[module] = NULL;
-    }
-
-    /* name is being cleared, so register its number form */
-    if (NULL == module_name) {
-        module_names[module] = malloc(16);
-        if (NULL == module_names[module]) return ENOMEM;
-	sprintf(module_names[module], "%d", module);
-    /* name is specified, so record it */
-    } else {
-        module_names[module] = malloc(64);
-        if (NULL == module_names[module]) return ENOMEM;
-        strncpy(module_names[module], module_name, 63);
-    }
-
+    BAIL_IF_BAD_MODULE_INDEX(module);
+    modules[module].drf = drf ? drf : default_debug_reporting_function;
     return 0;
-}
-
-void
-debug_reporting_function_set (debug_reporting_function_t drf)
-{
-    current_drf = drf ? drf : &default_debug_reporting_function;
 }
 
 void
@@ -160,18 +142,10 @@ debug_message_process (int module, int level,
     /* for others, check if module is allowed to report */
     } else if ((module > 0) && (module < MAX_MODULES)) {
 
-/* This should have been done by 'debug_init' */
-#if 0
-        /* if module name is not specified, create its number form */
-        if (NULL == module_names[module]) {
-            debug_module_name_set(module, NULL);
-        }
-#endif
-
         len += snprintf(&msg_buffer[index], size_left,
                     "%s <%s:%s:%s:%d> ",
 		    debug_level_names[level],
-		    module_names[module],
+		    modules[module].name,
 		    file_name,
 		    function_name,
 		    line_number);
@@ -196,7 +170,7 @@ debug_message_process (int module, int level,
      * do the actual printing/reporting operation here using
      * the currently registered debug printing function
      */
-    current_drf(msg_buffer);
+    modules[module].drf(msg_buffer);
 
     /* fatal error MUST ALWAYS crash the system */
     if (level >= FATAL_ERROR_LEVEL) assert(0);
