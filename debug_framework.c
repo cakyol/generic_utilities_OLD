@@ -58,10 +58,10 @@ debug_init (void)
 {
     int m;
 
-    debug_level_names[DEBUG_LEVEL] = "DEBUG";
+    debug_level_names[DEBUG_LEVEL] = "DBG";
     debug_level_names[INFORMATION_LEVEL] = "INFO";
-    debug_level_names[WARNING_LEVEL] = "WARNING";
-    debug_level_names[ERROR_LEVEL] = "ERROR";
+    debug_level_names[WARNING_LEVEL] = "WARN";
+    debug_level_names[ERROR_LEVEL] = "ERR";
     debug_level_names[FATAL_ERROR_LEVEL] = "FATAL";
 
     for (m = 0; m < MAX_MODULES; m++) {
@@ -139,8 +139,12 @@ debug_message_process (int module, int level,
 		    function_name,
 		    line_number);
 
-    /* for others, check if module is allowed to report */
-    } else if ((module > 0) && (module < MAX_MODULES)) {
+    /*
+     * for others, module validity is assumed to be checked
+     * thru the macro calling this (via debug_module_can_report)
+     * function.
+     */
+    } else {
 
         len += snprintf(&msg_buffer[index], size_left,
                     "%s <%s:%s:%s:%d> ",
@@ -149,12 +153,8 @@ debug_message_process (int module, int level,
 		    file_name,
 		    function_name,
 		    line_number);
-
-    /* invalid module number */
-    } else {
-        return;
     }
-    
+
     size_left -= len;
     index += len;
 

@@ -37,7 +37,7 @@
 ** There are about 5 levels of debugging defined and every 'module' can have
 ** its own individual level set.  Modules are defined by the user.  Modules
 ** are 1 -> MAX_MODULES.  0 is a special modue number and ALL levels of
-** messages will be reported for module 0.  Module names can also be 'registered'
+** messages WILL be reported for module 0.  Module names can also be 'registered'
 ** so that when the reporting is done, module names can be reported (rather
 ** than simply module numbers).
 **
@@ -126,33 +126,58 @@ debug_module_set_reporting_function (int module,
 	debug_reporting_function_t drf);
 
 /*
- * passing 0 for 'module' below will ALWAYS report the message.
+ * ***************************************************************************
+ * These macros report (or not) depending on the debug level
+ * threshold set for the specific module.
  */
-#define REPORT_DEBUG(module, fmt, args...) \
+
+#define MODULE_DEBUG(module, fmt, args...) \
     if (debug_module_can_report(module, DEBUG_LEVEL)) \
         debug_message_process(module, DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-#define REPORT_INFORMATION(module, fmt, args...) \
+#define MODULE_INFO(module, fmt, args...) \
     if (debug_module_can_report(module, INFORMATION_LEVEL)) \
         debug_message_process(module, INFORMATION_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-#define REPORT_WARNING(module, fmt, args...) \
+#define MODULE_WARNING(module, fmt, args...) \
     if (debug_module_can_report(module, WARNING_LEVEL)) \
         debug_message_process(module, WARNING_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-#define REPORT_ERROR(module, fmt, args...) \
+#define MODULE_ERROR(module, fmt, args...) \
     if (debug_module_can_report(module, ERROR_LEVEL)) \
         debug_message_process(module, ERROR_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
- * fatal errors ALWAYS report, no need to check
+ * ***************************************************************************
+ * These macros ALWAYS report, regardless of module or level
  */
-#define REPORT_FATAL_ERROR(module, fmt, args...) \
-    debug_message_process(module, FATAL_ERROR_LEVEL, \
+
+#define REPORT_DEBUG(fmt, args...) \
+    debug_message_process(0, DEBUG_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+
+#define REPORT_INFO(fmt, args...) \
+    debug_message_process(0, INFORMATION_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+
+#define REPORT_WARNING(fmt, args...) \
+    debug_message_process(0, WARNING_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+
+#define REPORT_ERROR(fmt, args...) \
+    debug_message_process(0, ERROR_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+
+/*
+ * ***************************************************************************
+ * fatal error ALWAYS report AND crash, regardless of module
+ */
+#define FATAL_ERROR(fmt, args...) \
+    debug_message_process(0, FATAL_ERROR_LEVEL, \
         __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
@@ -194,7 +219,7 @@ extern void
 default_debug_reporting_function (char *debug_message);
 
 extern
-debug_module_data_t modules [];
+debug_module_data_t modules [MAX_MODULES];
 
 /*
  * module 0 ALWAYS gets printed, wildcard.
