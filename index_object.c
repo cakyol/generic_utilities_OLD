@@ -105,6 +105,12 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     int size, i;
     void **source;
 
+    /* assume no entry */
+    *exists = NULL;
+
+    /* being traversed, no access */
+    if (idx->do_not_access) return EPERM;
+
     /*
     ** see if element is already there and if not,
     ** note the insertion point in "insertion_point".
@@ -116,12 +122,6 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
         *exists = idx->elements[i];
         return 0;
     }
-
-    /* 
-    ** if we are here, key/data pair is NOT in the index
-    ** and we are attempting to insert it for the first time
-    */
-    *exists = NULL;
 
     /* if index is full, attempt to expand by specified expansion_size */
     if (idx->n >= idx->maximum_size) {
@@ -164,11 +164,13 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
 {
     int i, dummy;
 
+    *found = NULL;
+    if (idx->do_not_access) return EPERM;
+
     i = index_find_position(idx, search_key, &dummy);
 
     /* not found */
     if (i < 0) {
-        *found = NULL;
 	return ENODATA;
     }
 
@@ -183,12 +185,14 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 {
     int i, size, dummy;
 
+    *actual_data_removed = NULL;
+    if (idx->do_not_access) return EPERM;
+
     /* first see if it is there */
     i = index_find_position(idx, data_to_be_removed, &dummy);
 
     /* not in table */
     if (i < 0) {
-        *actual_data_removed = NULL;
 	return ENODATA;
     }
 
@@ -222,6 +226,7 @@ index_obj_init (index_obj_t *idx,
 
     MEM_MONITOR_SETUP(idx);
     LOCK_SETUP(idx);
+    idx->do_not_access = 0;
     idx->initial_size = idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
     idx->expansion_count = 0;
@@ -314,6 +319,9 @@ index_obj_traverse (index_obj_t *idx,
     int i;
     int rv = 0;
 
+    if (idx->do_not_access) return EPERM;
+    idx->do_not_access = 1;
+
     READ_LOCK(idx);
     for (i = 0; i < idx->n; i++) {
 	if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
@@ -323,6 +331,9 @@ index_obj_traverse (index_obj_t *idx,
 	}
     }
     READ_UNLOCK(idx);
+
+    idx->do_not_access = 0;
+
     return rv;
 }
 

@@ -185,6 +185,9 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     /* assume failure */
     *data_found = NULL;
 
+    /* being traversed, cannot access */
+    if (ntp->do_not_access) return EPERM;
+
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
         if (node->user_data) {
@@ -208,6 +211,9 @@ thread_unsafe_radix_tree_search (radix_tree_t *ntp,
     /* assume failure */
     *data_found = NULL;
 
+    /* being traversed, cannot access */
+    if (ntp->do_not_access) return EPERM;
+
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
         *data_found = node->user_data;
@@ -226,6 +232,9 @@ thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
 
     /* assume failure */
     *removed_data = NULL;
+
+    /* being traversed, cannot access */
+    if (ntp->do_not_access) return EPERM;
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
@@ -315,7 +324,7 @@ radix_tree_remove (radix_tree_t *ntp,
  * function for the rest of the tree.
  */
 PUBLIC void
-radix_tree_traverse (radix_tree_t *triep, traverse_function_pointer tfn,
+radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
 	void *user_param_1, void *user_param_2)
 {
     radix_tree_node_t *node, *prev;
@@ -324,10 +333,16 @@ radix_tree_traverse (radix_tree_t *triep, traverse_function_pointer tfn,
     int index = 0;
     int rv = 0;
 
+    /* already being traversed */
+    if (ntp->do_not_access) return;
+
+    /* start traversal */
+    ntp->do_not_access = 1;
+
     key = malloc(8192);
     if (NULL == key) return;
-    READ_LOCK(triep);
-    node = &triep->radix_tree_root;
+    READ_LOCK(ntp);
+    node = &ntp->radix_tree_root;
     node->current = 0;
     while (node) {
 	if (node->current < NTRIE_ALPHABET_SIZE) {
@@ -350,7 +365,7 @@ radix_tree_traverse (radix_tree_t *triep, traverse_function_pointer tfn,
 	    // Do your thing with the node here as long as no error occured so far
 	    key_len = integer2pointer(index/2);
 	    if (node->user_data && (0 == rv)) {
-		rv = tfn(triep, node, node->user_data, key, key_len,
+		rv = tfn(ntp, node, node->user_data, key, key_len,
 		    user_param_1, user_param_2);
 	    }
 	    node->current = 0;	// Reset counter for next traversal.
@@ -358,7 +373,11 @@ radix_tree_traverse (radix_tree_t *triep, traverse_function_pointer tfn,
 	    index--;
 	}
     }
-    READ_UNLOCK(triep);
+    READ_UNLOCK(ntp);
+
+    /* ok traversal finished */
+    ntp->do_not_access = 0;
+
     free(key);
 }
 

@@ -141,6 +141,9 @@ avl_lookup_engine (avl_tree_t *tree,
     avl_node_t *node = tree->root_node;
     int res = 0;
 
+    /* being traversed, cannot access */
+    if (tree->do_not_access) return NULL;
+
     *pparent = NULL;
     *unbalanced = node;
     *is_left = 0;
@@ -233,8 +236,11 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     avl_node_t *found, *parent, *unbalanced, *node;
     int is_left;
 
-    // assume the entry is not present initially
+    /* assume the entry is not present initially */
     *data_already_present = NULL;
+
+    /* traversing the tree, access not allowed */
+    if (tree->do_not_access) return EPERM;
 
     found = avl_lookup_engine(tree, data_to_be_inserted,
 		&parent, &unbalanced, &is_left);
@@ -358,6 +364,9 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     avl_node_t *right;
     avl_node_t *next;
     int is_left;
+
+    /* being traversed, cannot access */
+    if (tree->do_not_access) return EPERM;
 
     /* find the matching node first */
     node = avl_lookup_engine(tree, data_to_be_removed,
@@ -541,6 +550,17 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     int rv = 0;
     avl_node_t *current;
 
+    /* already being traversed */
+    if (tree->do_not_access) return EPERM;
+
+    /*
+     * traversal started.  Until it COMPLETELY finishes, we cannot
+     * allow any access to the tree any more.  Since we dont know
+     * what the user provided traversal function will do to the tree,
+     * we have to block access to it.
+     */
+    tree->do_not_access = 1;
+
     /* if the starting root is NULL, start from top of tree */
     if (NULL == root) {
         root = tree->root_node;
@@ -571,6 +591,10 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
             }
         }
     }
+
+    /* ok, traversal finished */
+    tree->do_not_access = 0;
+
     return 0;
 }
 
@@ -591,6 +615,7 @@ avl_tree_init (avl_tree_t *tree,
     tree->cmpf = cmpf;
     tree->n = 0;
     tree->root_node = NULL;
+    tree->do_not_access = 0;
 
     WRITE_UNLOCK(tree);
 
@@ -656,34 +681,6 @@ avl_tree_remove (avl_tree_t *tree,
 
 /**************************** Get all entries ********************************/
 
-///// static void
-///// avl_node_get_all (avl_node_t *node, void **storage_area, int *index)
-///// {
-/////     if (NULL == node) return;
-/////     storage_area[*index] = node->user_data;
-/////     (*index)++;
-/////     avl_node_get_all(node->left, storage_area, index);
-/////     avl_node_get_all(node->right, storage_area, index);
-///// }
-///// 
-///// PUBLIC void **
-///// avl_tree_get_all (avl_tree_t *tree, int *returned_count)
-///// {
-/////     void **storage_area;
-/////     int index = 0;
-///// 
-/////     READ_LOCK(tree);
-/////     storage_area = malloc((tree->n + 1) * sizeof(void*));
-/////     if (NULL == storage_area) {
-///// 	*returned_count = 0;
-/////     } else {
-///// 	avl_node_get_all(tree->root_node, storage_area, &index);
-///// 	*returned_count = index;
-/////     }
-/////     READ_UNLOCK(tree);
-/////     return storage_area;
-///// }
-
 /*
  * This is much faster & more efficient with morris traverse
  */
@@ -730,45 +727,6 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 }
 
 /**************************** Traverse ***************************************/
-
-///// static int
-///// thread_unsafe_recursive_traverse (avl_tree_t *tree,
-///// 	avl_node_t *node,
-///// 	traverse_function_pointer tfn,
-///// 	void *p0, void *p1, void *p2, void *p3)
-///// {
-/////     // end of branch
-/////     if (NULL == node)
-///// 	return 0;
-///// 
-/////     // apply traverse function to current node
-/////     if (FAILED((tfn)(tree, node, node->user_data, p0, p1, p2, p3))) 
-///// 	return EFAULT;
-///// 
-/////     // traverse recursively left subtree
-/////     if (FAILED(thread_unsafe_recursive_traverse(tree, node->left, tfn,
-///// 		p0, p1, p2, p3)))
-///// 	return EFAULT;
-///// 
-/////     // traverse recursively right subtree
-/////     return
-///// 	thread_unsafe_recursive_traverse(tree, node->right, tfn, p0, p1, p2, p3);
-///// 
-///// }
-///// 
-///// PUBLIC int
-///// avl_tree_recursive_traverse (avl_tree_t *tree,
-///// 	traverse_function_pointer tfn,
-///// 	void *p0, void *p1, void *p2, void *p3)
-///// {
-/////     int rv;
-///// 
-/////     READ_LOCK(tree);
-/////     rv = thread_unsafe_recursive_traverse(tree, tree->root_node,
-///// 		tfn, p0, p1, p2, p3);
-/////     READ_UNLOCK(tree);
-/////     return rv;
-///// }
 
 PUBLIC int
 avl_tree_traverse (avl_tree_t *tree,
