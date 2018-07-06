@@ -127,7 +127,11 @@ debug_message_process (int module, int level,
     char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
     int index, size_left, len;
 
-    size_left = DEBUG_MESSAGE_BUFFER_SIZE;
+    size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
+
+    /* make the last byte a 0 so any printing function stops here */
+    msg_buffer[size_left] = 0;
+
     len = index = 0;
 
     /* module number 0 ALWAYS reports */
