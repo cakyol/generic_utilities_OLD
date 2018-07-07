@@ -33,7 +33,7 @@ extern "C" {
 
 #include "debug_framework.h"
 
-debug_module_data_t modules [MAX_MODULES] = {
+debug_module_data_t module_levels [MAX_MODULES] = {
     {
 	{ 0 },
 	default_debug_reporting_function,
@@ -65,9 +65,9 @@ debug_init (void)
     debug_level_names[FATAL_ERROR_LEVEL] = "FATAL";
 
     for (m = 0; m < MAX_MODULES; m++) {
-	sprintf(modules[m].name, "m%d", m);
-	modules[m].level = ERROR_LEVEL;
-	modules[m].drf = default_debug_reporting_function;
+	sprintf(module_levels[m].name, "m%d", m);
+	module_levels[m].level = ERROR_LEVEL;
+	module_levels[m].drf = default_debug_reporting_function;
     }
 }
 
@@ -80,9 +80,9 @@ debug_module_set_name (int module, char *module_name)
     BAIL_IF_BAD_MODULE_INDEX(module);
 
     if (NULL == module_name) {
-	sprintf(modules[module].name, "m%d", module);
+	sprintf(module_levels[module].name, "m%d", module);
     } else {
-        strncpy(modules[module].name, module_name, (MODULE_NAME_SIZE - 1));
+        strncpy(module_levels[module].name, module_name, (MODULE_NAME_SIZE - 1));
     }
 
     return 0;
@@ -100,7 +100,7 @@ debug_module_set_level (int module, int level)
         level = FATAL_ERROR_LEVEL;
 
     /* set it */
-    modules[module].level = (unsigned char) level;
+    module_levels[module].level = (unsigned char) level;
 
     /* done */
     return 0;
@@ -111,7 +111,7 @@ debug_module_set_reporting_function (int module,
 	debug_reporting_function_t drf)
 {
     BAIL_IF_BAD_MODULE_INDEX(module);
-    modules[module].drf = drf ? drf : default_debug_reporting_function;
+    module_levels[module].drf = drf ? drf : default_debug_reporting_function;
     return 0;
 }
 
@@ -153,7 +153,7 @@ debug_message_process (int module, int level,
         len += snprintf(&msg_buffer[index], size_left,
                     "%s <%s:%s:%s:%d> ",
 		    debug_level_names[level],
-		    modules[module].name,
+		    module_levels[module].name,
 		    file_name,
 		    function_name,
 		    line_number);
@@ -174,7 +174,7 @@ debug_message_process (int module, int level,
      * do the actual printing/reporting operation here using
      * the currently registered debug printing function
      */
-    modules[module].drf(msg_buffer);
+    module_levels[module].drf(msg_buffer);
 
     /* fatal error MUST ALWAYS crash the system */
     if (level >= FATAL_ERROR_LEVEL) assert(0);

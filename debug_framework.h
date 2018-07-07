@@ -131,23 +131,28 @@ debug_module_set_reporting_function (int module,
  * threshold set for the specific module.
  */
 
+#define DEBUG_MODULE_CAN_REPORT(mod, lev) \
+    (((mod) == 0) || \
+	(((mod) >= 1) && ((mod) < MAX_MODULES) && \
+	     ((lev) >= module_levels[(mod)].level)))
+
 #define MODULE_DEBUG(module, fmt, args...) \
-    if (debug_module_can_report(module, DEBUG_LEVEL)) \
+    if (DEBUG_MODULE_CAN_REPORT(module, DEBUG_LEVEL)) \
         debug_message_process(module, DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define MODULE_INFO(module, fmt, args...) \
-    if (debug_module_can_report(module, INFORMATION_LEVEL)) \
+    if (DEBUG_MODULE_CAN_REPORT(module, INFORMATION_LEVEL)) \
         debug_message_process(module, INFORMATION_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define MODULE_WARNING(module, fmt, args...) \
-    if (debug_module_can_report(module, WARNING_LEVEL)) \
+    if (DEBUG_MODULE_CAN_REPORT(module, WARNING_LEVEL)) \
         debug_message_process(module, WARNING_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define MODULE_ERROR(module, fmt, args...) \
-    if (debug_module_can_report(module, ERROR_LEVEL)) \
+    if (DEBUG_MODULE_CAN_REPORT(module, ERROR_LEVEL)) \
         debug_message_process(module, ERROR_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
@@ -219,20 +224,24 @@ extern void
 default_debug_reporting_function (char *debug_message);
 
 extern
-debug_module_data_t modules [MAX_MODULES];
+debug_module_data_t module_levels [MAX_MODULES];
+
+#if 0
 
 /*
  * module 0 ALWAYS gets printed, wildcard.
  * Otherwise, the level must be allowed for that particular module to report.
  */
 static inline int
-debug_module_can_report (int module, int level) 
+DEBUG_MODULE_CAN_REPORT (int module, int level) 
 {
     return 
         (module == 0) ||
         ((module > 0) && (module < MAX_MODULES) && 
-            (level >= modules[module].level));
+            (level >= module_levels[module].level));
 }
+
+#endif // 0
 
 extern void
 debug_message_process (int module, int level,

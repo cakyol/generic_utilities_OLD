@@ -9,7 +9,7 @@ int main (int argc, char *argv[])
 
     debug_init();
     fprintf(stderr, "\n\nsizeof debg framework for %d modules is %lu bytes\n\n",
-	    MAX_MODULES, sizeof(modules));
+	    MAX_MODULES, sizeof(module_levels));
     for (m = 0; m < 10; m++) {
 	MODULE_DEBUG(0, "m%d SHOULD be reported", 0);
 	MODULE_INFO(0, "m%d SHOULD be reported", 0);
