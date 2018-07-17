@@ -58,11 +58,11 @@ debug_init (void)
 {
     int m;
 
-    debug_level_names[DEBUG_LEVEL] = "DBG";
-    debug_level_names[INFORMATION_LEVEL] = "INFO";
-    debug_level_names[WARNING_LEVEL] = "WARN";
-    debug_level_names[ERROR_LEVEL] = "ERR";
-    debug_level_names[FATAL_ERROR_LEVEL] = "FATAL";
+    debug_level_names[DEBUG_LEVEL] = "DEBUG";
+    debug_level_names[INFORMATION_LEVEL] = "INFORMATION";
+    debug_level_names[WARNING_LEVEL] = "WARNING";
+    debug_level_names[ERROR_LEVEL] = "ERROR";
+    debug_level_names[FATAL_ERROR_LEVEL] = "\n\n***** FATAL ERROR *****";
 
     for (m = 0; m < MAX_MODULES; m++) {
 	sprintf(module_levels[m].name, "m%d", m);
@@ -137,7 +137,7 @@ debug_message_process (int module, int level,
     /* module number 0 ALWAYS reports */
     if (0 == module) {
         len += snprintf(&msg_buffer[index], size_left,
-                    "%s <%s:%s:%d> ",
+                    "%s: <%s:%s:%d> ",
 		    debug_level_names[level],
 		    file_name,
 		    function_name,
@@ -151,7 +151,7 @@ debug_message_process (int module, int level,
     } else {
 
         len += snprintf(&msg_buffer[index], size_left,
-                    "%s <%s:%s:%s:%d> ",
+                    "%s: <%s:%s:%s:%d> ",
 		    debug_level_names[level],
 		    module_levels[module].name,
 		    file_name,

@@ -174,7 +174,7 @@ debug_module_set_reporting_function (int module,
 
 /*
  * ***************************************************************************
- * fatal error ALWAYS report AND crash, regardless of module
+ * fatal error ALWAYS reports AND crashes, regardless of module
  */
 #define FATAL_ERROR(fmt, args...) \
     debug_message_process(0, FATAL_ERROR_LEVEL, \
