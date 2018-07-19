@@ -53,6 +53,17 @@ default_debug_reporting_function (char *debug_string)
     fflush(stderr);
 }
 
+#define BAIL_IF_BAD_MODULE_INDEX(m) \
+    if (((m) < 1) || ((m) >= MAX_MODULES)) return EINVAL
+
+static int
+set_default_module_name (int m)
+{
+    BAIL_IF_BAD_MODULE_INDEX(m);
+    sprintf(module_levels[m].name, "module %d", m);
+    return 0;
+}
+
 void
 debug_init (void)
 {
@@ -63,28 +74,22 @@ debug_init (void)
     debug_level_names[WARNING_LEVEL] = "WARNING";
     debug_level_names[ERROR_LEVEL] = "ERROR";
     debug_level_names[FATAL_ERROR_LEVEL] = "\n\n***** FATAL ERROR *****";
-
     for (m = 0; m < MAX_MODULES; m++) {
-	sprintf(module_levels[m].name, "m%d", m);
+	set_default_module_name(m);
 	module_levels[m].level = ERROR_LEVEL;
 	module_levels[m].drf = default_debug_reporting_function;
     }
 }
 
-#define BAIL_IF_BAD_MODULE_INDEX(m) \
-    if (((m) < 1) || ((m) >= MAX_MODULES)) return EINVAL
-
 int
 debug_module_set_name (int module, char *module_name)
 {
     BAIL_IF_BAD_MODULE_INDEX(module);
-
     if (NULL == module_name) {
-	sprintf(module_levels[module].name, "m%d", module);
+	set_default_module_name(module);
     } else {
         strncpy(module_levels[module].name, module_name, (MODULE_NAME_SIZE - 1));
     }
-
     return 0;
 }
 
