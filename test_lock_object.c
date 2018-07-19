@@ -52,7 +52,7 @@ void *thread_function (void *arg)
         printf("OOOPPPPS, have revisited thread %d\n", tid);
     }
     thread_complete_array[tid] = 1;
-    printf("w> ");
+    printf("w>");
     fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_write_lock(&lock);
     return NULL;
@@ -83,7 +83,7 @@ void *validate_array_thread (void *arg)
         printf("OOOPPPPS, have revisited thread %d\n", tid);
     }
     thread_complete_array[tid] = 1;
-    printf("r> ");
+    printf("r>");
     fflush(stdout);
     for (i = 0; i < LOCK_COUNT; i++) release_read_lock(&lock);
     return NULL;
@@ -107,7 +107,7 @@ int main (int argc, char *argv[])
     }
 
     /* first do a speed test for mutex ONLY */
-    printf("performing a lock performance test\n");
+    printf("performing a MUTEX lock performance test\n");
     timer_start(&timr);
     for (i = 0; i < MAX_ITERATION; i++) {
         pthread_mutex_lock(&mutex);
@@ -121,7 +121,7 @@ int main (int argc, char *argv[])
 
     /* now do a speed test for the actual lock itself */
 
-    printf("performing a lock performance test\n");
+    printf("performing a TAS lock performance test\n");
     timer_start(&timr);
     for (i = 0; i < MAX_ITERATION; i++) {
         grab_write_lock(&lock);

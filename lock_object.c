@@ -37,7 +37,7 @@ static inline int
 ttas (volatile char *variable, char checked, char set)
 {
     return
-	(*variable == 0) && 
+	(*variable == 0) &&
 	(__sync_val_compare_and_swap(variable, checked, set) == 0);
 }
 
