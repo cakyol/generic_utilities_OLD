@@ -39,34 +39,34 @@ extern "C" {
 
 #define ATTRIBUTE_VALUE_ADDED			(1 << 0)
 #define ATTRIBUTE_VALUE_DELETED			(1 << 1)
+#define ATTRIBUTE_VALUE_EVENT \
+    (ATTRIBUTE_VALUE_ADDED | ATTRIBUTE_VALUE_DELETED)
 
 #define ATTRIBUTE_INSTANCE_ADDED		(1 << 5)
 #define ATTRIBUTE_INSTANCE_DELETED		(1 << 6)
-
-#define ATTRIBUTE_VALUE_EVENTS                  (ATTRIBUTE_VALUE_ADDED | \
-                                                 ATTRIBUTE_VALUE_DELETED)
-
-#define ATTRIBUTE_EVENTS                        (ATTRIBUTE_VALUE_ADDED | \
-                                                 ATTRIBUTE_VALUE_DELETED | \
-                                                 ATTRIBUTE_INSTANCE_ADDED | \
-                                                 ATTRIBUTE_INSTANCE_DELETED)
+#define ATTRIBUTE_INSTANCE_EVENT \
+    (ATTRIBUTE_INSTANCE_ADDED | ATTRIBUTE_INSTANCE_DELETED)
 
 #define OBJECT_CREATED				(1 << 10)
 #define OBJECT_DESTROYED			(1 << 11)
-
-#define OBJECT_EVENTS                           (OBJECT_CREATED | OBJECT_DESTROYED)
+#define OBJECT_EVENT \
+    (OBJECT_CREATED | OBJECT_DESTROYED)
 
 static inline int
 is_an_object_event (int event)
-{ return (event & OBJECT_EVENTS); }
+{ return (event & OBJECT_EVENT); }
 
 static inline int
 is_an_attribute_value_event (int event)
-{ return (event & ATTRIBUTE_VALUE_EVENTS); }
+{ return (event & ATTRIBUTE_VALUE_EVENT); }
+
+static inline int
+is_an_attribute_instance_event (int event)
+{ return (event & ATTRIBUTE_INSTANCE_EVENT); }
 
 static inline int
 is_an_attribute_event (int event)
-{ return (event & ATTRIBUTE_EVENTS); }
+{ return (event & (ATTRIBUTE_VALUE_EVENT | ATTRIBUTE_INSTANCE_EVENT)); }
 
 #ifdef __cplusplus
 } // extern C

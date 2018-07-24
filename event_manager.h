@@ -31,9 +31,8 @@
 extern "C" {
 #endif
 
-#include "utils_common.h"
 #include "lock_object.h"
-#include "sll_object.h"
+#include "linkedlist_object.h"
 #include "dynamic_array_object.h"
 #include "event_types.h"
 #include "object_types.h"
@@ -96,14 +95,14 @@ typedef struct event_manager_s {
      * list of processes interested in object creation
      * and deletion events for ALL types of objects.
      */
-    sll_object_t all_types_object_processes;
+    linkedlist_t all_types_object_processes;
 
     /*
      * list of processes interested in attribute
      * events (attribute id add/delete, attribute value
      * add/delete) for ALL types of objects.
      */
-    sll_object_t all_types_attribute_processes;
+    linkedlist_t all_types_attribute_processes;
     
     /*
      * list of processes interested in object
@@ -121,12 +120,12 @@ typedef struct event_manager_s {
 
 } event_manager_t;
 
-extern error_t
+extern int
 event_manager_init (event_manager_t *evrp,
-    boolean make_it_thread_safe,
+    int make_it_thread_safe,
     mem_monitor_t *parent_mem_monitor);
 
-extern error_t
+extern int
 register_for_object_events (event_manager_t *evrp,
         int object_type, process_address_t *pap);
 
@@ -134,7 +133,7 @@ extern void
 un_register_from_object_events (event_manager_t *evrp,
         int object_type, process_address_t *pap);
 
-extern error_t
+extern int
 register_for_attribute_events (event_manager_t *evrp,
         int object_type, process_address_t *pap);
 

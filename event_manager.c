@@ -41,13 +41,17 @@ compare_process_ids (datum_t d1, datum_t d2)
     return 0;
 }
 
-static sll_object_t *
+/*
+ * given the object type & event type, finds the correct
+ * and relevant list that needs to be operated on.
+ */
+static linkedlist_t *
 get_correct_list (event_manager_t *evrp,
         int object_type, int event_type)
 {
     error_t rv;
     dynamic_array_t *dap;
-    sll_object_t *list;
+    linkedlist_t *list;
     datum_t list_datum;
 
     /*
@@ -85,7 +89,7 @@ get_correct_list (event_manager_t *evrp,
 
     if (FAILED(dynamic_array_get(dap, object_type, &list_datum))) {
         
-        list = MEM_MONITOR_ALLOC(evrp, sizeof(sll_object_t));
+        list = MEM_MONITOR_ALLOC(evrp, sizeof(linkedlist_t));
         if (NULL == list)
             return NULL;
 
@@ -116,7 +120,7 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
         int event_type,
         boolean register_it)
 {
-    sll_object_t *list;
+    linkedlist_t *list;
     datum_t address_datum, deleted_address_datum;
 
     list = get_correct_list(evrp, object_type, event_type);
