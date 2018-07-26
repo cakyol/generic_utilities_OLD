@@ -49,7 +49,7 @@ compare_process_ids (void *vpap1, void *vpap2)
  */
 static linkedlist_t *
 get_correct_list (event_manager_t *evrp,
-        int object_type, int event_type)
+        int object_type, int event_type, int create_if_missing)
 {
     int rv;
     dynamic_array_t *dap;
@@ -92,13 +92,14 @@ get_correct_list (event_manager_t *evrp,
     rv = dynamic_array_get(dap, object_type, (void**) &list);
 
     /* 
-     * if no such list exists, create and initialize it.
+     * if no such list exists, create and initialize it,
+     * if creation is needed.
      *
      * Note that this list will hold all the processes
      * which are interested in being notified abou the 
      * specific event type for the specified object type.
      */
-    if (0 != rv) {
+    if ((0 != rv) && create_if_missing) {
 	list = MEM_MONITOR_ALLOC(evrp, sizeof(linkedlist_t));
 	if (NULL == list) return NULL;
 	rv = linkedlist_init(list, 0, compare_process_ids, evrp->mem_mon_p);
@@ -126,7 +127,8 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
         int register_it)
 {
     void *found_pap;
-    linkedlist_t *list = get_correct_list(evrp, object_type, event_type);
+    linkedlist_t *list = 
+	get_correct_list(evrp, object_type, event_type, register_it);
 
     if (register_it) {
 	if (list) {
@@ -197,8 +199,7 @@ event_manager_init (event_manager_t *evrp,
  * The following set of functions register/deregister a process
  * to be notified of the type of event for the specified object
  * type.  If 'object_type' is ALL_OBJECT_TYPES, then the target
- * will be ALL object types.  If 'activate' is 1, the notifications
- * will start, else if 0, notifications will be stopped.
+ * will be ALL object types.
  */
 PUBLIC int
 register_for_object_events (event_manager_t *evrp,
