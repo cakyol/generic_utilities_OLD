@@ -30,12 +30,14 @@
 extern "C" {
 #endif
 
+#define PUBLIC
+
 /*
  * determines whether the two processes passed in as params
  * are 'considered' to be equal
  */
 static int
-compare_process_ids (datum_t d1, datum_t d2)
+compare_process_ids (void *vpap1, void *vpap2)
 {
     /* change this later */
     return 0;
@@ -49,10 +51,9 @@ static linkedlist_t *
 get_correct_list (event_manager_t *evrp,
         int object_type, int event_type)
 {
-    error_t rv;
+    int rv;
     dynamic_array_t *dap;
     linkedlist_t *list;
-    datum_t list_datum;
 
     /*
      * return "all types of objects" appropriate list
@@ -87,112 +88,103 @@ get_correct_list (event_manager_t *evrp,
         return NULL;
     }
 
-    if (FAILED(dynamic_array_get(dap, object_type, &list_datum))) {
-        
-        list = MEM_MONITOR_ALLOC(evrp, sizeof(linkedlist_t));
-        if (NULL == list)
-            return NULL;
+    /* get the list of processes interested in events for this object type */
+    rv = dynamic_array_get(dap, object_type, (void**) &list);
 
-        rv = sll_object_init(list, false,
-                compare_process_ids, evrp->mem_mon_p);
-        if (FAILED(rv)) {
-            MEM_MONITOR_FREE(evrp, list);
-            return NULL;
-        }
+    /* 
+     * if no such list exists, create and initialize it.
+     *
+     * Note that this list will hold all the processes
+     * which are interested in being notified abou the 
+     * specific event type for the specified object type.
+     */
+    if (0 != rv) {
+	list = MEM_MONITOR_ALLOC(evrp, sizeof(linkedlist_t));
+	if (NULL == list) return NULL;
+	rv = linkedlist_init(list, 0, compare_process_ids, evrp->mem_mon_p);
+	if (0 != rv) {
+	    MEM_MONITOR_FREE(evrp, list);
+	    return NULL;
+	}
 
-        list_datum.pointer = list;
-        rv = dynamic_array_insert(dap, object_type, list_datum);
-        if (FAILED(rv)) {
-            MEM_MONITOR_FREE(evrp, list);
-            return NULL;
-        }
-
-        return list;
+	/* ok list is created, so now store it in the dynamic array */
+	rv = dynamic_array_insert(dap, object_type, list);
+	if (0 != rv) {
+	    MEM_MONITOR_FREE(evrp, list);
+	    return NULL;
+	}
     }
-        
-    return list_datum.pointer;
+
+    return list;
 }
 
-static error_t
+static int
 thread_unsafe_generic_register_function (event_manager_t *evrp,
         int object_type,
         process_address_t *pap,
         int event_type,
-        boolean register_it)
+        int register_it)
 {
-    linkedlist_t *list;
-    datum_t address_datum, deleted_address_datum;
+    void *found_pap;
+    linkedlist_t *list = get_correct_list(evrp, object_type, event_type);
 
-    list = get_correct_list(evrp, object_type, event_type);
-    if (list) {
-        address_datum.pointer = pap;
-        if (register_it) {
-            return
-                sll_object_add_once(list, address_datum);
-        }
+    if (register_it) {
+	if (list) {
+	    return
+		linkedlist_add_once(list, pap, &found_pap);
+	}
 
-        /* 
-         * un-register, does not matter if it fails, since it means
-         * that the process was not in the list in the first place,
-         * the intended result is achieved either way.
-         */
-        sll_object_delete(list, address_datum, &deleted_address_datum);
-
-        return 0;
-
-    } else {
-
-        /* 
-         * list is NULL ? it does not matter if it was 
-         * an un-registration request but an error if it
-         * was a registration request.
-         */
-        if (register_it) return ENOSPC;
+	/* this fails only if no memory was available */
+	return ENOMEM;
     }
 
-    /* everything ok */
-    return 0;
+    if (list) {
+	return
+	    linkedlist_delete(list, pap, &found_pap);
+    }
+
+    return ENODATA;
 }
 
 
 /*****************************************************************************/
 
-PUBLIC error_t
+PUBLIC int
 event_manager_init (event_manager_t *evrp,
-	boolean make_it_thread_safe,
+	int make_it_thread_safe,
 	mem_monitor_t *parent_mem_monitor)
 {
-    error_t rv;
+    int rv;
 
     MEM_MONITOR_SETUP(evrp);
     LOCK_SETUP(evrp);
 
-    rv = sll_object_init(&evrp->all_types_object_processes, 
-            false, compare_process_ids, evrp->mem_mon_p);
+    rv = linkedlist_init(&evrp->all_types_object_processes, 
+            0, compare_process_ids, evrp->mem_mon_p);
     if (rv) {
         return rv;
     }
 
-    rv = sll_object_init(&evrp->all_types_attribute_processes,
-            false, compare_process_ids, evrp->mem_mon_p);
+    rv = linkedlist_init(&evrp->all_types_attribute_processes,
+            0, compare_process_ids, evrp->mem_mon_p);
     if (rv) {
-        sll_object_destroy(&evrp->all_types_object_processes);
+        linkedlist_destroy(&evrp->all_types_object_processes);
         return rv;
     }
 
     rv = dynamic_array_init(&evrp->specific_object_processes,
-            false, 3, evrp->mem_mon_p);
+            0, 3, evrp->mem_mon_p);
     if (rv) {
-        sll_object_destroy(&evrp->all_types_object_processes);
-        sll_object_destroy(&evrp->all_types_attribute_processes);
+        linkedlist_destroy(&evrp->all_types_object_processes);
+        linkedlist_destroy(&evrp->all_types_attribute_processes);
         return rv;
     }
 
     rv = dynamic_array_init(&evrp->specific_attribute_processes,
-            false, 3, evrp->mem_mon_p);
+            0, 3, evrp->mem_mon_p);
     if (rv) {
-        sll_object_destroy(&evrp->all_types_object_processes);
-        sll_object_destroy(&evrp->all_types_attribute_processes);
+        linkedlist_destroy(&evrp->all_types_object_processes);
+        linkedlist_destroy(&evrp->all_types_attribute_processes);
         dynamic_array_destroy(&evrp->specific_object_processes);
         return rv;
     }
@@ -205,18 +197,18 @@ event_manager_init (event_manager_t *evrp,
  * The following set of functions register/deregister a process
  * to be notified of the type of event for the specified object
  * type.  If 'object_type' is ALL_OBJECT_TYPES, then the target
- * will be ALL object types.  If 'activate' is true, the notifications
- * will start, else if false, notifications will be stopped.
+ * will be ALL object types.  If 'activate' is 1, the notifications
+ * will start, else if 0, notifications will be stopped.
  */
-PUBLIC error_t
+PUBLIC int
 register_for_object_events (event_manager_t *evrp,
         int object_type, process_address_t *pap)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(evrp);
     rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
-            OBJECT_EVENTS, true);
+            OBJECT_EVENTS, 1);
     WRITE_UNLOCK(evrp);
     return rv;
 }
@@ -227,7 +219,7 @@ un_register_from_object_events (event_manager_t *evrp,
 {
     WRITE_LOCK(evrp);
     (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
-            OBJECT_EVENTS, false);
+            OBJECT_EVENTS, 0);
     WRITE_UNLOCK(evrp);
 }
 
@@ -235,15 +227,15 @@ un_register_from_object_events (event_manager_t *evrp,
  * This is also similar to above but it will register for all attribute
  * events including attribute add, delete and all value changes.
  */
-PUBLIC error_t
+PUBLIC int
 register_for_attribute_events (event_manager_t *evrp,
         int object_type, process_address_t *pap)
 {
-    error_t rv;
+    int rv;
 
     WRITE_LOCK(evrp);
     rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
-            ATTRIBUTE_EVENTS, true);
+            ATTRIBUTE_EVENTS, 1);
     WRITE_UNLOCK(evrp);
     return rv;
 }
@@ -254,7 +246,7 @@ un_register_from_attribute_events (event_manager_t *evrp,
 {
     WRITE_LOCK(evrp);
     (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
-            ATTRIBUTE_EVENTS, true);
+            ATTRIBUTE_EVENTS, 1);
     WRITE_UNLOCK(evrp);
 }
 
