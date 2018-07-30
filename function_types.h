@@ -31,17 +31,34 @@
 extern "C" {
 #endif
 
-/*
- * Simplest of all callback funtion.  Takes a single void *
- * argument & returns a void * result.
- */
-typedef void (*simple_function_pointer) (void *arg);
+typedef int (*one_parameter_function_pointer)(void *arg1);
 
-/*
- * A generic type for defining a pointer to a function which
- * compares two structures as interpreted by the user.
- */
-typedef int (*object_comparer) (void *v0, void *v1);
+typedef int (*two_parameter_function_pointer)(void *arg1, void *arg2);
+
+typedef int (*three_parameter_function_pointer)(void *arg1, void *arg2, void *arg3);
+
+typedef int (*four_parameter_function_pointer)
+		(void *arg1, void *arg2, void *arg3, void *arg4);
+
+typedef int (*five_parameter_function_pointer)
+		(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
+
+typedef int (*six_parameter_function_pointer)
+		(void *arg1, void *arg2, void *arg3,
+		 void *arg4, void *arg5, void *arg6);
+
+typedef int (*seven_parameter_function_pointer)
+		(void *arg1, void *arg2, void *arg3,
+		 void *arg4, void *arg5, void *arg6,
+		 void *arg7);
+
+typedef one_parameter_function_pointer simple_function_pointer;
+
+typedef two_parameter_function_pointer object_comparer;
+
+typedef seven_parameter_function_pointer traverse_function_pointer;
+
+#if 0
 
 /*
  * A generic function pointer used in traversing trees or tries etc.
@@ -72,6 +89,8 @@ typedef int (*traverse_function_pointer)
      void *extra_parameter_1,
      void *extra_parameter_2,
      void *extra_parameter_3);
+
+#endif // 0
 
 #ifdef __cplusplus
 } // extern C

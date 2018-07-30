@@ -33,6 +33,20 @@ extern "C" {
 #define PUBLIC
 
 /*
+ * Every time an event is registered by a process, these are stored
+ * in the lists.  Registerer can specify an arbitrary user pointer
+ * and a callback function to call when the event gets reported.
+ * The user callback will be called with a
+ */
+typedef struct event_notification_record_s {
+
+    process_address_t pa;
+    void *opaque_user_parameter;
+
+
+} event_notification_record_t;
+
+/*
  * determines whether the two processes passed in as params
  * are 'considered' to be equal
  */
@@ -130,6 +144,10 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
     linkedlist_t *list = 
 	get_correct_list(evrp, object_type, event_type, register_it);
 
+    /*
+     * if we are registering, we must create a list in the appropriate
+     * dynamic array.
+     */
     if (register_it) {
 	if (list) {
 	    return
@@ -140,6 +158,14 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
 	return ENOMEM;
     }
 
+    /*
+     * if we are here, we are UN registering.  In this case, if list
+     * was not available in the first place, it is no big deal and we
+     * should not unnecessarily create a list.  We do return ENODATA
+     * but it actually satifies what was intended: to delete the registration.
+     * Not having one at all in the first place is as good as deleting
+     * it.
+     */
     if (list) {
 	return
 	    linkedlist_delete(list, pap, &found_pap);

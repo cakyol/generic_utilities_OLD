@@ -2,13 +2,14 @@
 #include <stdio.h>
 #include "scheduler.h"
 
-void task_function (void *arg) 
+int task_function (void *arg) 
 {
     int value = *((int*) arg);
 
     free(arg);
     printf("%d ", value);
     fflush(stdout);
+    return 0;
 }
 
 int main (int argc, char *argv[])
