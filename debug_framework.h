@@ -48,7 +48,7 @@
 ** module can have its own specific reporting function that the user defines
 ** and that is what will be called by the framework.  The user can perform
 ** whatever they want with the message.  Typically that will be printing but
-** it does not have to be.  It is defined by the user.  By default, initially
+** it does not have to be.  It is defined by the user.  By default however,
 ** for every module, a function is registered which prints to stderr only.
 **
 *******************************************************************************
@@ -79,8 +79,25 @@ extern "C" {
 /*
  * How many modules this debug infrastructure supports.
  * Redefine this if more needs to be supported.
+ * Module 0 is special and represents all modules and
+ * all levels; ie a debug message for module 0 will ALWAYS
+ * be reported regardless of anything else.
+ *
+ * Valid modules are 1 to (MAX_MODULES-1) inclusive.
  */
 #define MAX_MODULES                     128
+
+/*
+ * Define your own modules here, like such.
+ * MUST start from 1 and no larger than (MAX_MODULES-1).
+ *
+
+#define SWITCH_MODULE           1
+#define ROUTER_MODULE           2
+#define BUFFER_MODULE           3
+etc.....
+
+*/
 
 /*
  * max number of characters of a module name if the user defines
@@ -221,10 +238,23 @@ default_debug_reporting_function (char *debug_message);
 extern
 debug_module_data_t module_levels [MAX_MODULES];
 
+#define USE_A_MACRO
+
 /*
  * module 0 ALWAYS gets printed, wildcard.
  * Otherwise, the level must be allowed for that particular module to report.
+ *
+ * Test in your compiler whether the macro or the static inline is faster.
  */
+
+#ifdef USE_A_MACRO
+
+#define __module_can_report__(m, l) \
+    (((m) == 0) || \
+     (((m) > 0) && ((m) < MAX_MODULES) && ((l) >= module_levels[(m)].level)))
+
+#else // !USE_A_MACRO
+
 static inline int
 __module_can_report__ (int module, int level) 
 {
@@ -233,6 +263,8 @@ __module_can_report__ (int module, int level)
         ((module > 0) && (module < MAX_MODULES) && 
             (level >= module_levels[module].level));
 }
+
+#endif // USE_A_MACRO
 
 extern void
 debug_message_process (int module, int level,

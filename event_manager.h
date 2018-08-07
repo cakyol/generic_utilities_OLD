@@ -107,8 +107,8 @@ extern "C" {
  * manager & object manager code.
  */
 
-#define OBJECT_CREATED              (1 << 0)
-#define OBJECT_DESTROYED            (1 << 1)
+#define OBJECT_CREATED                  (1 << 0)
+#define OBJECT_DESTROYED                (1 << 1)
 #define OBJECT_EVENTS \
     (OBJECT_CREATED | OBJECT_DESTROYED)
 
@@ -164,8 +164,8 @@ is_an_attribute_event (int event)
 typedef struct event_record_s {
 
     /*
-     * this must be first since during reads & writes, it can
-     * be determined at the very beginning.  It can also be used
+     * this MUST be first field since during reads & writes, it needs
+     * to be determined at the very beginning.  It will also be used
      * to copy the entire structure since its length is variable.
      */
     int total_length;
@@ -184,10 +184,17 @@ typedef struct event_record_s {
     int object_instance;
 
     /*
-     * if the event involves another object, this is the OTHER object.
-     * Not used if another object is not involved.  One case
-     * it is involved is object creation event.  The related object
-     * represents the PARENT in this case.
+     * if the event involves another object, this is that OTHER object.
+     * Not used if another object is not involved.
+     *
+     * One example of when it is used is during an object creation event.
+     * In this situation, the 'object_type' & 'object_instance' will
+     * represent the object actually created and 'related_object_type'
+     * and 'related_object_instance' will represent its parent.
+     *
+     * An example of when it is NOT needed is during an object deletion
+     * event.  In this case, no other object is involved and these
+     * are not used.
      */
     int related_object_type;
     int related_object_instance;
@@ -259,8 +266,7 @@ event_manager_init (event_manager_t *evrp,
 extern int
 register_for_object_events (event_manager_t *evrp,
     int object_type, 
-    two_parameter_function_pointer ecbf,
-    void *user_param);
+    two_parameter_function_pointer ecbf, void *user_param);
 
 /*
  * unregisters from object events for the specified object type.
@@ -280,8 +286,7 @@ un_register_from_object_events (event_manager_t *evrp,
 extern int
 register_for_attribute_events (event_manager_t *evrp,
     int object_type, 
-    two_parameter_function_pointer ecbf,
-    void *user_param);
+    two_parameter_function_pointer ecbf, void *user_param);
 
 /*
  * reverse of the above

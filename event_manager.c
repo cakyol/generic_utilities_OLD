@@ -47,8 +47,13 @@ typedef struct event_notification_record_s {
 } event_notification_record_t;
 
 /*
- * determines whether the two processes passed in as params
- * are 'considered' to be equal
+ * determines whether the two event notification records 
+ * passed in as params are 'considered' to be equal.  
+ * They are so if both the function pointers and the opaque 
+ * user parameters match.
+ *
+ * Returns 0 for equal, -ve or +ve value if considered less
+ * than or greater than.
  */
 static int
 compare_enrs (void *venr1, void *venr2)
@@ -64,16 +69,19 @@ compare_enrs (void *venr1, void *venr2)
 
 /*
  * given the object type & event type, finds the correct
- * and relevant list that needs to be operated on.
+ * and relevant registration list that needs to be operated on.
  */
 static linkedlist_t *
 get_correct_list (event_manager_t *evrp,
         int object_type, int event_type,
-        int create_if_missing)
+        int create_if_missing,
+        dynamic_array_t **dynamic_array_returned)
 {
     int rv;
     dynamic_array_t *dap;
     linkedlist_t *list;
+
+    *dynamic_array_returned = NULL;
 
     /*
      * return "all types of objects" appropriate list
@@ -108,6 +116,8 @@ get_correct_list (event_manager_t *evrp,
         return NULL;
     }
 
+    *dynamic_array_returned = dap;
+
     /* get the list of registrants interested in events for this object type */
     rv = dynamic_array_get(dap, object_type, (void**) &list);
 
@@ -116,7 +126,7 @@ get_correct_list (event_manager_t *evrp,
      * if creation is needed.
      *
      * Note that this list will hold all the registrants
-     * which are interested in being notified abou the 
+     * which are interested in being notified about the 
      * specific event type for the specified object type.
      */
     if ((0 != rv) && create_if_missing) {
@@ -142,16 +152,16 @@ get_correct_list (event_manager_t *evrp,
 
 static int
 thread_unsafe_generic_register_function (event_manager_t *evrp,
-        int object_type,
+        int object_type, int event_type,
         two_parameter_function_pointer ecbf, void *user_param,
-        int event_type,
         int register_it)
 {
     int rv;
-    event_notification_record_t *enrp;
+    event_notification_record_t enr, *enrp;
     void *found;
+    dynamic_array_t *dap;
     linkedlist_t *list = 
-        get_correct_list(evrp, object_type, event_type, register_it);
+        get_correct_list(evrp, object_type, event_type, register_it, &dap);
 
     /*
      * if we are registering, we must create a list in the appropriate
@@ -188,14 +198,30 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
      * should not unnecessarily create a list.  We do return ENODATA
      * but it actually satifies what was intended: to delete the registration.
      * Not having one at all in the first place is as good as deleting
-     * it.
+     * it.  If it was indeed IN the list, we delete it from the list.
+     * After the deletion from the list, if there are no elements left
+     * in the list, we can also delete the list itself from the dynamic
+     * array.
      */
     if (list) {
-        return
-            linkedlist_delete(list, pap, &found_pap);
+
+        /* delete it from the list */
+        enr.ecbf = ecbf;
+        enr.opaque_user_parameter = user_param;
+        rv = linkedlist_delete(list, &enr, &found);
+
+        /* if nothing else remains in the list, delete the list itself */
+        if (dap && (list->n <= 0)) {
+            rv = dynamic_array_remove(dap, object_type, &found);
+            if (0 == rv) {
+                assert(found == list);
+                linkedlist_destroy(list);
+                MEM_MONITOR_FREE(evrp, list);
+            }
+        }
     }
 
-    return ENODATA;
+    return 0;
 }
 
 
@@ -253,13 +279,14 @@ event_manager_init (event_manager_t *evrp,
  */
 PUBLIC int
 register_for_object_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap)
+        int object_type,
+        two_parameter_function_pointer ecbf, void *user_param)
 {
     int rv;
 
     WRITE_LOCK(evrp);
-    rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
-            OBJECT_EVENTS, 1);
+    rv = thread_unsafe_generic_register_function(evrp, object_type,
+            OBJECT_EVENTS, ecbf, user_param, 1);
     WRITE_UNLOCK(evrp);
     return rv;
 }

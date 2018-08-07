@@ -38,6 +38,9 @@ extern "C" {
  * objects.  User objects should always have type & instance values 
  * of greater than 0.
  *
+ * Keeping object numbers consecutive helps in conserving memory when
+ * using dynamic arrays.  
+ *
  * Note that these values also mean 'all' types and instances for 
  * certain contexts.
  */
