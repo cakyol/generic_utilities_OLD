@@ -52,34 +52,34 @@ typedef struct table_s {
 
     int use_avl_tree;
     union {
-	avl_tree_t avl;
-	index_obj_t idx;
+        avl_tree_t avl;
+        index_obj_t idx;
     } u;
 
 } table_t;
 
 extern int 
 table_init (table_t *tablep, 
-	int make_it_thread_safe,
-	object_comparer cmpf, 
+        int make_it_thread_safe,
+        object_comparer cmpf, 
         mem_monitor_t *parent_mem_monitor,
         int use_avl_tree);
 
 extern int 
 table_insert (table_t *tablep, 
-	void *to_be_inserted, void **returned);
+        void *to_be_inserted, void **returned);
 
 extern int 
 table_search (table_t *tablep, 
-	void *searched, void **returned);
+        void *searched, void **returned);
 
 extern int 
 table_remove (table_t *tablep, 
-	void *to_be_removed, void **removed);
+        void *to_be_removed, void **removed);
 
 extern int
 table_traverse (table_t *tablep, traverse_function_pointer tfn,
-	void *p0, void *p1, void *p2, void *p3);
+        void *p0, void *p1, void *p2, void *p3);
 
 extern void **
 table_get_all (table_t *tablep, int *returned_count);

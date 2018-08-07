@@ -121,7 +121,7 @@ typedef struct chunk_manager_parameters_s {
 
 extern int
 chunk_manager_init (chunk_manager_t *cmgr,
-	int make_it_thread_safe,
+        int make_it_thread_safe,
         int chunk_size, int initial_number_of_chunks, int grow,
         mem_monitor_t *parent_mem_monitor);
 
@@ -166,27 +166,27 @@ chunk_manager_destroy (chunk_manager_t *cmgr);
 
 #define CHUNK_MANAGER_SETUP(obj, chunk_size, cmpp) \
     if (cmpp) { \
-	int __rv__; \
-	obj->chunks = &obj->chunk_structure; \
-	__rv__ = chunk_manager_init(obj->chunks, 0, \
-		    chunk_size, \
-		    cmpp->initial_number_of_chunks, \
-		    cmpp->grow_size, (obj)->mem_mon_p); \
-	if (__rv__) return __rv__; \
+        int __rv__; \
+        obj->chunks = &obj->chunk_structure; \
+        __rv__ = chunk_manager_init(obj->chunks, 0, \
+                    chunk_size, \
+                    cmpp->initial_number_of_chunks, \
+                    cmpp->grow_size, (obj)->mem_mon_p); \
+        if (__rv__) return __rv__; \
     } else { \
-	obj->chunks = 0; \
+        obj->chunks = 0; \
     }
 
 #define CHUNK_ALLOC(obj, size) \
     (obj)->chunks ? \
-	chunk_manager_alloc((obj)->chunks) : \
-	MEM_MONITOR_ALLOC((obj), size);
+        chunk_manager_alloc((obj)->chunks) : \
+        MEM_MONITOR_ALLOC((obj), size);
 
 #define CHUNK_FREE(obj, ptr) \
     if ((obj)->chunks) \
-	chunk_manager_free((obj)->chunks, ptr); \
+        chunk_manager_free((obj)->chunks, ptr); \
     else \
-	MEM_MONITOR_FREE((obj), ptr);
+        MEM_MONITOR_FREE((obj), ptr);
 
 #ifdef __cplusplus
 } // extern C

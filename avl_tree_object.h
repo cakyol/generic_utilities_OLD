@@ -43,9 +43,9 @@ typedef struct avl_node_s avl_node_t;
 
 struct avl_node_s {
 
-    avl_node_t *parent;		// parent of this node
-    avl_node_t *left, *right;	// children
-    void *user_data;		// opaque user data
+    avl_node_t *parent;         // parent of this node
+    avl_node_t *left, *right;   // children
+    void *user_data;            // opaque user data
     int balance;
 };
 
@@ -72,31 +72,31 @@ avl_tree_size (avl_tree_t *tree)
 
 extern int 
 avl_tree_init (avl_tree_t *tree,
-	int make_it_thread_safe,
-	object_comparer cmpf,
+        int make_it_thread_safe,
+        object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor,
-	chunk_manager_parameters_t *cmpp);
+        chunk_manager_parameters_t *cmpp);
 
 /**************************** Insert *****************************************/
 
 extern int 
 avl_tree_insert (avl_tree_t *tree,
-	void *data_to_be_inserted,
-	void **data_already_present);
+        void *data_to_be_inserted,
+        void **data_already_present);
 
 /**************************** Search *****************************************/
 
 extern int 
 avl_tree_search (avl_tree_t *tree,
-	void *data_to_be_searched,
-	void **data_found);
+        void *data_to_be_searched,
+        void **data_found);
 
 /**************************** Remove *****************************************/
 
 extern int 
 avl_tree_remove (avl_tree_t *tree,
-	void *data_to_be_removed,
-	void **data_actually_removed);
+        void *data_to_be_removed,
+        void **data_actually_removed);
 
 /**************************** Get all entries ********************************/
 
@@ -107,8 +107,8 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count);
 
 extern int
 avl_tree_traverse (avl_tree_t *tree,
-	traverse_function_pointer tfn,
-	void *p0, void *p1, void *p2, void *p3);
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3);
 
 /**************************** Destroy ****************************************/
 

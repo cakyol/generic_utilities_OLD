@@ -4,7 +4,7 @@
 #include "timer_object.h"
 #include "avl_tree_object.h"
 
-#define MAX_SZ		(50 * 1024 * 1024)
+#define MAX_SZ          (50 * 1024 * 1024)
 #define EXTRA           (10 * 1024 * 1024)
 
 int max_value_reached = 0;
@@ -39,21 +39,21 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     ** This gives some sort of randomness to data.
     */
     printf("filling array of size %d with %s number data\n", 
-	MAX_SZ, oddness);
+        MAX_SZ, oddness);
     d = use_odd_numbers ? 1 : 0;
     lo = 0; 
     hi = MAX_SZ - 1;
     while (1) {
-	data[lo++] = d;
-	d += 2;
-	data[hi--] = d;
-	d += 2;
-	if (lo > hi) break;
+        data[lo++] = d;
+        d += 2;
+        data[hi--] = d;
+        d += 2;
+        if (lo > hi) break;
     }
 
     if (max_value_reached < d) {
-	max_value_reached = d + 10;
-	printf("max value recorded so far is %d\n", max_value_reached);
+        max_value_reached = d + 10;
+        printf("max value recorded so far is %d\n", max_value_reached);
     }
 
     chparams.initial_number_of_chunks = max_value_reached + 10;
@@ -65,29 +65,29 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     printf("now entering all %s number data into the avl tree\n", oddness);
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	fwdata = &data[i];
-	rv = avl_tree_insert(avlt, fwdata, &found);
-	if (rv != 0) {
-	    printf("populate_data: avl_tree_insert error: %d failed\n", i);
-	}
+        fwdata = &data[i];
+        rv = avl_tree_insert(avlt, fwdata, &found);
+        if (rv != 0) {
+            printf("populate_data: avl_tree_insert error: %d failed\n", i);
+        }
     }
     timer_end(&timr);
     timer_report(&timr, MAX_SZ);
     OBJECT_MEMORY_USAGE(avlt, bytes_used, megabytes_used);
     printf("total memory used by the avl tree of %d nodes: %llu bytes (%lf Mbytes)\n",
-	avlt->n, bytes_used, megabytes_used);
+        avlt->n, bytes_used, megabytes_used);
 
     printf("searching for non existant data\n");
     fine = not_fine = 0;
     timer_start(&timr);
     for (i = max_value_reached; i < (max_value_reached + EXTRA); i++) {
-	searched = &i;
-	rv = avl_tree_search(avlt, searched, &found);
-	if ((rv == 0) || found) {
-	    not_fine++;
-	} else {
-	    fine++;
-	}
+        searched = &i;
+        rv = avl_tree_search(avlt, searched, &found);
+        if ((rv == 0) || found) {
+            not_fine++;
+        } else {
+            fine++;
+        }
     }
     timer_end(&timr);
     timer_report(&timr, EXTRA);
@@ -98,14 +98,14 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     fine = not_fine = 0;
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	searched = &data[i];
-	rv = avl_tree_search(avlt, searched, &found);
+        searched = &data[i];
+        rv = avl_tree_search(avlt, searched, &found);
 
-	if ((rv != 0) || (data[i] != *((int*) found))) {
-	    not_fine++;
-	} else {
-	    fine++;
-	}
+        if ((rv != 0) || (data[i] != *((int*) found))) {
+            not_fine++;
+        } else {
+            fine++;
+        }
     }
     timer_end(&timr);
     timer_report(&timr, MAX_SZ);
@@ -117,14 +117,14 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     d = use_odd_numbers ? 0 : 1;
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	searched = &d;
-	rv = avl_tree_search(avlt, searched, &found);
-	if ((rv == 0) || found) {
-	    not_fine++;
-	} else {
-	    fine++;
-	}
-	d += 2;
+        searched = &d;
+        rv = avl_tree_search(avlt, searched, &found);
+        if ((rv == 0) || found) {
+            not_fine++;
+        } else {
+            fine++;
+        }
+        d += 2;
     }
     timer_end(&timr);
     timer_report(&timr, MAX_SZ);
@@ -147,26 +147,26 @@ return;
     fine = not_fine = fail_search = 0;
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
-	searched =  &data[i];
-	rv = avl_tree_remove(avlt, searched, &removed);
-	if ((rv != 0) || (data[i] != *((int*) removed))) {
-	    not_fine++;
-	} else {
-	    fine++;
-	}
-	rv = avl_tree_search(avlt, searched, &found);
-	if ((rv == 0) || found) {
-	    fail_search++;
-	}
+        searched =  &data[i];
+        rv = avl_tree_remove(avlt, searched, &removed);
+        if ((rv != 0) || (data[i] != *((int*) removed))) {
+            not_fine++;
+        } else {
+            fine++;
+        }
+        rv = avl_tree_search(avlt, searched, &found);
+        if ((rv == 0) || found) {
+            fail_search++;
+        }
     }
     timer_end(&timr);
     timer_report(&timr, MAX_SZ*2);
     printf("deleted %d, could NOT delete %d, erroneous search %d\n",
-	fine, not_fine, fail_search);
+        fine, not_fine, fail_search);
 
     OBJECT_MEMORY_USAGE(avlt, bytes_used, megabytes_used);
     printf("total memory used by the avl tree (%d nodes) after deletes: "
-	"%llu bytes (%f Mbytes)\n",
+        "%llu bytes (%f Mbytes)\n",
         avlt->n, bytes_used, megabytes_used);
 
     avl_tree_destroy(avlt);

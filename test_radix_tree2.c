@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include "radix_tree_object.h"
 
-#define MAX_REF		10
-#define MAX_BYTE 	255
-#define MAX_SIZE	(MAX_BYTE + 1)
+#define MAX_REF         10
+#define MAX_BYTE        255
+#define MAX_SIZE        (MAX_BYTE + 1)
 
 char *strings[] = {
     "bc",
@@ -28,7 +28,7 @@ char *strings[] = {
 char *not_there1 = "initi";
 char *not_there2 = "hel";
 
-#define MAX_STRINGS	(sizeof(strings) / sizeof(char*))
+#define MAX_STRINGS     (sizeof(strings) / sizeof(char*))
 
 int print_key (void *trie_object, void *trie_node, void *data,
     void *key, void *key_length, void *u1, void *u2)
@@ -57,7 +57,7 @@ char *argv [];
     printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(radix_tree_node_t));
     for (i = 0; i < (int) MAX_STRINGS; i++) {
         radix_tree_insert(&radix_tree_obj, strings[i], strlen(strings[i]),
-	    strings[i], &found);
+            strings[i], &found);
     }
 
     /* these should NOT be found */

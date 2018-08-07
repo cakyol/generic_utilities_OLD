@@ -82,14 +82,14 @@ typedef struct dynamic_array_s {
 
 extern int
 dynamic_array_init (dynamic_array_t *datp,
-	int make_it_thread_safe,
-	int initial_size,
+        int make_it_thread_safe,
+        int initial_size,
         mem_monitor_t *parent_mem_monitor);
 
 extern int 
 dynamic_array_insert (dynamic_array_t *datp,
-	int index, 
-	void *value);
+        int index, 
+        void *value);
 
 /*
  * if an entry is requested outside the array bounds, it is an error.
@@ -98,8 +98,8 @@ dynamic_array_insert (dynamic_array_t *datp,
  */
 extern int
 dynamic_array_get (dynamic_array_t *datp,
-	int index, 
-	void **returned_value);
+        int index, 
+        void **returned_value);
 
 /*
  * cannot remove an entry which does not lie within boundaries
@@ -107,8 +107,8 @@ dynamic_array_get (dynamic_array_t *datp,
  */
 extern int
 dynamic_array_remove (dynamic_array_t *datp,
-	int index,
-	void **removed);
+        int index,
+        void **removed);
 
 extern void **
 dynamic_array_get_all (dynamic_array_t *datp, int *count);

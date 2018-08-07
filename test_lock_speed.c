@@ -30,8 +30,8 @@ void *contention_thread (void *arg)
     /* fight over the common lock */
     timer_start(&tmr);
     for (i = 0; i < MAX_ITERATION; i++) {
-	grab_write_lock(&lock);
-	release_write_lock(&lock);
+        grab_write_lock(&lock);
+        release_write_lock(&lock);
     }
     timer_end(&tmr);
 
@@ -62,15 +62,15 @@ int main (int argc, char *argv[])
     printf("creating all threads\n");
     start_timing = 0;
     for (i = 0; i < MAX_THREADS; i++) {
-	intp = (int*) malloc(sizeof(int));
-	if (NULL == intp) break;
-	*intp = i;
-	rv = pthread_create(&tid, NULL, contention_thread, intp);
+        intp = (int*) malloc(sizeof(int));
+        if (NULL == intp) break;
+        *intp = i;
+        rv = pthread_create(&tid, NULL, contention_thread, intp);
         if (rv) break;
         max_threads++;
     }
     printf("created %d of them, now letting them loose on the lock\n",
-	max_threads);
+        max_threads);
 
     /* ok all threads are fired up & waiting, let them loose */
     start_timing = 1;
@@ -78,15 +78,15 @@ int main (int argc, char *argv[])
     /* now wait until they all complete */
 not_all_threads_complete:
     for (i = 0; i < max_threads; i++) {
-	if (thread_complete_array[i] == 0) {
-	    sleep(1);
-	    goto not_all_threads_complete;
-	}
+        if (thread_complete_array[i] == 0) {
+            sleep(1);
+            goto not_all_threads_complete;
+        }
     }
 
     /* everything should be updated now */
     printf("%lld nano seconds used in %lld iterations, average is %lld\n",
-	total_time, total_iterations, (total_time/total_iterations));
+        total_time, total_iterations, (total_time/total_iterations));
     return 0;
 }
 

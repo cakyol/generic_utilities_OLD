@@ -53,8 +53,8 @@ pointer2integer (void *ptr)
     return ((byte*) ptr) - zero;
 }
 
-#define pointer_from_integer(i)		integer2pointer((long long int) (i))
-#define integer_from_pointer(p)		pointer2integer((void*) (p))
+#define pointer_from_integer(i)         integer2pointer((long long int) (i))
+#define integer_from_pointer(p)         pointer2integer((void*) (p))
 
 #define safe_pointer_set(ptr, value) \
     if (ptr) *(ptr) = (value)

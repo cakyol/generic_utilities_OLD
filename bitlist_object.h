@@ -78,8 +78,8 @@ static inline int
 bitlist_count_zeros (bitlist_t *bl)
 {
     return 
-	bl->highest_valid_bit - bl->lowest_valid_bit + 1 - 
-	bl->bits_set_count; 
+        bl->highest_valid_bit - bl->lowest_valid_bit + 1 - 
+        bl->bits_set_count; 
 }
 
 extern int

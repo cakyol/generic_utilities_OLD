@@ -69,16 +69,16 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
 
 static int
 thread_unsafe_queue_obj_queue (queue_obj_t *qobj, 
-	void *data)
+        void *data)
 {
     int rv;
 
     /* do we have space */
     if (qobj->n < qobj->maximum_size) {
-	qobj->elements[qobj->write_idx] = data;
-	qobj->n++;
-	qobj->write_idx = (qobj->write_idx + 1) % qobj->maximum_size;
-	return 0;
+        qobj->elements[qobj->write_idx] = data;
+        qobj->n++;
+        qobj->write_idx = (qobj->write_idx + 1) % qobj->maximum_size;
+        return 0;
     }
 
     /* no space, can we expand */
@@ -94,13 +94,13 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
 
 static int
 thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
-	void **returned_data)
+        void **returned_data)
 {
     if (qobj->n > 0) {
-	*returned_data = qobj->elements[qobj->read_idx];
-	qobj->n--;
-	qobj->read_idx = (qobj->read_idx + 1) % qobj->maximum_size;
-	return 0;
+        *returned_data = qobj->elements[qobj->read_idx];
+        qobj->n--;
+        qobj->read_idx = (qobj->read_idx + 1) % qobj->maximum_size;
+        return 0;
     }
     *returned_data = NULL;
     return ENODATA;
@@ -110,14 +110,14 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
 
 PUBLIC int
 queue_obj_init (queue_obj_t *qobj,
-	int make_it_thread_safe,
-	int maximum_size, int expansion_increment,
+        int make_it_thread_safe,
+        int maximum_size, int expansion_increment,
         mem_monitor_t *parent_mem_monitor)
 {
     int rv = 0;
 
     if (maximum_size < 1) {
-	return EINVAL;
+        return EINVAL;
     }
 
     MEM_MONITOR_SETUP(qobj);
@@ -133,7 +133,7 @@ queue_obj_init (queue_obj_t *qobj,
     qobj->elements = (void**) MEM_MONITOR_ALLOC(qobj,
             (maximum_size * sizeof(void*)));
     if (NULL == qobj->elements) {
-	rv = ENOMEM;
+        rv = ENOMEM;
     }
     WRITE_UNLOCK(qobj);
     return rv;
@@ -141,7 +141,7 @@ queue_obj_init (queue_obj_t *qobj,
 
 PUBLIC int
 queue_obj_queue (queue_obj_t *qobj,
-	void *data)
+        void *data)
 {
     int rv;
 
@@ -153,7 +153,7 @@ queue_obj_queue (queue_obj_t *qobj,
 
 PUBLIC int
 queue_obj_dequeue (queue_obj_t *qobj,
-	void **returned_data)
+        void **returned_data)
 {
     int rv;
 
@@ -167,7 +167,7 @@ PUBLIC void
 queue_obj_destroy (queue_obj_t *qobj)
 {
     if (qobj->elements) {
-	MEM_MONITOR_FREE(qobj, qobj->elements);
+        MEM_MONITOR_FREE(qobj, qobj->elements);
     }
     LOCK_OBJ_DESTROY(qobj);
     memset(qobj, 0, sizeof(queue_obj_t));

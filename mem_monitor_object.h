@@ -7,9 +7,9 @@
 ** 
 ** @@@@@ Memory book keeping object
 **       Use these instead of malloc/free and it keeps a very accurate
-**	 count of how much memory has been used, how many times
-**	 allocation has been called and how many times free has been 
-**	 called.
+**       count of how much memory has been used, how many times
+**       allocation has been called and how many times free has been 
+**       called.
 **
 **       It also zeroes out the allocated memory too.
 **

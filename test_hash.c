@@ -1,10 +1,10 @@
 
 #include "utils.h"
 
-#define SZ			500000
+#define SZ                      500000
 
-#define LOWER			0
-#define UPPER			1000000
+#define LOWER                   0
+#define UPPER                   1000000
 
 /*
 ** some data structure we are interested in
@@ -43,10 +43,10 @@ char *argv [];
     int largest, smallest;
 
     if (argc>1) {
-	size = atoi (argv [1]);
+        size = atoi (argv [1]);
     }
     if ((size > SZ) || (size <= 0)) {
-	size = SZ;
+        size = SZ;
     }
 
     /* create the index first */
@@ -56,15 +56,15 @@ char *argv [];
     srand (time (0));
     printf ("STARTED TO FILL %d ENTRIES\n", size);
     for (i=0; i<size; i++) {
-	data [i].first = rand ();
-	data [i].second = rand ();
-	if (&data [i] == hash_insert(&hash_table, &data [i])) {
-	    // printf("inserted data %d/%d into hash table\n",
-		// data[i].first, data[i].second);
-	} else {
-	    printf ("entry %d (%d %d) already in hashtable\n",
-		i, data[i].first, data[i].second);
-	}
+        data [i].first = rand ();
+        data [i].second = rand ();
+        if (&data [i] == hash_insert(&hash_table, &data [i])) {
+            // printf("inserted data %d/%d into hash table\n",
+                // data[i].first, data[i].second);
+        } else {
+            printf ("entry %d (%d %d) already in hashtable\n",
+                i, data[i].first, data[i].second);
+        }
     }
     printf ("ENDED FILLING %d ENTRIES\n", size);
 
@@ -78,14 +78,14 @@ char *argv [];
     start = time (NULL);
     for (i=LOWER; i<UPPER; i++)
     {
-	index++;
-	if (index >= size) index = 0;
-	if (hash_search (&hash_table, &data[index]) != NULL)
-	    found++;
+        index++;
+        if (index >= size) index = 0;
+        if (hash_search (&hash_table, &data[index]) != NULL)
+            found++;
     }
     end = time (NULL);
     printf ("time elapsed = %d seconds, found %d matches in %d searches\n",
-		(end - start), found, (UPPER-LOWER));
+                (end - start), found, (UPPER-LOWER));
     perSearch = (double) (end - start) / (double) (UPPER-LOWER);
     perSearch *= 1000000;
     printf ("took %.2lf micro seconds per search\n", perSearch);

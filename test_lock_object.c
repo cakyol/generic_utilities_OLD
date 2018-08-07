@@ -157,10 +157,10 @@ int main (int argc, char *argv[])
     /* now wait until they all complete */
 not_all_threads_complete:
     for (i = 0; i < max_threads; i++) {
-	if (thread_complete_array[i] == 0) {
-	    sleep(1);
-	    goto not_all_threads_complete;
-	}
+        if (thread_complete_array[i] == 0) {
+            sleep(1);
+            goto not_all_threads_complete;
+        }
     }
     printf("all %d threads have finished\n", max_threads);
     fflush(stdout);

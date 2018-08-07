@@ -1,7 +1,7 @@
 
 #include "utils.h"
 
-#define MAX_SZ			512
+#define MAX_SZ                  512
 
 /*
 ** some data structure we are interested in
@@ -28,14 +28,14 @@ int verify_dll (dll_manager_t *list, int start, int increment)
 
     elem = list->head;
     while (elem) {
-	io = (int_object_t*) elem->object;
-	if (io->value != start) {
-	    printf("\nverification failed, expected %d got %d",
-		start, io->value);
-	    return error;
-	}
-	start += increment;
-	elem = elem->next;
+        io = (int_object_t*) elem->object;
+        if (io->value != start) {
+            printf("\nverification failed, expected %d got %d",
+                start, io->value);
+            return error;
+        }
+        start += increment;
+        elem = elem->next;
     }
     return ok;
 }
@@ -59,12 +59,12 @@ char *argv [];
         if (integers[i].value & 1) {
             rc = dll_insert_object_ordered(list, &integers[i], true);
             if (rc == ok) {
-		/* printf("    inserted %d\n", integers[i].value); */
-	    } else {
+                /* printf("    inserted %d\n", integers[i].value); */
+            } else {
                 fault = true;
                 printf("\n    could NOT insert %d\n", integers[i].value);
             }
-	    fflush(stdout);
+            fflush(stdout);
         }
     }
     if (fault) {
@@ -74,7 +74,7 @@ char *argv [];
 
     /* now verify that only the odd ones are present */
     if (verify_dll(list, 1, 2) == ok) {
-	printf("\nodd numbers test passed");
+        printf("\nodd numbers test passed");
     }
 
     /* now add even numbers to list and check */
@@ -96,32 +96,32 @@ char *argv [];
 
     /* now verify ALL are present */
     if (verify_dll(list, 0, 1) == ok) {
-	printf("\nall numbers test passed");
+        printf("\nall numbers test passed");
     }
 
     /* now delete all the odd ones */
     printf("\nnow deleting all odd numbers");
     for (i = 0; i < MAX_SZ; i++) {
-	if (integers[i].value & 1) {
-	    dll_delete_object(list, &integers[i]);
-	}
+        if (integers[i].value & 1) {
+            dll_delete_object(list, &integers[i]);
+        }
     }
     if (verify_dll(list, 0, 2) == ok) {
-	printf("\nall odd number deletions verified");
+        printf("\nall odd number deletions verified");
     }
 
     /* now delete all the even ones, meaning all is now deleted */
     printf("\nnow deleting all even numbers");
     for (i = 0; i < MAX_SZ; i++) {
-	if (0 == (integers[i].value & 1)) {
-	    dll_delete_object(list, &integers[i]);
-	    if (dll_find_object(list, &integers[i], NULL)) {
-		printf("\nERROR: deleted %d and found it", integers[i].value);
-	    }
-	}
+        if (0 == (integers[i].value & 1)) {
+            dll_delete_object(list, &integers[i]);
+            if (dll_find_object(list, &integers[i], NULL)) {
+                printf("\nERROR: deleted %d and found it", integers[i].value);
+            }
+        }
     }
     if (list->count == 0) {
-	printf("\nall number deletions verified");
+        printf("\nall number deletions verified");
     }
 
     printf("\n");

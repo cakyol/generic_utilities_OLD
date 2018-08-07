@@ -37,13 +37,13 @@
 ** Read/Write synchronizer to be used between processes as
 ** well as threads.  It can achieve the following:
 **
-**	- Can be used in shared memory between multiple processes.
-**	- No limit on readers (well.. MAXUSHORT).
-**	- read locks are recursive but discouraged.
-**	- Only one active writer at a time.
+**      - Can be used in shared memory between multiple processes.
+**      - No limit on readers (well.. MAXUSHORT).
+**      - read locks are recursive but discouraged.
+**      - Only one active writer at a time.
 **      - write locks are *NOT* recursive, deadlock *WILL* occur if recursive
 **        write locking is attempted.
-**	- read locks will not starve out a write lock.
+**      - read locks will not starve out a write lock.
 **
 *******************************************************************************
 *******************************************************************************

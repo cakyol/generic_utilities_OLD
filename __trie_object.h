@@ -146,9 +146,9 @@ trie_destroy (trie_t *triep);
 ** delete a key, without using lots of memory.
 */
 
-#define LOWEST_FASTMAP_ALPHABET_VALUE			0
-#define HIGHEST_FASTMAP_ALPHABET_VALUE			(0xF)
-#define FASTMAP_ALPHABET_SIZE				\
+#define LOWEST_FASTMAP_ALPHABET_VALUE                   0
+#define HIGHEST_FASTMAP_ALPHABET_VALUE                  (0xF)
+#define FASTMAP_ALPHABET_SIZE                           \
     (HIGHEST_FASTMAP_ALPHABET_VALUE - LOWEST_FASTMAP_ALPHABET_VALUE + 1)
 
 typedef struct radix_tree_node_s radix_tree_node_t;

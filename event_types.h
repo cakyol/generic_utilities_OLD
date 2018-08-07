@@ -37,21 +37,21 @@ extern "C" {
  * manager & object manager code.
  */
 
-#define ATTRIBUTE_INSTANCE_ADDED		(1 << 0)
-#define ATTRIBUTE_INSTANCE_DELETED		(1 << 1)
+#define ATTRIBUTE_INSTANCE_ADDED                (1 << 0)
+#define ATTRIBUTE_INSTANCE_DELETED              (1 << 1)
 #define ATTRIBUTE_INSTANCE_EVENTS \
     (ATTRIBUTE_INSTANCE_ADDED | ATTRIBUTE_INSTANCE_DELETED)
 
-#define ATTRIBUTE_VALUE_ADDED			(1 << 4)
-#define ATTRIBUTE_VALUE_DELETED			(1 << 5)
+#define ATTRIBUTE_VALUE_ADDED                   (1 << 4)
+#define ATTRIBUTE_VALUE_DELETED                 (1 << 5)
 #define ATTRIBUTE_VALUE_EVENTS \
     (ATTRIBUTE_VALUE_ADDED | ATTRIBUTE_VALUE_DELETED)
 
 #define ATTRIBUTE_EVENTS \
     (ATTRIBUTE_INSTANCE_EVENTS | ATTRIBUTE_VALUE_EVENTS)
 
-#define OBJECT_CREATED				(1 << 10)
-#define OBJECT_DESTROYED			(1 << 11)
+#define OBJECT_CREATED                          (1 << 10)
+#define OBJECT_DESTROYED                        (1 << 11)
 #define OBJECT_EVENTS \
     (OBJECT_CREATED | OBJECT_DESTROYED)
 

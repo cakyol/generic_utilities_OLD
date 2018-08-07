@@ -91,9 +91,9 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgr)
 
 PUBLIC int
 chunk_manager_init (chunk_manager_t *cmgr,
-	int make_it_thread_safe,
-	int chunk_size, int initial_number_of_chunks, int expansion_size,
-	mem_monitor_t *parent_mem_monitor)
+        int make_it_thread_safe,
+        int chunk_size, int initial_number_of_chunks, int expansion_size,
+        mem_monitor_t *parent_mem_monitor)
 {
     int rv;
 
@@ -151,17 +151,17 @@ chunk_manager_trim (chunk_manager_t *cmgr)
 
     WRITE_LOCK(cmgr);
     while (cmgr->index >= 0) {
-	chunk = cmgr->chunks[cmgr->index--];
-	MEM_MONITOR_FREE(cmgr, chunk);
+        chunk = cmgr->chunks[cmgr->index--];
+        MEM_MONITOR_FREE(cmgr, chunk);
     }
     freed = current_index - cmgr->index;
     if (freed > 0) {
-	cmgr->total_chunk_count -= freed;
-	cmgr->trim_count++;
+        cmgr->total_chunk_count -= freed;
+        cmgr->trim_count++;
     }
     WRITE_UNLOCK(cmgr);
     return 
-	freed;
+        freed;
 }
 
 /*
@@ -175,8 +175,8 @@ chunk_manager_destroy (chunk_manager_t *cmgr)
 
     WRITE_LOCK(cmgr);
     if (cmgr->index < (cmgr->total_chunk_count - 1)) {
-	WRITE_UNLOCK(cmgr);
-	return EBUSY;
+        WRITE_UNLOCK(cmgr);
+        return EBUSY;
     }
     total_elements = cmgr->index + 1;
     assert(total_elements == chunk_manager_trim(cmgr));

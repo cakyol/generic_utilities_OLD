@@ -4,8 +4,8 @@
 #include "timer_object.h"
 #include "test_data_generator.h"
 
-#define ITER			1
-#define MAX_DATA		(6 * 1024 * 1024)
+#define ITER                    1
+#define MAX_DATA                (6 * 1024 * 1024)
 
 timer_obj_t timr;
 radix_tree_t radix_tree_obj;
@@ -24,24 +24,24 @@ int main (int argc, char *argv[])
     printf("\nPOPULATING TRIE\n");
     timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {
-	for (i = 0; i < MAX_DATA; i++) {
-	    data = integer2pointer(i);
-	    rv = radix_tree_insert(&radix_tree_obj, &data, key_size, data, &found);
-	    if (rv) {
-		failed++;
-	    } else {
-		valid++;
-		if (found) found_count++;
-	    }
-	}
+        for (i = 0; i < MAX_DATA; i++) {
+            data = integer2pointer(i);
+            rv = radix_tree_insert(&radix_tree_obj, &data, key_size, data, &found);
+            if (rv) {
+                failed++;
+            } else {
+                valid++;
+                if (found) found_count++;
+            }
+        }
     }
     timer_end(&timr);
     timer_report(&timr, ITER * MAX_DATA);
     printf("successfully added %d (found %d failed %d) of %d data (nodes %d)\n", 
-	valid, found_count, failed, ITER*MAX_DATA, radix_tree_obj.node_count);
+        valid, found_count, failed, ITER*MAX_DATA, radix_tree_obj.node_count);
     OBJECT_MEMORY_USAGE(&radix_tree_obj, mem, megabytes);
     printf("total memory used is %llu bytes (%lf Mbytes)\n",
-	mem, megabytes);
+        mem, megabytes);
 
 #if 0
     printf("\nSEARCHING ALL AVAILABLE STRINGS\n");

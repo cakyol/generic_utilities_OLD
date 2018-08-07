@@ -75,32 +75,32 @@ typedef struct index_obj_s {
 
 extern int 
 index_obj_init (index_obj_t *idx,
-	int make_it_thread_safe,
-	object_comparer cmpf,
-	int maximum_size,
-	int expansion_size,
+        int make_it_thread_safe,
+        object_comparer cmpf,
+        int maximum_size,
+        int expansion_size,
         mem_monitor_t *parent_mem_monitor);
 
 /**************************** Insert *****************************************/
 
 extern int 
 index_obj_insert (index_obj_t *idx,
-	void *data_to_be_inserted,
-	void **data_already_present);
+        void *data_to_be_inserted,
+        void **data_already_present);
 
 /**************************** Search *****************************************/
 
 extern int 
 index_obj_search (index_obj_t *idx,
-	void *data_to_be_searched,
-	void **data_found);
+        void *data_to_be_searched,
+        void **data_found);
 
 /**************************** Remove *****************************************/
 
 extern int 
 index_obj_remove (index_obj_t *idx,
-	void *data_to_be_removed,
-	void **data_actually_removed);
+        void *data_to_be_removed,
+        void **data_actually_removed);
 
 /**************************** Get all entries ********************************/
 
@@ -111,8 +111,8 @@ index_obj_get_all (index_obj_t *idx, int *returned_count);
 
 extern int
 index_obj_traverse (index_obj_t *idx,
-	traverse_function_pointer tfn,
-	void *p0, void *p1, void *p2, void *p3);
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3);
 
 /**************************** Other ******************************************/
 

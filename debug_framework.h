@@ -80,7 +80,7 @@ extern "C" {
  * How many modules this debug infrastructure supports.
  * Redefine this if more needs to be supported.
  */
-#define MAX_MODULES			128
+#define MAX_MODULES                     128
 
 /*
  * max number of characters of a module name if the user defines
@@ -89,7 +89,7 @@ extern "C" {
  * the module number.  For example, module 17's default name will
  * be "m17".
  */
-#define MODULE_NAME_SIZE		32
+#define MODULE_NAME_SIZE                32
 
 /*
  * Default string 'reporting' function.  User specified function of what
@@ -123,7 +123,7 @@ debug_module_set_level (int module, int level);
 
 extern int
 debug_module_set_reporting_function (int module,
-	debug_reporting_function_t drf);
+        debug_reporting_function_t drf);
 
 /*
  * ***************************************************************************
@@ -158,19 +158,19 @@ debug_module_set_reporting_function (int module,
 
 #define REPORT_DEBUG(fmt, args...) \
     debug_message_process(0, DEBUG_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_INFO(fmt, args...) \
     debug_message_process(0, INFORMATION_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_WARNING(fmt, args...) \
     debug_message_process(0, WARNING_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define REPORT_ERROR(fmt, args...) \
     debug_message_process(0, ERROR_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
  * ***************************************************************************
@@ -209,9 +209,9 @@ debug_module_set_reporting_function (int module,
  */
 typedef struct debug_module_data_s {
 
-	char name [MODULE_NAME_SIZE];
-	debug_reporting_function_t drf;
-	unsigned char level;
+        char name [MODULE_NAME_SIZE];
+        debug_reporting_function_t drf;
+        unsigned char level;
 
 } debug_module_data_t;
 

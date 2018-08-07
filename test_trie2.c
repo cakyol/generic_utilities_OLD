@@ -1,9 +1,9 @@
 
 #include "trie_object.h"
 
-#define MAX_REF		10
-#define MAX_BYTE 	255
-#define MAX_SIZE	(MAX_BYTE + 1)
+#define MAX_REF         10
+#define MAX_BYTE        255
+#define MAX_SIZE        (MAX_BYTE + 1)
 
 char *strings[] = {
     "bc",
@@ -27,7 +27,7 @@ char *strings[] = {
 char *not_there1 = "initi";
 char *not_there2 = "hel";
 
-#define MAX_STRINGS	(sizeof(strings) / sizeof(char*))
+#define MAX_STRINGS     (sizeof(strings) / sizeof(char*))
 
 int char_map [MAX_SIZE];
 
@@ -36,17 +36,17 @@ void init_char_map (void)
     int i;
 
     for (i = 0; i < MAX_SIZE; i++) {
-	char_map[i] = -1;
+        char_map[i] = -1;
     }
 
     /* add a - z */
     for (i = 'a'; i <= 'z'; i++) {
-	char_map[i] = i - 'a';
+        char_map[i] = i - 'a';
     }
 
     /* add A - z */
     for (i = 'A'; i <= 'Z'; i++) {
-	char_map[i] = i - 'A';
+        char_map[i] = i - 'A';
     }
 }
 
@@ -58,8 +58,8 @@ int trie_index_convert (int c)
 }
 
 error_t print_key (void *vtriep, void *vtrie_node, 
-	byte *key, int len, void *user_data,
-	void *p0, void *p1, void *p2, void *p3)
+        byte *key, int len, void *user_data,
+        void *p0, void *p1, void *p2, void *p3)
 {
     key[len] = 0;
     printf("%s\n", key);

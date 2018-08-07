@@ -51,9 +51,9 @@ set_child (avl_node_t *child, avl_node_t *parent,
     int left)
 {
     if (left)
-	parent->left = child;
+        parent->left = child;
     else
-	parent->right = child;
+        parent->right = child;
 }
 
 static inline avl_node_t *
@@ -62,12 +62,12 @@ avl_tree_next (avl_node_t *node)
     avl_node_t *parent;
 
     if (node->right)
-	return 
-	    get_first(node->right);
+        return 
+            get_first(node->right);
 
     while ((parent = node->parent) && 
-	(parent->right == node))
-	    node = parent;
+        (parent->right == node))
+            node = parent;
 
     return parent;
 }
@@ -78,13 +78,13 @@ avl_tree_prev (avl_node_t *node)
     avl_node_t *parent;
 
     if (node->left)
-	return 
-	    get_last(node->left);
+        return 
+            get_last(node->left);
 
     while ((parent = node->parent) && 
-	(parent->left == node))
-	    node = parent;
-	
+        (parent->left == node))
+            node = parent;
+        
     return parent;
 }
 
@@ -96,17 +96,17 @@ rotate_left (avl_node_t *node, avl_tree_t *tree)
     avl_node_t *parent = p->parent;
 
     if (parent) {
-	if (parent->left == p)
-	    parent->left = q;
-	else
-	    parent->right = q;
+        if (parent->left == p)
+            parent->left = q;
+        else
+            parent->right = q;
     } else
-	tree->root_node = q;
+        tree->root_node = q;
     q->parent = parent;
     p->parent = q;
     p->right = q->left;
     if (p->right)
-	p->right->parent = p;
+        p->right->parent = p;
     q->left = p;
 }
 
@@ -118,24 +118,24 @@ rotate_right (avl_node_t *node, avl_tree_t *tree)
     avl_node_t *parent = p->parent;
 
     if (parent) {
-	if (parent->left == p)
-	    parent->left = q;
-	else
-	    parent->right = q;
+        if (parent->left == p)
+            parent->left = q;
+        else
+            parent->right = q;
     } else
-	tree->root_node = q;
+        tree->root_node = q;
     q->parent = parent;
     p->parent = q;
     p->left = q->right;
     if (p->left)
-	p->left->parent = p;
+        p->left->parent = p;
     q->right = p;
 }
 
 static avl_node_t *
 avl_lookup_engine (avl_tree_t *tree,
-	void *searched,
-	avl_node_t **pparent, avl_node_t **unbalanced, 
+        void *searched,
+        avl_node_t **pparent, avl_node_t **unbalanced, 
         int *is_left)
 {
     avl_node_t *node = tree->root_node;
@@ -149,15 +149,15 @@ avl_lookup_engine (avl_tree_t *tree,
     *is_left = 0;
 
     while (node) {
-	if (node->balance) *unbalanced = node;
-	res = (tree->cmpf)(searched, node->user_data);
-	if (res == 0) return node;
-	*pparent = node;
-	if ((*is_left = (res < 0))) {
-	    node = node->left;
-	} else {
-	    node = node->right;
-	}
+        if (node->balance) *unbalanced = node;
+        res = (tree->cmpf)(searched, node->user_data);
+        if (res == 0) return node;
+        *pparent = node;
+        if ((*is_left = (res < 0))) {
+            node = node->left;
+        } else {
+            node = node->right;
+        }
     }
     return NULL;
 }
@@ -188,8 +188,8 @@ new_avl_node (avl_tree_t *tree, void *user_data)
  */
 static void 
 avl_node_destroy_nodes (avl_tree_t *tree,
-	avl_node_t *node, 
-	int leave_parent_consistent)
+        avl_node_t *node, 
+        int leave_parent_consistent)
 {
     avl_node_t *parent, *left, *right;
 
@@ -200,18 +200,18 @@ avl_node_destroy_nodes (avl_tree_t *tree,
     right = node->right;
 
     if (leave_parent_consistent) {
-	parent = node->parent;
-	if (parent) {
-	    if (parent->left == node) {
-		parent->left = NULL;
-	    } else if (parent->right == node) {
-		parent->right = NULL;
-	    } else {
-		assert(0);
-	    }
-	} else {
-	    tree->root_node = NULL;
-	}
+        parent = node->parent;
+        if (parent) {
+            if (parent->left == node) {
+                parent->left = NULL;
+            } else if (parent->right == node) {
+                parent->right = NULL;
+            } else {
+                assert(0);
+            }
+        } else {
+            tree->root_node = NULL;
+        }
     }
 
     // done with this one.  Freeing this here before we get deep into
@@ -243,120 +243,120 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     if (tree->do_not_access) return EPERM;
 
     found = avl_lookup_engine(tree, data_to_be_inserted,
-		&parent, &unbalanced, &is_left);
+                &parent, &unbalanced, &is_left);
 
     if (found) {
         *data_already_present = found->user_data;
-	return 0;
+        return 0;
     }
 
     /* get a new node */
     node = new_avl_node(tree, data_to_be_inserted);
     if (NULL == node) {
-	return ENOMEM;
+        return ENOMEM;
     }
 
     if (!parent) {
-	tree->root_node = node;
+        tree->root_node = node;
 #if 0
-	tree->first_node = tree->last_node = node;
+        tree->first_node = tree->last_node = node;
 #endif
-	return 0;
+        return 0;
     }
 
 #if 0
     if (is_left) {
-	if (parent == tree->first_node)
-	    tree->first_node = node;
+        if (parent == tree->first_node)
+            tree->first_node = node;
     } else {
-	if (parent == tree->last_node)
-	    tree->last_node = node;
+        if (parent == tree->last_node)
+            tree->last_node = node;
     }
 #endif
 
     node->parent = parent;
     set_child(node, parent, is_left);
     for (;;) {
-	if (parent->left == node)
-	    (parent->balance)--;
-	else
-	    (parent->balance)++;
-	if (parent == unbalanced)
-	    break;
-	node = parent;
-	parent = parent->parent;
+        if (parent->left == node)
+            (parent->balance)--;
+        else
+            (parent->balance)++;
+        if (parent == unbalanced)
+            break;
+        node = parent;
+        parent = parent->parent;
     }
 
     switch (unbalanced->balance) {
     case  1: 
     case -1:
     case 0:
-	break;
-	
+        break;
+        
     case 2: 
-	{
-	    avl_node_t *right = unbalanced->right;
+        {
+            avl_node_t *right = unbalanced->right;
 
-	    if (right->balance == 1) {
-		unbalanced->balance = 0;
-		right->balance = 0;
-	    } else {
-		switch (right->left->balance) {
-		case 1:
-		    unbalanced->balance = -1;
-		    right->balance = 0;
-		    break;
-		case 0:
-		    unbalanced->balance = 0;
-		    right->balance = 0;
-		    break;
-		case -1:
-		    unbalanced->balance = 0;
-		    right->balance = 1;
-		    break;
-		}
-		right->left->balance = 0;
-		rotate_right(right, tree);
-	    }
-	    rotate_left(unbalanced, tree);
-	    break;
-	}
+            if (right->balance == 1) {
+                unbalanced->balance = 0;
+                right->balance = 0;
+            } else {
+                switch (right->left->balance) {
+                case 1:
+                    unbalanced->balance = -1;
+                    right->balance = 0;
+                    break;
+                case 0:
+                    unbalanced->balance = 0;
+                    right->balance = 0;
+                    break;
+                case -1:
+                    unbalanced->balance = 0;
+                    right->balance = 1;
+                    break;
+                }
+                right->left->balance = 0;
+                rotate_right(right, tree);
+            }
+            rotate_left(unbalanced, tree);
+            break;
+        }
     case -2: 
-	{
-	    avl_node_t *left = unbalanced->left;
+        {
+            avl_node_t *left = unbalanced->left;
 
-	    if (left->balance == -1) {
-		unbalanced->balance = 0;
-		left->balance = 0;
-	    } else {
-		switch (left->right->balance) {
-		case 1:
-		    unbalanced->balance = 0;
-		    left->balance = -1;
-		    break;
-		case 0:
-		    unbalanced->balance = 0;
-		    left->balance = 0;
-		    break;
-		case -1:
-		    unbalanced->balance = 1;
-		    left->balance = 0;
-		    break;
-		}
-		left->right->balance = 0;
-		rotate_left(left, tree);
-	    }
-	    rotate_right(unbalanced, tree);
-	    break;
-	}
+            if (left->balance == -1) {
+                unbalanced->balance = 0;
+                left->balance = 0;
+            } else {
+                switch (left->right->balance) {
+                case 1:
+                    unbalanced->balance = 0;
+                    left->balance = -1;
+                    break;
+                case 0:
+                    unbalanced->balance = 0;
+                    left->balance = 0;
+                    break;
+                case -1:
+                    unbalanced->balance = 1;
+                    left->balance = 0;
+                    break;
+                }
+                left->right->balance = 0;
+                rotate_left(left, tree);
+            }
+            rotate_right(unbalanced, tree);
+            break;
+        }
     }
     return 0;
 }
 
 static int 
 thread_unsafe_avl_tree_remove (avl_tree_t *tree,
-	void *data_to_be_removed,
-	void **actual_data_removed)
+        void *data_to_be_removed,
+        void **actual_data_removed)
 {
     avl_node_t *node, *to_be_deleted;
     avl_node_t *parent, *unbalanced;
@@ -375,7 +375,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     /* not there */
     if (!node) {
         *actual_data_removed = NULL;
-	return ENODATA;
+        return ENODATA;
     }
 
     /* if we are here, we found it */
@@ -390,141 +390,141 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
 
 #if 0
     if (node == tree->first_node)
-	tree->first_node = avl_tree_next(node);
+        tree->first_node = avl_tree_next(node);
     if (node == tree->last_node)
-	tree->last_node = avl_tree_prev(node);
+        tree->last_node = avl_tree_prev(node);
 #endif
 
     if (!left)
-	next = right;
+        next = right;
     else if (!right)
-	next = left;
+        next = left;
     else
-	next = get_first(right);
+        next = get_first(right);
 
     if (parent) {
-	is_left = (parent->left == node);
-	set_child(next, parent, is_left);
+        is_left = (parent->left == node);
+        set_child(next, parent, is_left);
     } else
-	tree->root_node = next;
+        tree->root_node = next;
 
     if (left && right) {
-	next->balance = node->balance;
-	next->left = left;
-	left->parent = next;
-	if (next != right) {
-	    parent = next->parent;
-	    next->parent = node->parent;
-	    node = next->right;
-	    parent->left = node;
-	    next->right = right;
-	    right->parent = next;
-	    is_left = 1;
-	} else {
-	    next->parent = parent;
-	    parent = next;
-	    node = parent->right;
-	    is_left = 0;
-	}
-	assert(parent != NULL);
+        next->balance = node->balance;
+        next->left = left;
+        left->parent = next;
+        if (next != right) {
+            parent = next->parent;
+            next->parent = node->parent;
+            node = next->right;
+            parent->left = node;
+            next->right = right;
+            right->parent = next;
+            is_left = 1;
+        } else {
+            next->parent = parent;
+            parent = next;
+            node = parent->right;
+            is_left = 0;
+        }
+        assert(parent != NULL);
     } else
-	node = next;
+        node = next;
 
     if (node)
-	node->parent = parent;
+        node->parent = parent;
 
     while (parent) {
 
-	int balance;
-	    
-	node = parent;
-	parent = parent->parent;
-	if (is_left) {
-	    is_left = (parent && (parent->left == node));
-	    balance = ++node->balance;
-	    if (balance == 0)		/* case 1 */
-		continue;
-	    if (balance == 1) {		/* case 2 */
-		goto END_OF_DELETE;
-	    }
-	    right = node->right;
-	    switch (right->balance) {
-	    case 0:				/* case 3.1 */
-		node->balance = 1;
-		right->balance = -1;
-		rotate_left(node, tree);
-		goto END_OF_DELETE;
-	    case 1:				/* case 3.2 */
-		node->balance = 0;
-		right->balance = 0;
-		break;
-	    case -1:			/* case 3.3 */
-		switch (right->left->balance) {
-		case 1:
-		    node->balance = -1;
-		    right->balance = 0;
-		    break;
-		case 0:
-		    node->balance = 0;
-		    right->balance = 0;
-		    break;
-		case -1:
-		    node->balance = 0;
-		    right->balance = 1;
-		    break;
-		}
-		right->left->balance = 0;
-		rotate_right(right, tree);
-	    }
-	    rotate_left(node, tree);
-	} else {
-	    is_left = (parent && (parent->left == node));
-	    balance = --node->balance;
-	    if (balance == 0)
-		continue;
-	    if (balance == -1) {
-		goto END_OF_DELETE;
-	    }
-	    left = node->left;
-	    switch (left->balance) {
-	    case 0:
-		node->balance = -1;
-		left->balance = 1;
-		rotate_right(node, tree);
-		goto END_OF_DELETE;
-	    case -1:
-		node->balance = 0;
-		left->balance = 0;
-		break;
-	    case 1:
-		switch (left->right->balance) {
-		case 1:
-		    node->balance = 0;
-		    left->balance = -1;
-		    break;
-		case 0:
-		    node->balance = 0;
-		    left->balance = 0;
-		    break;
-		case -1:
-		    node->balance = 1;
-		    left->balance = 0;
-		    break;
-		}
-		left->right->balance = 0;
-		rotate_left(left, tree);
-	    }
-	    rotate_right(node, tree);
-	}
+        int balance;
+            
+        node = parent;
+        parent = parent->parent;
+        if (is_left) {
+            is_left = (parent && (parent->left == node));
+            balance = ++node->balance;
+            if (balance == 0)           /* case 1 */
+                continue;
+            if (balance == 1) {         /* case 2 */
+                goto END_OF_DELETE;
+            }
+            right = node->right;
+            switch (right->balance) {
+            case 0:                             /* case 3.1 */
+                node->balance = 1;
+                right->balance = -1;
+                rotate_left(node, tree);
+                goto END_OF_DELETE;
+            case 1:                             /* case 3.2 */
+                node->balance = 0;
+                right->balance = 0;
+                break;
+            case -1:                    /* case 3.3 */
+                switch (right->left->balance) {
+                case 1:
+                    node->balance = -1;
+                    right->balance = 0;
+                    break;
+                case 0:
+                    node->balance = 0;
+                    right->balance = 0;
+                    break;
+                case -1:
+                    node->balance = 0;
+                    right->balance = 1;
+                    break;
+                }
+                right->left->balance = 0;
+                rotate_right(right, tree);
+            }
+            rotate_left(node, tree);
+        } else {
+            is_left = (parent && (parent->left == node));
+            balance = --node->balance;
+            if (balance == 0)
+                continue;
+            if (balance == -1) {
+                goto END_OF_DELETE;
+            }
+            left = node->left;
+            switch (left->balance) {
+            case 0:
+                node->balance = -1;
+                left->balance = 1;
+                rotate_right(node, tree);
+                goto END_OF_DELETE;
+            case -1:
+                node->balance = 0;
+                left->balance = 0;
+                break;
+            case 1:
+                switch (left->right->balance) {
+                case 1:
+                    node->balance = 0;
+                    left->balance = -1;
+                    break;
+                case 0:
+                    node->balance = 0;
+                    left->balance = 0;
+                    break;
+                case -1:
+                    node->balance = 1;
+                    left->balance = 0;
+                    break;
+                }
+                left->right->balance = 0;
+                rotate_left(left, tree);
+            }
+            rotate_right(node, tree);
+        }
     }
 
 END_OF_DELETE:
-		
+                
     free_avl_node(tree, to_be_deleted);
     if (tree->n <= 0) {
-	assert(tree->root_node == NULL);
+        assert(tree->root_node == NULL);
     } else {
-	assert(tree->root_node != NULL);
+        assert(tree->root_node != NULL);
     }
     return 0;
 }
@@ -602,10 +602,10 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 
 PUBLIC int
 avl_tree_init (avl_tree_t *tree,
-	int make_it_thread_safe,
-	object_comparer cmpf,
+        int make_it_thread_safe,
+        object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor,
-	chunk_manager_parameters_t *cmpp)
+        chunk_manager_parameters_t *cmpp)
 {
     if (NULL == cmpf) return EINVAL;
     MEM_MONITOR_SETUP(tree);
@@ -626,8 +626,8 @@ avl_tree_init (avl_tree_t *tree,
 
 PUBLIC int
 avl_tree_insert (avl_tree_t *tree,
-	void *data_to_be_inserted,
-	void **data_already_present)
+        void *data_to_be_inserted,
+        void **data_already_present)
 {
     int rv;
 
@@ -642,8 +642,8 @@ avl_tree_insert (avl_tree_t *tree,
 
 PUBLIC int 
 avl_tree_search (avl_tree_t *tree, 
-	void *data_to_be_searched,
-	void **data_found)
+        void *data_to_be_searched,
+        void **data_found)
 {
     int rv;
     avl_node_t *parent, *unbalanced, *node;
@@ -654,10 +654,10 @@ avl_tree_search (avl_tree_t *tree,
                 &parent, &unbalanced, &is_left);
     if (node) {
         *data_found = node->user_data;
-	rv = 0;
+        rv = 0;
     } else {
-	*data_found = NULL;
-	rv = ENODATA;
+        *data_found = NULL;
+        rv = ENODATA;
     }
     READ_UNLOCK(tree);
     return rv;
@@ -667,14 +667,14 @@ avl_tree_search (avl_tree_t *tree,
 
 PUBLIC int
 avl_tree_remove (avl_tree_t *tree,
-	void *data_to_be_removed,
-	void **data_actually_removed)
+        void *data_to_be_removed,
+        void **data_actually_removed)
 {
     int rv;
 
     WRITE_LOCK(tree);
     rv = thread_unsafe_avl_tree_remove(tree,
-		data_to_be_removed, data_actually_removed);
+                data_to_be_removed, data_actually_removed);
     WRITE_UNLOCK(tree);
     return rv;
 }
@@ -730,14 +730,14 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
 
 PUBLIC int
 avl_tree_traverse (avl_tree_t *tree,
-	traverse_function_pointer tfn,
-	void *p0, void *p1, void *p2, void *p3)
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3)
 {
     int rv;
 
     READ_LOCK(tree);
     rv = thread_unsafe_morris_traverse(tree, tree->root_node,
-		tfn, p0, p1, p2, p3);
+                tfn, p0, p1, p2, p3);
     READ_UNLOCK(tree);
     return rv;
 }

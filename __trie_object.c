@@ -54,10 +54,10 @@ trie_new_child (trie_t *triep, int value)
     node = memory_allocate(triep->memp, sizeof(trie_node_t));
     if (NULL == node) return NULL;
     node->children = memory_allocate(triep->memp,
-	sizeof(trie_node_t*) * triep->alphabet_size);
+        sizeof(trie_node_t*) * triep->alphabet_size);
     if (NULL == node->children) {
-	memory_free(triep->memp, node);
-	return NULL;
+        memory_free(triep->memp, node);
+        return NULL;
     }
     node->value = value;
     triep->node_count++;
@@ -75,15 +75,15 @@ trie_add_child (trie_t *triep, trie_node_t *parent, int value)
 
     /* an entry already exists */
     if (node) {
-	return node;
+        return node;
     }
 
     /* new entry */
     node = trie_new_child(triep, value);
     if (node) {
-	node->parent = parent;
-	parent->children[index] = node;
-	parent->n_children++;
+        node->parent = parent;
+        parent->children[index] = node;
+        parent->n_children++;
     }
 
     return node;
@@ -96,13 +96,13 @@ trie_node_insert (trie_t *triep, byte *key, int key_length)
 
     parent = &triep->root_node;
     while (key_length-- > 0) {
-	new_node = trie_add_child(triep, parent, *key);
-	if (new_node) {
-	    parent = new_node;
-	    key++;
-	} else {
-	    return NULL;
-	}
+        new_node = trie_add_child(triep, parent, *key);
+        if (new_node) {
+            parent = new_node;
+            key++;
+        } else {
+            return NULL;
+        }
     }
     return new_node;
 }
@@ -115,15 +115,15 @@ trie_node_find (trie_t *triep, byte *key, int key_length)
 
     while (node) {
 
-	index = triep->tic(*key);
-	node = node->children[index];
-	if (NULL == node) return NULL;
+        index = triep->tic(*key);
+        node = node->children[index];
+        if (NULL == node) return NULL;
 
-	/* have we seen the entire pattern */
-	if (--key_length <= 0) return node;
+        /* have we seen the entire pattern */
+        if (--key_length <= 0) return node;
 
-	/* next byte */
-	key++;
+        /* next byte */
+        key++;
     }
 
     /* not found */
@@ -142,20 +142,20 @@ trie_node_traverse (trie_t *triep, trie_node_t *node,
     if (node->user_data) {
 
         /* length of key is level+1 */
-	rc = (tfn)(triep, node, key, level+1, node->user_data,
-		p0, p1, p2, p3);
+        rc = (tfn)(triep, node, key, level+1, node->user_data,
+                p0, p1, p2, p3);
 
         /* stop traversing */
         if (rc != ok) return error;
 
     }
     for (i = n = 0; (i < triep->alphabet_size) && (n < node->n_children); i++) {
-	if (node->children[i]) {
-	    if (trie_node_traverse(triep, node->children[i], tfn,
-		key, level+1, p0, p1, p2, p3) != ok)
-		    return error;
-	    n++;
-	}
+        if (node->children[i]) {
+            if (trie_node_traverse(triep, node->children[i], tfn,
+                key, level+1, p0, p1, p2, p3) != ok)
+                    return error;
+            n++;
+        }
     }
     return ok;
 }
@@ -172,25 +172,25 @@ trie_remove_node (trie_t *triep, trie_node_t *node)
     /* do NOT delete root node, that is the ONLY one with no parent */
     while (node->parent) {
 
-	/* if I am DIRECTLY in use, I cannot be deleted */
-	if (node->user_data) return;
+        /* if I am DIRECTLY in use, I cannot be deleted */
+        if (node->user_data) return;
 
-	/* if I am IN-DIRECTLY in use, I still cannot be deleted */
-	if (node->n_children > 0) return;
+        /* if I am IN-DIRECTLY in use, I still cannot be deleted */
+        if (node->n_children > 0) return;
 
-	/* clear the parent pointer which points to me */
-	parent = node->parent;
-	index = triep->tic(node->value);
-	parent->children[index] = NULL;
-	parent->n_children--;
+        /* clear the parent pointer which points to me */
+        parent = node->parent;
+        index = triep->tic(node->value);
+        parent->children[index] = NULL;
+        parent->n_children--;
 
-	/* delete myself */
-	memory_free(triep->memp, node->children);
-	memory_free(triep->memp, node);
-	(triep->node_count)--;
+        /* delete myself */
+        memory_free(triep->memp, node->children);
+        memory_free(triep->memp, node);
+        (triep->node_count)--;
 
-	/* go up one more parent & try again */
-	node = parent;
+        /* go up one more parent & try again */
+        node = parent;
     }
 }
 
@@ -198,17 +198,17 @@ trie_remove_node (trie_t *triep, trie_node_t *node)
 
 PUBLIC error_t 
 trie_init (trie_t *triep, int alphabet_size, trie_index_converter tic,
-	mem_monitor_t *parent_mem_monitor)
+        mem_monitor_t *parent_mem_monitor)
 {
     mem_monitor_init(&triep->memory);
     triep->memp = 
-	parent_mem_monitor ? parent_mem_monitor : &triep->memory;
+        parent_mem_monitor ? parent_mem_monitor : &triep->memory;
     triep->node_count = 0;
     triep->alphabet_size = alphabet_size;
     triep->tic = tic;
     memset(&triep->root_node, 0, sizeof(trie_node_t));
     triep->root_node.children = 
-	memory_allocate(triep->memp, (sizeof(trie_node_t*) * triep->alphabet_size));
+        memory_allocate(triep->memp, (sizeof(trie_node_t*) * triep->alphabet_size));
     if (NULL == triep->root_node.children) return error;
     return ok;
 }
@@ -246,7 +246,7 @@ trie_search (trie_t *triep, void *key, int key_length, void **found_data)
     node = trie_node_find(triep, key, key_length);
     if (node && node->user_data) {
         SAFE_POINTER_SET(found_data, node->user_data);
-	return ok;
+        return ok;
     }
 
     return error;
@@ -266,13 +266,13 @@ trie_traverse (trie_t *triep, trie_traverse_function_pointer tfn,
     level = 0;
     node = &triep->root_node;
     for (i = 0; i < triep->alphabet_size; i++) {
-	if (node->children[i]) {
-	    if (trie_node_traverse(triep, node->children[i], tfn, key, level,
-		p0, p1, p2, p3) != ok) {
-		    err = error;
-		    goto DONE;
-	    }
-	}
+        if (node->children[i]) {
+            if (trie_node_traverse(triep, node->children[i], tfn, key, level,
+                p0, p1, p2, p3) != ok) {
+                    err = error;
+                    goto DONE;
+            }
+        }
     }
 DONE:
     free(key);
@@ -291,8 +291,8 @@ trie_remove (trie_t *triep, void *key, int key_length, void **removed_data)
     if (node && node->user_data) {
         SAFE_POINTER_SET(removed_data, node->user_data);
         node->user_data = NULL;
-	trie_remove_node(triep, node);
-	return ok;
+        trie_remove_node(triep, node);
+        return ok;
     }
 
     return error;
@@ -302,8 +302,8 @@ PUBLIC int
 trie_node_size (trie_t *triep)
 {
     return
-    	sizeof(trie_node_t) +
-	triep->alphabet_size * sizeof(trie_node_t*);
+        sizeof(trie_node_t) +
+        triep->alphabet_size * sizeof(trie_node_t*);
 }
 
 PUBLIC void
@@ -349,7 +349,7 @@ radix_tree_new_node (radix_tree_t *ntp, int value)
 
     node = (radix_tree_node_t*) memory_allocate(ntp->memp, sizeof(radix_tree_node_t));
     if (node) {
-	node->value = value;
+        node->value = value;
     }
     return node;
 }
@@ -363,16 +363,16 @@ radix_tree_add_nibble (radix_tree_t *ntp, radix_tree_node_t *parent, int nibble)
 
     /* an entry already exists */
     if (node) {
-	return node;
+        return node;
     }
 
     /* new entry */
     node = radix_tree_new_node(ntp, nibble);
     if (node) {
-	node->parent = parent;
-	parent->children[nibble] = node;
+        node->parent = parent;
+        parent->children[nibble] = node;
         parent->n_children++;
-	ntp->node_count++;
+        ntp->node_count++;
     }
 
     return node;
@@ -385,7 +385,7 @@ radix_tree_add_byte (radix_tree_t *ntp, radix_tree_node_t *parent, int value)
 
     new_node = radix_tree_add_nibble(ntp, parent, LO_NIBBLE(value));
     if (NULL == new_node) {
-	return NULL;
+        return NULL;
     }
     new_node = radix_tree_add_nibble(ntp, new_node, HI_NIBBLE(value));
     return new_node;
@@ -398,13 +398,13 @@ radix_tree_node_insert (radix_tree_t *ntp, byte *key, int key_length)
 
     parent = &ntp->radix_tree_root;
     while (key_length-- > 0) {
-	new_node = radix_tree_add_byte(ntp, parent, *key);
-	if (new_node) {
-	    parent = new_node;
-	    key++;
-	} else {
-	    return NULL;
-	}
+        new_node = radix_tree_add_byte(ntp, parent, *key);
+        if (new_node) {
+            parent = new_node;
+            key++;
+        } else {
+            return NULL;
+        }
     }
     return new_node;
 }
@@ -416,19 +416,19 @@ radix_tree_node_find (radix_tree_t *ntp, byte *key, int key_length)
 
     while (1) {
 
-	/* follow hi nibble */
-	node = node->children[LO_NIBBLE(*key)];
-	if (NULL == node) return NULL;
+        /* follow hi nibble */
+        node = node->children[LO_NIBBLE(*key)];
+        if (NULL == node) return NULL;
 
-	/* follow lo nibble */
-	node = node->children[HI_NIBBLE(*key)];
-	if (NULL == node) return NULL;
+        /* follow lo nibble */
+        node = node->children[HI_NIBBLE(*key)];
+        if (NULL == node) return NULL;
 
-	/* have we seen the entire pattern */
-	if (--key_length <= 0) return node;
+        /* have we seen the entire pattern */
+        if (--key_length <= 0) return node;
 
-	/* next byte */
-	key++;
+        /* next byte */
+        key++;
     }
 
     /* not found */
@@ -446,23 +446,23 @@ radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
     /* do NOT delete root node, that is the ONLY one with no parent */
     while (node->parent) {
 
-	/* if I am DIRECTLY in use, I cannot be deleted */
-	if (node->user_data) return;
+        /* if I am DIRECTLY in use, I cannot be deleted */
+        if (node->user_data) return;
 
-	/* if I am IN-DIRECTLY in use, I still cannot be deleted */
-	if (node->n_children > 0) return;
+        /* if I am IN-DIRECTLY in use, I still cannot be deleted */
+        if (node->n_children > 0) return;
 
-	/* clear the parent pointer which points to me */
-	parent = node->parent;
-	parent->children[node->value] = NULL;
+        /* clear the parent pointer which points to me */
+        parent = node->parent;
+        parent->children[node->value] = NULL;
         parent->n_children--;
 
-	/* delete myself */
-	memory_free(ntp->memp, node);
-	ntp->node_count--;
+        /* delete myself */
+        memory_free(ntp->memp, node);
+        ntp->node_count--;
 
-	/* go up one more parent & try again */
-	node = parent;
+        /* go up one more parent & try again */
+        node = parent;
     }
 }
 
@@ -479,7 +479,7 @@ radix_tree_node_traverse (radix_tree_t *triep, radix_tree_node_t *node,
         key[index] |= (node->value << 4);
         if (node->user_data) {
             rc = (tfn)(triep, node, key, index+1, node->user_data,
-		    p0, p1, p2, p3);
+                    p0, p1, p2, p3);
             if (rc != ok) return error;
         }
     } else {
@@ -487,13 +487,13 @@ radix_tree_node_traverse (radix_tree_t *triep, radix_tree_node_t *node,
     }
 
     for (i = n = 0; (i < FASTMAP_ALPHABET_SIZE) && (n < node->n_children); i++) {
-	if (node->children[i]) {
-	    if (radix_tree_node_traverse(triep, node->children[i], tfn, 
-		key, level+1, p0, p1, p2, p3) != ok) {
-		    return error;
-	    }
-	    n++;
-	}
+        if (node->children[i]) {
+            if (radix_tree_node_traverse(triep, node->children[i], tfn, 
+                key, level+1, p0, p1, p2, p3) != ok) {
+                    return error;
+            }
+            n++;
+        }
     }
     return ok;
 }
@@ -503,7 +503,7 @@ radix_tree_init (radix_tree_t *ntp, mem_monitor_t *parent_mem_monitor)
 {
     mem_monitor_init(&ntp->memory);
     ntp->memp =
-	parent_mem_monitor ? parent_mem_monitor : &ntp->memory;
+        parent_mem_monitor ? parent_mem_monitor : &ntp->memory;
     ntp->node_count = 0;
     radix_tree_node_init(&ntp->radix_tree_root, 0);
 }
@@ -541,7 +541,7 @@ radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **found_da
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
         SAFE_POINTER_SET(found_data, node->user_data);
-	return ok;
+        return ok;
     }
 
     return error;
@@ -559,8 +559,8 @@ radix_tree_remove (radix_tree_t *ntp, void *key, int key_length, void **removed_
     if (node && node->user_data) {
         SAFE_POINTER_SET(removed_data, node->user_data);
         node->user_data = NULL;
-	radix_tree_remove_node(ntp, node);
-	return ok;
+        radix_tree_remove_node(ntp, node);
+        return ok;
     }
     return error;
 }
@@ -578,13 +578,13 @@ radix_tree_traverse (radix_tree_t *ntriep, trie_traverse_function_pointer tfn,
     if (NULL == key) return error;
     node = &ntriep->radix_tree_root;
     for (i = 0; i < FASTMAP_ALPHABET_SIZE; i++) {
-	if (node->children[i]) {
-	    if (radix_tree_node_traverse(ntriep, node->children[i], tfn, 
-		key, 0, p0, p1, p2, p3) != ok) {
-		    err = error;
-		    goto DONE;
-	    }
-	}
+        if (node->children[i]) {
+            if (radix_tree_node_traverse(ntriep, node->children[i], tfn, 
+                key, 0, p0, p1, p2, p3) != ok) {
+                    err = error;
+                    goto DONE;
+            }
+        }
     }
 DONE:
     free(key);

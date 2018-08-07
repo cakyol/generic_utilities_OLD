@@ -9,13 +9,13 @@ compare_test_data (void *vt1, void *vt2)
 {
 #if 0
     return
-	memcmp(vt1, vt2, KEY_SIZE);
+        memcmp(vt1, vt2, KEY_SIZE);
 #else
     int i, rv;
 
     for (i = 0; i < KEY_SIZE; i++) {
-	rv = ((test_data_t*) vt1)->key[i] - ((test_data_t*) vt2)->key[i];
-	if (rv) return rv;
+        rv = ((test_data_t*) vt1)->key[i] - ((test_data_t*) vt2)->key[i];
+        if (rv) return rv;
     }
     return 0;
 #endif
@@ -36,18 +36,18 @@ generate_test_data (int *how_many)
                 for (l = FK; l <= LK; l++) {
                     for (m = FK; m <= LK; m++) {
                         for (n = FK; n <= LK; n++) {
-			    for (p = FK; p <= LK; p++) {
-				tmp = &data_malloced[count];
-				tmp->key[0] = i;
-				tmp->key[1] = j;
-				tmp->key[2] = k;
-				tmp->key[3] = l;
-				tmp->key[4] = m;
-				tmp->key[5] = n;
-				tmp->key[6] = p;
-				tmp->data = tmp;
-				if (++count >= *how_many) goto finished;
-			    }
+                            for (p = FK; p <= LK; p++) {
+                                tmp = &data_malloced[count];
+                                tmp->key[0] = i;
+                                tmp->key[1] = j;
+                                tmp->key[2] = k;
+                                tmp->key[3] = l;
+                                tmp->key[4] = m;
+                                tmp->key[5] = n;
+                                tmp->key[6] = p;
+                                tmp->data = tmp;
+                                if (++count >= *how_many) goto finished;
+                            }
                         }
                     }
                 }
@@ -57,7 +57,7 @@ generate_test_data (int *how_many)
 finished:
     *how_many = count;
     return 
-	data_malloced;
+        data_malloced;
 }
 
 

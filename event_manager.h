@@ -24,6 +24,71 @@
 *******************************************************************************
 ******************************************************************************/
 
+/******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+** This is a generic event manager which manages the lists containing
+** all the callbacks interested in receiving all kinds of events.
+** Currently events are divided into two categories:
+**
+**  - object events are events which are generated when an object
+**    is created or deleted.
+**
+**  - attribute events are events which are generated when a new
+**    attribute id is added to an object or an existing attribute id
+**    is deleted from an object or when a value changes in the attribute.
+**
+** In addition there are two ways of registering for either type of events.
+** One is to register in a way so that events are reported for
+** ALL object types.  The other is such that events involving ONLY
+** one type of object is of interest.
+**
+** So, a user can register/un-register to receive events for all the following 
+** combinations:
+**  - object events for ALL object types
+**  - object events for a specific object type
+**  - attribute events for ALL object types
+**  - attribute events for a specific object type
+**
+** Note that a user may register multiple times for different specific
+** object types.  However, when a user registers for events
+** for ALL objects, there is NO need to register later for a specific
+** object type for the same event later.  The event manager will ensure
+** that the registrations make sense by enforcing the following rules:
+**
+**  - If a user first registers for an event for all objects, and later 
+**    registers for the same events for one specific object type,
+**    since he is already registered for all objects, the second per
+**    object registration will simply be ignored.
+**
+**  - If a user first registers for events for a specific object type
+**    and later he registers for the same events for all object types,
+**    then the first registration will be deleted, since now he has
+**    already registered for all object types.
+**
+**  - If a user first registers for events for a specific object type
+**    and later UN-registers for all object types, the first registration
+**    will be deleted.
+**
+**  - If a user first registers for events for all objects and later
+**    un-registers for one specific object type, the request will be 
+**    ignored.
+**
+**  - If a user wants to transition from a position of getting events
+**    for all objects to getting events for only specific objects, he
+**    must explicitly first un-register from all object types and then
+**    register for the specific objects later.  This is the only time
+**    he has to explicity do multiple actions.  The system will NOT
+**    automatically do that.
+**
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+******************************************************************************/
+
 #ifndef __EVENT_MANAGER_H__
 #define __EVENT_MANAGER_H__
 
@@ -34,89 +99,138 @@ extern "C" {
 #include "lock_object.h"
 #include "linkedlist_object.h"
 #include "dynamic_array_object.h"
-#include "event_types.h"
 #include "object_types.h"
 
 /*
- * Basic primitive of how to address/send to a specific process
- * Details of this can be decided later, it can be a message
- * or shared memory interface.
+ * These are *ALL* the possible events which can happen
+ * These definitions are typically used with the event
+ * manager & object manager code.
  */
-typedef struct process_address_s {
 
-    int whatever;
+#define OBJECT_CREATED              (1 << 0)
+#define OBJECT_DESTROYED            (1 << 1)
+#define OBJECT_EVENTS \
+    (OBJECT_CREATED | OBJECT_DESTROYED)
 
-} process_address_t;
+#define ATTRIBUTE_INSTANCE_ADDED        (1 << 5)
+#define ATTRIBUTE_INSTANCE_DELETED      (1 << 6)
+#define ATTRIBUTE_INSTANCE_EVENTS \
+    (ATTRIBUTE_INSTANCE_ADDED | ATTRIBUTE_INSTANCE_DELETED)
+
+#define ATTRIBUTE_VALUE_ADDED           (1 << 10)
+#define ATTRIBUTE_VALUE_DELETED         (1 << 11)
+#define ATTRIBUTE_VALUE_EVENTS \
+    (ATTRIBUTE_VALUE_ADDED | ATTRIBUTE_VALUE_DELETED)
+
+#define ATTRIBUTE_EVENTS \
+    (ATTRIBUTE_INSTANCE_EVENTS | ATTRIBUTE_VALUE_EVENTS)
+
+static inline int
+is_an_object_event (int event)
+{ return (event & OBJECT_EVENTS); }
+
+static inline int
+is_an_attribute_value_event (int event)
+{ return (event & ATTRIBUTE_VALUE_EVENTS); }
+
+static inline int
+is_an_attribute_instance_event (int event)
+{ return (event & ATTRIBUTE_INSTANCE_EVENTS); }
+
+static inline int
+is_an_attribute_event (int event)
+{ return (event & ATTRIBUTE_EVENTS); }
 
 /*
- * This is a generic event manager which manages the lists containing
- * all the processes interested in receiving all kinds of events.
- * Currently events are roughly divided into two categories:
+ * This structure is used to notify every possible event that could
+ * possibly happen in the system.  ALL the events fall into the
+ * events category above.
  *
- *  - object events are events which are generated when an object
- *    is created or deleted.
+ * The structure includes all the information needed to process
+ * the event completely and it obviously should contain any pointers
+ * in case events are notified across different processes.
  *
- *  - attribute events are events which are generated when a new
- *    attribute id is added to an object or an existing attribute id
- *    is deleted from an object or when a value changes in any attribute.
+ * The 'event_type' field determines which part of the rest of the structure
+ * elements are needed (or ignored).
  *
- * In addition there are two ways of registering for either type of events.
- * One is to register in a way so that events are reported for
- * ALL object types.  The other is such that events involving ONLY
- * one type of object is of interest.
- *
- * So, a user can register to receive events for all the following 
- * combinations:
- *  - object events for ALL object types
- *  - object events for a specific object type
- *  - attribute events for ALL object types
- *  - attribute events for a specific object type
- *
- * Note that a user may register multiple times for different specific
- * object types.  However, when a user registers for events
- * for ALL objects, there is NO need to register later for a specific
- * object type for the same event later.  In fact that will cause a
- * problem where an event will be reported twice.  Therefore, users
- * must ensure that their process is not registered multiple times
- * in any event type.  The event manager currently does not check for
- * this error (later release feature).
- *
- * If the user changes its interest level from all object types to
- * a specific object type OR vice versa, the previous registration
- * must be cancelled by calling the corresponding "un-register"
- * function first.
+ * One possible explanation is needed in the case of an attribute event.
+ * If this was an attribute event which involves a variable size
+ * attribute value, the length will be specified in 'attribute_value_length'
+ * and the byte stream would be available from '&attribute_value_data'
+ * onwards.  This makes the structure of variable size, based on
+ * the parsed parameters, with a complex attribute directly attached to the
+ * end of the structure.
  */
+typedef struct event_record_s {
+
+    /*
+     * this must be first since during reads & writes, it can
+     * be determined at the very beginning.  It can also be used
+     * to copy the entire structure since its length is variable.
+     */
+    int total_length;
+
+    /*
+     * What is this event ?  Chosen from one of the
+     * possibilities above.
+     */
+    int event_type;
+
+    /* optional: which database this event/command applies to */
+    int database_id;
+
+    /* object to which the event is directly relevant to */
+    int object_type;
+    int object_instance;
+
+    /*
+     * if the event involves another object, this is the OTHER object.
+     * Not used if another object is not involved.  One case
+     * it is involved is object creation event.  The related object
+     * represents the PARENT in this case.
+     */
+    int related_object_type;
+    int related_object_instance;
+
+    /* if the event involves an attribute, these are also used */
+    int attribute_id;
+    int attribute_value_length;
+    long long int attribute_value_data;
+    unsigned char extra_data [0];
+
+} event_record_t;
+
 typedef struct event_manager_s {
 
     LOCK_VARIABLES;
     MEM_MON_VARIABLES;
 
     /*
-     * list of processes interested in object creation
+     * list of registrants interested in object creation
      * and deletion events for ALL types of objects.
      */
-    linkedlist_t all_types_object_processes;
+    linkedlist_t all_types_object_registrants;
 
     /*
-     * list of processes interested in attribute
+     * list of registrants interested in attribute
      * events (attribute id add/delete, attribute value
      * add/delete) for ALL types of objects.
      */
-    linkedlist_t all_types_attribute_processes;
+    linkedlist_t all_types_attribute_registrants;
     
     /*
-     * list of processes interested in object
+     * list of registrants interested in object
      * events for ONE specific type of object.
      * Array index is the object_type.
      */
-    dynamic_array_t specific_object_processes;
+    dynamic_array_t specific_object_registrants;
     
     /*
-     * list of processes interested in attribute
+     * list of registrants interested in attribute
      * events for ONE specific type of object.
      * Array index is the object_type.
      */
-    dynamic_array_t specific_attribute_processes;
+    dynamic_array_t specific_attribute_registrants;
 
 } event_manager_t;
 
@@ -125,21 +239,56 @@ event_manager_init (event_manager_t *evrp,
     int make_it_thread_safe,
     mem_monitor_t *parent_mem_monitor);
 
+/*
+ * This function registers the caller to be notified of object events
+ * (object creation & deletion) for either one object or all objects.
+ * If 'object_type' is ALL_OBJECT_TYPES, then object events for all
+ * objects will be reported.  If it is a specific object, then object
+ * events only for that object type will be reported.
+ *
+ * When a caller registers for events for an object, he supplies
+ * an event callback function and an opaque parameter.  When the
+ * event occurs, the callback will be called with the FIRST parameter
+ * being the event_record_t parameter and the SECOND parameter
+ * being what has been registered here as 'user_param'.
+ *
+ * Note that since this is a registration only for object events,
+ * the event record passed into the callback function will be 
+ * guaranteed to be of only object creation & deletion events.
+ */
 extern int
 register_for_object_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap);
+    int object_type, 
+    two_parameter_function_pointer ecbf,
+    void *user_param);
 
+/*
+ * unregisters from object events for the specified object type.
+ * Basically, reverse of the above.
+ */
 extern void
 un_register_from_object_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap);
+    int object_type);
 
+/*
+ * Same concept as above but this time registration is only for attribute
+ * events, which are attribute id add/delete and attribute value add/delete.
+ *
+ * Similar to above, the event record passed into this callback function
+ * will be guaranteed to be only of attribute events.
+ */
 extern int
 register_for_attribute_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap);
+    int object_type, 
+    two_parameter_function_pointer ecbf,
+    void *user_param);
 
+/*
+ * reverse of the above
+ */
 extern void
 un_register_from_attribute_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap);
+    int object_type);
 
 extern void
 event_manager_destroy (event_manager_t *evrp);

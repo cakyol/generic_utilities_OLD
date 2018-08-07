@@ -35,9 +35,9 @@ extern "C" {
 
 debug_module_data_t module_levels [MAX_MODULES] = {
     {
-	{ 0 },
-	default_debug_reporting_function,
-	ERROR_LEVEL
+        { 0 },
+        default_debug_reporting_function,
+        ERROR_LEVEL
     }
 };
 
@@ -75,9 +75,9 @@ debug_init (void)
     debug_level_names[ERROR_LEVEL] = "ERROR";
     debug_level_names[FATAL_ERROR_LEVEL] = "\n\n***** FATAL ERROR *****";
     for (m = 0; m < MAX_MODULES; m++) {
-	set_default_module_name(m);
-	module_levels[m].level = ERROR_LEVEL;
-	module_levels[m].drf = default_debug_reporting_function;
+        set_default_module_name(m);
+        module_levels[m].level = ERROR_LEVEL;
+        module_levels[m].drf = default_debug_reporting_function;
     }
 }
 
@@ -86,7 +86,7 @@ debug_module_set_name (int module, char *module_name)
 {
     BAIL_IF_BAD_MODULE_INDEX(module);
     if (NULL == module_name) {
-	set_default_module_name(module);
+        set_default_module_name(module);
     } else {
         strncpy(module_levels[module].name, module_name, (MODULE_NAME_SIZE - 1));
     }
@@ -113,7 +113,7 @@ debug_module_set_level (int module, int level)
 
 int
 debug_module_set_reporting_function (int module,
-	debug_reporting_function_t drf)
+        debug_reporting_function_t drf)
 {
     BAIL_IF_BAD_MODULE_INDEX(module);
     module_levels[module].drf = drf ? drf : default_debug_reporting_function;
@@ -143,10 +143,10 @@ debug_message_process (int module, int level,
     if (0 == module) {
         len += snprintf(&msg_buffer[index], size_left,
                     "%s: <%s:%s:%d> ",
-		    debug_level_names[level],
-		    file_name,
-		    function_name,
-		    line_number);
+                    debug_level_names[level],
+                    file_name,
+                    function_name,
+                    line_number);
 
     /*
      * for others, module validity is assumed to be checked
@@ -157,11 +157,11 @@ debug_message_process (int module, int level,
 
         len += snprintf(&msg_buffer[index], size_left,
                     "%s: <%s:%s:%s:%d> ",
-		    debug_level_names[level],
-		    module_levels[module].name,
-		    file_name,
-		    function_name,
-		    line_number);
+                    debug_level_names[level],
+                    module_levels[module].name,
+                    file_name,
+                    function_name,
+                    line_number);
     }
 
     size_left -= len;

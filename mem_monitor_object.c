@@ -34,11 +34,11 @@ mem_monitor_allocate (mem_monitor_t *memp, int size)
 
     if (block) {
         memset(block, 0, total_size);
-	*block = total_size;
-	memp->bytes_used += total_size;
-	memp->allocations++;
-	block++;
-	return (void*) block;
+        *block = total_size;
+        memp->bytes_used += total_size;
+        memp->allocations++;
+        block++;
+        return (void*) block;
     }
     return NULL;
 }
@@ -62,7 +62,7 @@ mem_monitor_reallocate (mem_monitor_t *memp, void *ptr, int newsize)
     unsigned long long int *new_block;
 
     if (NULL == ptr)
-	return 
+        return 
             mem_monitor_allocate(memp, newsize);
     block--;
     oldsize = *block;

@@ -4,9 +4,9 @@
 #include "timer_object.h"
 #include "index_object.h"
 
-#define MAX_SZ			(2048 * 2048)
-#define ITER			(5)
-#define BIG_ITER		(10000 * 4092)
+#define MAX_SZ                  (2048 * 2048)
+#define ITER                    (5)
+#define BIG_ITER                (10000 * 4092)
 
 /*
 ** some data structure we are interested in
@@ -45,7 +45,7 @@ int main (int argc, char *argv[])
     /* create the index first */
     if (index_obj_init(&index, 
             1, compareData, MAX_SZ/4, 1000, NULL) != 0) {
-	printf ("could not create index\n");
+        printf ("could not create index\n");
         return -1;
     }
     
@@ -53,16 +53,16 @@ int main (int argc, char *argv[])
 printf("FILLING INITIAL DATA\n");
     timer_start(&timr);
     for (i=0; i<MAX_SZ; i++) {
-	data [i].first = i;
-	data [i].second = i;
-	ip1 = &data[i];
-	if (index_obj_insert(&index, ip1, &exists)) {
-	    fprintf(stderr, "cannot add entry %d %d to index %d\n",
-		data[i].first, data[i].second, i);
-	    return -1;
-	} else {
-	    // printf("inserted (%d, %d)\n", i, i);
-	}
+        data [i].first = i;
+        data [i].second = i;
+        ip1 = &data[i];
+        if (index_obj_insert(&index, ip1, &exists)) {
+            fprintf(stderr, "cannot add entry %d %d to index %d\n",
+                data[i].first, data[i].second, i);
+            return -1;
+        } else {
+            // printf("inserted (%d, %d)\n", i, i);
+        }
     }
     timer_end(&timr);
     printf("INITIAL DATA FILLED, object expanded %d times\n", index.expansion_count);
@@ -75,22 +75,22 @@ printf("FILLING INITIAL DATA\n");
 printf("SEARCHING DATA\n");
     timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {
-	for (i = 0; i < MAX_SZ; i++) {
-	    searched.first = searched.second = i;
-	    ip1 = &searched;
-	    if (index_obj_search(&index, ip1, &exists) == 0) {
-		datp = exists;
-		if ((searched.first != datp->first) ||
-		    (searched.second != datp->second)) {
-			printf("searched (%d, %d), did NOT match found (%d, %d)\n",
-			    searched.first, searched.second,
-			    datp->first, datp->second);
-		}
-	    } else {
-		printf("index_search could not find (%d, %d)\n",
-		    searched.first, searched.second);
-	    }
-	}
+        for (i = 0; i < MAX_SZ; i++) {
+            searched.first = searched.second = i;
+            ip1 = &searched;
+            if (index_obj_search(&index, ip1, &exists) == 0) {
+                datp = exists;
+                if ((searched.first != datp->first) ||
+                    (searched.second != datp->second)) {
+                        printf("searched (%d, %d), did NOT match found (%d, %d)\n",
+                            searched.first, searched.second,
+                            datp->first, datp->second);
+                }
+            } else {
+                printf("index_search could not find (%d, %d)\n",
+                    searched.first, searched.second);
+            }
+        }
     }
     timer_end(&timr);
     timer_report(&timr, ITER * MAX_SZ);
@@ -100,22 +100,22 @@ printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
     timer_start(&timr);
     ip1 = &hidata;
     for (i = 0; i < BIG_ITER; i++) {
-	if (index_obj_insert(&index, ip1, &exists) != 0) {
-	    printf("could not insert hidata %d %d",
-		hidata.first, hidata.second);
-	}
-	if (NULL != exists) {
-	    fprintf(stderr, "hidata should NOT exist but it does\n");
-	}
-	if (index_obj_remove(&index, ip1, &removed) != 0) {
-	    printf("could not remove hidata %d %d",
-		hidata.first, hidata.second);
-	}
-	datp = removed;
-	if ((datp->first != hidata.first) || (datp->second != hidata.second)) {
-	    fprintf(stderr, "removed data does not match: (%d, %d) != (%d, %d)\n",
-		    hidata.first, hidata.second, datp->first, datp->second);
-	}
+        if (index_obj_insert(&index, ip1, &exists) != 0) {
+            printf("could not insert hidata %d %d",
+                hidata.first, hidata.second);
+        }
+        if (NULL != exists) {
+            fprintf(stderr, "hidata should NOT exist but it does\n");
+        }
+        if (index_obj_remove(&index, ip1, &removed) != 0) {
+            printf("could not remove hidata %d %d",
+                hidata.first, hidata.second);
+        }
+        datp = removed;
+        if ((datp->first != hidata.first) || (datp->second != hidata.second)) {
+            fprintf(stderr, "removed data does not match: (%d, %d) != (%d, %d)\n",
+                    hidata.first, hidata.second, datp->first, datp->second);
+        }
     }
     timer_end(&timr);
     timer_report(&timr, BIG_ITER * 2);
@@ -125,14 +125,14 @@ printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
     timer_start(&timr);
     ip1 = &lodata;
     for (i = 0; i < ITER * 200; i++) {
-	if (index_obj_insert(&index, ip1, &exists) != 0) {
-	    printf("could not insert lodata %d %d",
-		lodata.first, lodata.second);
-	}
-	if (index_obj_remove(&index, ip1, &removed) != 0) {
-	    printf("could not remove hidata %d %d",
-		lodata.first, lodata.second);
-	}
+        if (index_obj_insert(&index, ip1, &exists) != 0) {
+            printf("could not insert lodata %d %d",
+                lodata.first, lodata.second);
+        }
+        if (index_obj_remove(&index, ip1, &removed) != 0) {
+            printf("could not remove hidata %d %d",
+                lodata.first, lodata.second);
+        }
     }
     timer_end(&timr);
     timer_report(&timr, ITER * 2 * 200);

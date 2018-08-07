@@ -67,11 +67,11 @@ thread_unsafe_dl_list_prepend_element (dl_list_t *list,
         dl_list_element_t *elem)
 {
     if (list->n <= 0) {
-	list->head = list->tail = elem;
+        list->head = list->tail = elem;
     } else {
-	elem->next = list->head;
-	list->head->prev = elem;
-	list->head = elem;
+        elem->next = list->head;
+        list->head->prev = elem;
+        list->head = elem;
     }
     list->n++;
 }
@@ -84,7 +84,7 @@ thread_unsafe_dl_list_append_element (dl_list_t *list,
         dl_list_element_t *elem)
 {
     if (list->n <= 0) {
-	list->head = list->tail = elem;
+        list->head = list->tail = elem;
     } else {
         elem->prev = list->tail;
         list->tail->next = elem;
@@ -98,20 +98,20 @@ thread_unsafe_dl_list_delete_element (dl_list_t *list,
         dl_list_element_t *elem)
 {
     if (elem->next == NULL) {
-	if (elem->prev == NULL) {
-	    list->head = list->tail = NULL;
-	} else {
-	    elem->prev->next = NULL;
-	    list->tail = elem->prev;
-	}
+        if (elem->prev == NULL) {
+            list->head = list->tail = NULL;
+        } else {
+            elem->prev->next = NULL;
+            list->tail = elem->prev;
+        }
     } else {
-	if (elem->prev == NULL) {
-	    list->head = elem->next;
-	    elem->next->prev = NULL;
-	} else {
-	    elem->prev->next = elem->next;
-	    elem->next->prev = elem->prev;
-	}
+        if (elem->prev == NULL) {
+            list->head = elem->next;
+            elem->next->prev = NULL;
+        } else {
+            elem->prev->next = elem->next;
+            elem->next->prev = elem->prev;
+        }
     }
     MEM_MONITOR_FREE(list, elem);
     list->n--;
@@ -239,7 +239,7 @@ dl_list_iterate (dl_list_t *list, object_comparer iterator,
         void *extra_arg, int stop_if_fails)
 {
     dl_list_element_t *elem;
-	
+        
     READ_LOCK(list);
     elem = list->head;
     while (elem) {

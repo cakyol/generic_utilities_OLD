@@ -38,19 +38,19 @@ typedef int (*two_parameter_function_pointer)(void *arg1, void *arg2);
 typedef int (*three_parameter_function_pointer)(void *arg1, void *arg2, void *arg3);
 
 typedef int (*four_parameter_function_pointer)
-		(void *arg1, void *arg2, void *arg3, void *arg4);
+                (void *arg1, void *arg2, void *arg3, void *arg4);
 
 typedef int (*five_parameter_function_pointer)
-		(void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
+                (void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
 
 typedef int (*six_parameter_function_pointer)
-		(void *arg1, void *arg2, void *arg3,
-		 void *arg4, void *arg5, void *arg6);
+                (void *arg1, void *arg2, void *arg3,
+                 void *arg4, void *arg5, void *arg6);
 
 typedef int (*seven_parameter_function_pointer)
-		(void *arg1, void *arg2, void *arg3,
-		 void *arg4, void *arg5, void *arg6,
-		 void *arg7);
+                (void *arg1, void *arg2, void *arg3,
+                 void *arg4, void *arg5, void *arg6,
+                 void *arg7);
 
 typedef one_parameter_function_pointer simple_function_pointer;
 

@@ -41,9 +41,9 @@ extern "C" {
  * Note that these values also mean 'all' types and instances for 
  * certain contexts.
  */
-#define ROOT_OBJECT_TYPE		0
+#define ROOT_OBJECT_TYPE                0
 #define ALL_OBJECT_TYPES                ROOT_OBJECT_TYPE
-#define ROOT_OBJECT_INSTANCE		0
+#define ROOT_OBJECT_INSTANCE            0
 #define ALL_OBJECT_INSTANCES            ROOT_OBJECT_INSTANCE
 
 #ifdef __cplusplus

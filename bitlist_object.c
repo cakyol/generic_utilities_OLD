@@ -31,20 +31,20 @@
 #include "bitlist_object.h"
 
 #if INT_MAX == 32767
-    #define BITS_PER_INT		16
-    #define BYTES_PER_INT		2
-    #define BITS_TO_INT_SHIFT		4
-    #define ALL_ONES			0xFFFF
+    #define BITS_PER_INT                16
+    #define BYTES_PER_INT               2
+    #define BITS_TO_INT_SHIFT           4
+    #define ALL_ONES                    0xFFFF
 #elif INT_MAX == 2147483647
-    #define BITS_PER_INT		32
-    #define BYTES_PER_INT		4
-    #define BITS_TO_INT_SHIFT		5
-    #define ALL_ONES			0xFFFFFFFF
+    #define BITS_PER_INT                32
+    #define BYTES_PER_INT               4
+    #define BITS_TO_INT_SHIFT           5
+    #define ALL_ONES                    0xFFFFFFFF
 #elif INT_MAX == 9223372036854775807
-    #define BITS_PER_INT		64
-    #define BYTES_PER_INT		8	
-    #define BITS_TO_INT_SHIFT		6
-    #define ALL_ONES			0xFFFFFFFFFFFFFFFF
+    #define BITS_PER_INT                64
+    #define BYTES_PER_INT               8       
+    #define BITS_TO_INT_SHIFT           6
+    #define ALL_ONES                    0xFFFFFFFFFFFFFFFF
 #else
     #error "What kind of weird system are you on?"
 #endif
@@ -116,8 +116,8 @@ thread_unsafe_bitlist_set (bitlist_t *bl, int bit_number)
     /* set it */
     bit = BIT_GET(bl->the_bits, bit_number);
     if (bit == 0) {
-	BIT_SET(bl->the_bits, bit_number);
-	bl->bits_set_count++;
+        BIT_SET(bl->the_bits, bit_number);
+        bl->bits_set_count++;
     }
 
     /* no error */
@@ -139,8 +139,8 @@ thread_unsafe_bitlist_clear (bitlist_t *bl, int bit_number)
     /* clear it */
     value = BIT_GET(bl->the_bits, bit_number);
     if (value) {
-	BIT_CLEAR(bl->the_bits, bit_number);
-	bl->bits_set_count--;
+        BIT_CLEAR(bl->the_bits, bit_number);
+        bl->bits_set_count--;
     }
 
     /* no error */
@@ -210,11 +210,11 @@ bitlist_init (bitlist_t *bl,
     bl->lowest_valid_bit = lowest_valid_bit;
     bl->highest_valid_bit = highest_valid_bit;
     if (initialize_to_all_ones) {
-	data = ALL_ONES;
-	bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
+        data = ALL_ONES;
+        bl->bits_set_count = highest_valid_bit - lowest_valid_bit + 1;
     } else {
-	data = 0;
-	bl->bits_set_count = 0;
+        data = 0;
+        bl->bits_set_count = 0;
     }
     for (i = 0; i < size_in_ints; i++) bl->the_bits[i] = data;
 done:

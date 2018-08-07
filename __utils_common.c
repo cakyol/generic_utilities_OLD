@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-#define STRING_SIZE	64
+#define STRING_SIZE     64
 
 /*
 ** FOR LINUX ONLY: POSIX COMPLIANT
@@ -50,12 +50,12 @@ process_is_dead (pid_t pid)
 
     sprintf(pid_string, "/proc/%d", pid);
     if (stat(pid_string, &st) == 0) {
-	if (!S_ISDIR(st.st_mode)) {
-	    return TRUE;
-	}
-	return FALSE;
+        if (!S_ISDIR(st.st_mode)) {
+            return TRUE;
+        }
+        return FALSE;
     } else {
-	return TRUE;
+        return TRUE;
     }
 }
 
@@ -85,7 +85,7 @@ void timer_report (timer_obj_t *tp, int64 iterations)
     elapsed_ns = end_ns - start_ns;
     elapsed_s = ((double) elapsed_ns) / ((double) (NANOSEC_TO_SEC));
     printf("elapsed time: %.9lf seconds (%llu nsecs) for %llu iterations\n",
-	elapsed_s, elapsed_ns, iterations);
+        elapsed_s, elapsed_ns, iterations);
     per_iter = ((double) elapsed_ns / (double) iterations);
     printf("took %.3lf nano seconds per operation\n", per_iter);
 }
@@ -221,11 +221,11 @@ mem_monitor_allocate (mem_monitor_t *memp, int size)
 
     if (block) {
         memset(block, 0, total_size);
-	*block = total_size;
-	memp->bytes_used += total_size;
-	memp->allocations++;
-	block++;
-	return (void*) block;
+        *block = total_size;
+        memp->bytes_used += total_size;
+        memp->allocations++;
+        block++;
+        return (void*) block;
     }
     return NULL;
 }
@@ -249,7 +249,7 @@ mem_monitor_reallocate (mem_monitor_t *memp, void *ptr, int newsize)
     int64 *new_block;
 
     if (NULL == ptr)
-	return 
+        return 
             mem_monitor_allocate(memp, newsize);
     block--;
     oldsize = *block;
@@ -313,12 +313,12 @@ relentless_read_write (boolean perform_read,
 
         // process the read/written amount
         //
-	if (rc > 0) {
-	    total += rc;
-	    size -= rc;
+        if (rc > 0) {
+            total += rc;
+            size -= rc;
             failed = 0;
-	    continue;
-	}
+            continue;
+        }
 
         // operation failed; has it failed consecutively many times ?
         //

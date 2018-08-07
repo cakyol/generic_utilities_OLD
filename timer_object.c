@@ -58,7 +58,7 @@ timer_report (timer_obj_t *tp, long long int iterations)
     elapsed_ns = end_ns - start_ns;
     elapsed_s = ((double) elapsed_ns) / ((double) (SEC_TO_NSEC_FACTOR));
     printf("elapsed time: %.9lf seconds (%llu nsecs) for %llu iterations\n",
-	elapsed_s, elapsed_ns, iterations);
+        elapsed_s, elapsed_ns, iterations);
     per_iter = ((double) elapsed_ns / (double) iterations);
     printf("took %.3lf nano seconds per operation\n", per_iter);
 }

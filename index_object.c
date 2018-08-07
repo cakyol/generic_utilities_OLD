@@ -39,11 +39,11 @@ static inline void
 copy_index_elements (void **src, void **dst, int count)
 {
     if (dst < src)
-	while (count-- > 0) *dst++ = *src++;
+        while (count-- > 0) *dst++ = *src++;
     else {
-	src += count;
-	dst += count;
-	while (count-- > 0) *(--dst) = *(--src);
+        src += count;
+        dst += count;
+        while (count-- > 0) *(--dst) = *(--src);
     }
 }
 
@@ -66,8 +66,8 @@ index_resize (index_obj_t *idx, int new_size)
 */
 static int 
 index_find_position (index_obj_t *idx,
-	void *searched_data, 
-	int *insertion_point)
+        void *searched_data, 
+        int *insertion_point)
 {
     register int mid, diff, lo, hi;
 
@@ -76,15 +76,15 @@ index_find_position (index_obj_t *idx,
 
     /* binary search */
     while (lo <= hi) {
-	mid = (hi+lo) >> 1;
-	diff = (idx->cmpf)(searched_data, idx->elements[mid]);
-	if (diff > 0) {
-	    lo = mid + 1;
-	} else if (diff < 0) {
-	    hi = mid - 1;
-	} else {
-	    return mid;
-	}
+        mid = (hi+lo) >> 1;
+        diff = (idx->cmpf)(searched_data, idx->elements[mid]);
+        if (diff > 0) {
+            lo = mid + 1;
+        } else if (diff < 0) {
+            hi = mid - 1;
+        } else {
+            return mid;
+        }
     }
 
     /*
@@ -98,10 +98,10 @@ index_find_position (index_obj_t *idx,
 
 static int
 thread_unsafe_index_obj_insert (index_obj_t *idx,
-	void *data,
+        void *data,
         void **exists)
 {
-    int insertion_point = 0;	/* shut the -Werror up */
+    int insertion_point = 0;    /* shut the -Werror up */
     int size, i;
     void **source;
 
@@ -126,18 +126,18 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     /* if index is full, attempt to expand by specified expansion_size */
     if (idx->n >= idx->maximum_size) {
 
-	/* cannot expand, not allowed */
-	if (idx->expansion_size <= 0) {
-	    return ENOSPC;
-	}
+        /* cannot expand, not allowed */
+        if (idx->expansion_size <= 0) {
+            return ENOSPC;
+        }
 
-	/* tried to expand but failed */
-	if (index_resize(idx, idx->maximum_size + idx->expansion_size)) {
-	    return ENOMEM;
-	}
+        /* tried to expand but failed */
+        if (index_resize(idx, idx->maximum_size + idx->expansion_size)) {
+            return ENOMEM;
+        }
 
-	/* record the expansion */
-	idx->expansion_count++;
+        /* record the expansion */
+        idx->expansion_count++;
     }
 
     /*
@@ -146,7 +146,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     */
     source = &(idx->elements[insertion_point]);
     if ((size = idx->n - insertion_point) > 0)
-	copy_index_elements(source, (source+1), size);
+        copy_index_elements(source, (source+1), size);
     
     /* fill in the new node values */
     idx->elements[insertion_point] = data;
@@ -159,8 +159,8 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
 static int 
 thread_unsafe_index_obj_search (index_obj_t *idx,
-	void *search_key,
-	void **found)
+        void *search_key,
+        void **found)
 {
     int i, dummy;
 
@@ -171,7 +171,7 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
 
     /* not found */
     if (i < 0) {
-	return ENODATA;
+        return ENODATA;
     }
 
     *found = idx->elements[i];
@@ -180,8 +180,8 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
 
 static int
 thread_unsafe_index_obj_remove (index_obj_t *idx,
-	void *data_to_be_removed,
-	void **actual_data_removed)
+        void *data_to_be_removed,
+        void **actual_data_removed)
 {
     int i, size, dummy;
 
@@ -193,7 +193,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
     /* not in table */
     if (i < 0) {
-	return ENODATA;
+        return ENODATA;
     }
 
     *actual_data_removed = idx->elements[i];
@@ -201,8 +201,8 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
     /* pull the elements AFTER "index" to the left by one */
     if ((size = idx->n - i) > 0) {
-	void **source = &idx->elements[i+1];
-	copy_index_elements(source, (source - 1), size);
+        void **source = &idx->elements[i+1];
+        copy_index_elements(source, (source - 1), size);
     }
 
     return 0;
@@ -212,16 +212,16 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
 PUBLIC int
 index_obj_init (index_obj_t *idx,
-	int make_it_thread_safe,
-	object_comparer cmpf,
-	int maximum_size,
-	int expansion_size,
+        int make_it_thread_safe,
+        object_comparer cmpf,
+        int maximum_size,
+        int expansion_size,
         mem_monitor_t *parent_mem_monitor)
 {
     int rv = 0;
 
     if ((maximum_size <= 1) || (expansion_size < 0)) {
-	return EINVAL;
+        return EINVAL;
     }
 
     MEM_MONITOR_SETUP(idx);
@@ -234,7 +234,7 @@ index_obj_init (index_obj_t *idx,
     idx->n = 0;
     idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
-	rv = EINVAL;
+        rv = EINVAL;
     }
     WRITE_UNLOCK(idx);
     return rv;
@@ -244,8 +244,8 @@ index_obj_init (index_obj_t *idx,
 
 PUBLIC int
 index_obj_insert (index_obj_t *idx,
-	void *data_to_be_inserted,
-	void **data_already_present)
+        void *data_to_be_inserted,
+        void **data_already_present)
 {
     int rv;
 
@@ -260,8 +260,8 @@ index_obj_insert (index_obj_t *idx,
 
 PUBLIC int
 index_obj_search (index_obj_t *idx,
-	void *data_to_be_inserted,
-	void **data_found)
+        void *data_to_be_inserted,
+        void **data_found)
 {
     int rv;
 
@@ -276,14 +276,14 @@ index_obj_search (index_obj_t *idx,
 
 PUBLIC int
 index_obj_remove (index_obj_t *idx,
-	void *data_to_be_removed,
-	void **data_actually_removed)
+        void *data_to_be_removed,
+        void **data_actually_removed)
 {
     int rv;
     
     WRITE_LOCK(idx);
     rv = thread_unsafe_index_obj_remove(idx,
-		data_to_be_removed, data_actually_removed);
+                data_to_be_removed, data_actually_removed);
     WRITE_UNLOCK(idx);
     return rv;
 }
@@ -299,9 +299,9 @@ index_obj_get_all (index_obj_t *idx, int *returned_count)
     READ_LOCK(idx);
     storage_area = MEM_MONITOR_ALLOC(idx, (idx->n + 1) * sizeof(void*));
     if (NULL == storage_area) {
-	*returned_count = 0;
-	READ_UNLOCK(idx);
-	return NULL;
+        *returned_count = 0;
+        READ_UNLOCK(idx);
+        return NULL;
     }
     for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i];
     *returned_count = i;
@@ -324,11 +324,11 @@ index_obj_traverse (index_obj_t *idx,
 
     READ_LOCK(idx);
     for (i = 0; i < idx->n; i++) {
-	if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
-	    p0, p1, p2, p3) != 0) {
-		rv = EFAULT;
-		break;
-	}
+        if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
+            p0, p1, p2, p3) != 0) {
+                rv = EFAULT;
+                break;
+        }
     }
     READ_UNLOCK(idx);
 
@@ -343,7 +343,7 @@ PUBLIC void
 index_obj_destroy (index_obj_t *idx)
 {
     if (idx->elements) {
-	free(idx->elements);
+        free(idx->elements);
     }
     LOCK_OBJ_DESTROY(idx);
     memset(idx, 0, sizeof(index_obj_t));
@@ -359,9 +359,9 @@ index_obj_trim (index_obj_t *idx)
 
     /* trim only if size is >= twice the number of elements */
     if (idx->maximum_size >= (2 * idx->n)) {
-	if (index_resize(idx, (idx->n + 1)) == 0) {
-	    trimmed = old_size - (idx->n + 1);
-	}
+        if (index_resize(idx, (idx->n + 1)) == 0) {
+            trimmed = old_size - (idx->n + 1);
+        }
     }
     return trimmed;
 }

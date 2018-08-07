@@ -37,8 +37,8 @@ static inline int
 ttas (volatile char *variable, char checked, char set)
 {
     return
-	(*variable == 0) &&
-	(__sync_val_compare_and_swap(variable, checked, set) == 0);
+        (*variable == 0) &&
+        (__sync_val_compare_and_swap(variable, checked, set) == 0);
 }
 
 /*
@@ -82,11 +82,11 @@ _read_lock (lock_obj_t *lck, int block)
             }
             lck->mtx = 0;
         }
-	if (block) {
-	    holdoff(lck);
-	} else {
-	    return -1;
-	}
+        if (block) {
+            holdoff(lck);
+        } else {
+            return -1;
+        }
     }
 }
 
@@ -117,7 +117,7 @@ _write_lock (lock_obj_t *lck, int block)
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
 
-	    /* dont clear this since 'grab_read_lock' will check it */
+            /* dont clear this since 'grab_read_lock' will check it */
             lck->write_pending = 1;
 
             if ((lck->readers <= 0) && (lck->writing == 0)) {
@@ -127,11 +127,11 @@ _write_lock (lock_obj_t *lck, int block)
             }
             lck->mtx = 0;
         }
-	if (block) {
-	    holdoff(lck);
-	} else {
-	    return -1;
-	}
+        if (block) {
+            holdoff(lck);
+        } else {
+            return -1;
+        }
     }
 }
 

@@ -70,8 +70,8 @@ static itimerval_t zero_itim = { { 0, 0 }, { 0, 0 } };
  * executed immediately after one another.  This is basically
  * the minimum resolution of this timer system.
  */
-#define RESOLUTION_MILLI_SECONDS	20
-#define RESOLUTION_NANO_SECONDS		(RESOLUTION_MILLI_SECONDS * 1000000LL)	
+#define RESOLUTION_MILLI_SECONDS        20
+#define RESOLUTION_NANO_SECONDS         (RESOLUTION_MILLI_SECONDS * 1000000LL)  
 
 /*
  * tasks are ordered based on their firing time values which is in
@@ -107,13 +107,13 @@ next_firing_time (task_t *first_task, task_t *later_task,
     nano_seconds_t now, next_firing;
 
     if (first_task) {
-	now = first_task->abs_firing_time_nsecs;
+        now = first_task->abs_firing_time_nsecs;
     } else {
-	now = time_now();
+        now = time_now();
     }
     next_firing = later_task->abs_firing_time_nsecs - now - lateness;
     if (next_firing <= RESOLUTION_NANO_SECONDS)
-	next_firing = RESOLUTION_NANO_SECONDS;
+        next_firing = RESOLUTION_NANO_SECONDS;
     return next_firing;
 }
 
@@ -121,10 +121,10 @@ static inline int
 within_resolution (task_t *first_task, task_t *later_task)
 {
     if (first_task == later_task)
-	return 1;
+        return 1;
     return
-	next_firing_time(first_task, later_task, 0) <= 
-	    RESOLUTION_NANO_SECONDS;
+        next_firing_time(first_task, later_task, 0) <= 
+            RESOLUTION_NANO_SECONDS;
 }
 
 /*
@@ -142,14 +142,14 @@ schedule_next_alarm_nsecs (nano_seconds_t interval)
     itim.it_value.tv_usec = (interval % SEC_TO_USEC_FACTOR);
     fflush(stdout);
     return
-	setitimer(ITIMER_REAL, &itim, NULL);
+        setitimer(ITIMER_REAL, &itim, NULL);
 }
 
 static inline int
 terminate_alarm (void)
 {
     return
-	setitimer(ITIMER_REAL, &zero_itim, NULL);
+        setitimer(ITIMER_REAL, &zero_itim, NULL);
 }
 
 /*
@@ -169,9 +169,9 @@ reschedule_next_alarm (nano_seconds_t lateness)
 
     /* no task scheduled, stop the alarms */
     if (scheduled_tasks->n <= 0) {
-	terminate_alarm();
-	READ_UNLOCK(scheduled_tasks);
-	return;
+        terminate_alarm();
+        READ_UNLOCK(scheduled_tasks);
+        return;
     }
 
     /*
@@ -210,9 +210,9 @@ __alarm_signal_handler (int signo)
 
     /* if no task, finish (spurious alarm ?) */
     if (scheduled_tasks->n <= 0) {
-	WRITE_UNLOCK(executable_tasks);
-	WRITE_UNLOCK(scheduled_tasks);
-	return;
+        WRITE_UNLOCK(executable_tasks);
+        WRITE_UNLOCK(scheduled_tasks);
+        return;
     }
 
     /*
@@ -223,26 +223,26 @@ __alarm_signal_handler (int signo)
      */
     first_task = (task_t*) scheduled_tasks->head->user_data;
     while (scheduled_tasks->n > 0) {
-	tp = (task_t*) scheduled_tasks->head->user_data;
-	if (within_resolution(first_task, tp)) {
+        tp = (task_t*) scheduled_tasks->head->user_data;
+        if (within_resolution(first_task, tp)) {
 
-	    /* remove task from head of scheduled_tasks list */
-	    d = scheduled_tasks->head;
-	    scheduled_tasks->head = d->next;
-	    scheduled_tasks->n--;
-	    MEM_MONITOR_FREE(scheduled_tasks, d);
+            /* remove task from head of scheduled_tasks list */
+            d = scheduled_tasks->head;
+            scheduled_tasks->head = d->next;
+            scheduled_tasks->n--;
+            MEM_MONITOR_FREE(scheduled_tasks, d);
 
-	    /*
-	     * now txfer it to the executable_tasks list.
-	     * Make sure we use the 'raw' unprotected function
-	     * here since this list is already write locked and
-	     * if we attempt to lock it again using one of the
-	     * public functions, we will get a write deadlock.
-	     */
-	    rv = thread_unsafe_linkedlist_add_to_head(executable_tasks, tp);
-	} else {
-	    break;
-	}
+            /*
+             * now txfer it to the executable_tasks list.
+             * Make sure we use the 'raw' unprotected function
+             * here since this list is already write locked and
+             * if we attempt to lock it again using one of the
+             * public functions, we will get a write deadlock.
+             */
+            rv = thread_unsafe_linkedlist_add_to_head(executable_tasks, tp);
+        } else {
+            break;
+        }
     }
 
     /*
@@ -260,13 +260,13 @@ __alarm_signal_handler (int signo)
      * list as we execute them.
      */
     while (executable_tasks->n > 0) {
-	tp = (task_t*) executable_tasks->head->user_data;
-	tp->efn(tp->argument);
-	free(tp);
-	d = executable_tasks->head;
-	executable_tasks->head = d->next;
-	executable_tasks->n--;
-	MEM_MONITOR_FREE(executable_tasks, d);
+        tp = (task_t*) executable_tasks->head->user_data;
+        tp->efn(tp->argument);
+        free(tp);
+        d = executable_tasks->head;
+        executable_tasks->head = d->next;
+        executable_tasks->n--;
+        MEM_MONITOR_FREE(executable_tasks, d);
     }
 
     /* ok we executed everything, unlock now */
@@ -297,7 +297,7 @@ task_scheduler_init (void)
 
     /* install the alarm signal handler */
     if (SIG_ERR == signal(SIGALRM, __alarm_signal_handler))
-	return errno;
+        return errno;
 
     rv = linkedlist_init(executable_tasks, 1, dummy_comparer, NULL);
     if (rv) return rv;
@@ -327,7 +327,7 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
     tp->efn = efn;
     tp->argument = argument;
     tp->abs_firing_time_nsecs = time_now() + 
-	    (seconds_from_now * SEC_TO_NSEC_FACTOR) + nano_seconds_from_now;
+            (seconds_from_now * SEC_TO_NSEC_FACTOR) + nano_seconds_from_now;
     READ_LOCK(scheduled_tasks);
     first = scheduled_tasks->head;
     READ_UNLOCK(scheduled_tasks);
@@ -336,10 +336,10 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
     head_changed = first != scheduled_tasks->head;
     READ_UNLOCK(scheduled_tasks);
     if (0 == rv) {
-	*scheduled_task = tp;
-	if (head_changed) reschedule_next_alarm(0);
+        *scheduled_task = tp;
+        if (head_changed) reschedule_next_alarm(0);
     } else {
-	free(tp);
+        free(tp);
     }
     return rv;
 }
@@ -352,12 +352,12 @@ task_cancel (task_t *tp)
 
     WRITE_LOCK(scheduled_tasks);
     FOR_ALL_LINKEDLIST_ELEMENTS(scheduled_tasks, t) {
-	if (t == tp) {
-	    if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
-	    thread_unsafe_linkedlist_node_delete(scheduled_tasks, __n__);
-	    rv = 0;
-	    break;
-	}
+        if (t == tp) {
+            if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
+            thread_unsafe_linkedlist_node_delete(scheduled_tasks, __n__);
+            rv = 0;
+            break;
+        }
     }
     WRITE_UNLOCK(scheduled_tasks);
     if (head_changed) reschedule_next_alarm(0);

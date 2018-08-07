@@ -32,54 +32,54 @@
 **
 ** @@@@@ GENERIC OBJECT DATABASE
 **
-**	This is a VERY fast and a VERY flexible object database.
+**      This is a VERY fast and a VERY flexible object database.
 **
-**	Almost every data structure is either an avl tree or a binary
-**	index object, making it very efficient.
+**      Almost every data structure is either an avl tree or a binary
+**      index object, making it very efficient.
 **
-**	An object always have ONE parent but can have many children.  
-**	It is up to the user to make sure an object's child cannot 
-**	also be a parent otherwise infinite loops will be created.
+**      An object always have ONE parent but can have many children.  
+**      It is up to the user to make sure an object's child cannot 
+**      also be a parent otherwise infinite loops will be created.
 **
-**	An object can have any number of attributes and these can be
+**      An object can have any number of attributes and these can be
 **      added and/or deleted dynamically during an object's lifetime.
 **
 **      Each such object attribute also can have MANY values.  Those
-**	are maintained in a random linked list.  This makes the attribute
-**	value manipulation somewhat slower but typically, it is not expected
-**	that an attribute will contain more than at most a few values.
+**      are maintained in a random linked list.  This makes the attribute
+**      value manipulation somewhat slower but typically, it is not expected
+**      that an attribute will contain more than at most a few values.
 **
-**	An object is identified distinctly by its type & instance and hence
-**	there can be only ONE instance of an object of the same type in one
-**	database.  All object types & instances MUST be > 0.  Values <= 0 are
-**	reserved and should not be used.
+**      An object is identified distinctly by its type & instance and hence
+**      there can be only ONE instance of an object of the same type in one
+**      database.  All object types & instances MUST be > 0.  Values <= 0 are
+**      reserved and should not be used.
 **
-**	Conversely, an attribute is also distinctly identified by an integer
-**	of value > 0.  Do not use attribute ids of <= 0.
+**      Conversely, an attribute is also distinctly identified by an integer
+**      of value > 0.  Do not use attribute ids of <= 0.
 **
-**	An object always has ONLY ONE parent.
+**      An object always has ONLY ONE parent.
 **
-**	An object can have 0 -> many children.
+**      An object can have 0 -> many children.
 **
-**	An object can have 0 -> many attributes.
+**      An object can have 0 -> many attributes.
 **
-**	An object can add/delete children at any time.
+**      An object can add/delete children at any time.
 **
-**	If an object is destroyed, all its children will also be destroyed.
+**      If an object is destroyed, all its children will also be destroyed.
 **
-**	Object attributes can be and are dynamically addable and deletable
-**		from an object.  There is no limit.
+**      Object attributes can be and are dynamically addable and deletable
+**              from an object.  There is no limit.
 **
-**	Object attributes are multi valued.  An attribute can hold
-**		multiple simple or complex values.  There is no
-**		limit.
+**      Object attributes are multi valued.  An attribute can hold
+**              multiple simple or complex values.  There is no
+**              limit.
 **
-**		Note that there is a distinction between an 'attribute
-**		value add' and an 'attribute value set'.  The 'set' will
-**		delete all values and re-set the attribute value to
-**		only those values specified in the call, whereas an
-**		attribute 'add' is additive, it will actually add to
-**		the already existing values.
+**              Note that there is a distinction between an 'attribute
+**              value add' and an 'attribute value set'.  The 'set' will
+**              delete all values and re-set the attribute value to
+**              only those values specified in the call, whereas an
+**              attribute 'add' is additive, it will actually add to
+**              the already existing values.
 **
 *******************************************************************************
 *******************************************************************************
@@ -113,7 +113,7 @@ extern "C" {
  */
 #define USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
 
-#define TYPICAL_NAME_SIZE			(64)
+#define TYPICAL_NAME_SIZE                       (64)
 
 typedef struct attribute_value_s attribute_value_t;
 typedef struct attribute_instance_s attribute_instance_t;
@@ -236,10 +236,10 @@ struct attribute_value_s {
 
 struct attribute_instance_s {
 
-    object_t *object;		// which object does this attribute belong to
-    int attribute_id;		// which attribute is it
-    int n_attribute_values;	// how many values does it have
-    attribute_value_t *avps;	// linked list of the attribute values
+    object_t *object;           // which object does this attribute belong to
+    int attribute_id;           // which attribute is it
+    int n_attribute_values;     // how many values does it have
+    attribute_value_t *avps;    // linked list of the attribute values
 };
 
 /******************************************************************************
@@ -372,7 +372,7 @@ database_initialize (object_database_t *obj_db,
 
 extern void
 database_register_evhf (object_database_t *obj_db,
-	event_handler_function evhf);
+        event_handler_function evhf);
 
 extern int
 object_create (object_database_t *obj_db,
@@ -395,27 +395,27 @@ object_attribute_add_simple_value (object_database_t *obj_db,
 extern int
 object_attribute_set_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	long long int simple_value);
+        long long int simple_value);
 
 extern int
 object_attribute_delete_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	long long int simple_value);
+        long long int simple_value);
 
 extern int
 object_attribute_add_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	byte *complex_value_data, int complex_value_data_length);
+        byte *complex_value_data, int complex_value_data_length);
 
 extern int
 object_attribute_set_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	byte *complex_value_data, int complex_value_data_length);
+        byte *complex_value_data, int complex_value_data_length);
 
 extern int
 object_attribute_delete_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
-	byte *complex_value_data, int complex_value_data_length);
+        byte *complex_value_data, int complex_value_data_length);
 
 extern int
 object_attribute_get_value (object_database_t *obj_db,
@@ -439,8 +439,8 @@ object_attribute_destroy (object_database_t *obj_db,
  */
 extern object_representation_t *
 object_get_matching_children (object_database_t *obj_db,
-	int parent_object_type, int parent_object_instance,
-	int matching_object_type, int *returned_count);
+        int parent_object_type, int parent_object_instance,
+        int matching_object_type, int *returned_count);
 
 /*
  * Returns ALL of the FIRST level children objects.
@@ -449,7 +449,7 @@ object_get_matching_children (object_database_t *obj_db,
 extern object_representation_t *
 object_get_children (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
-	int *returned_count);
+        int *returned_count);
 
 /*
  * NOT RECOMMENDED TO BE USED EXTERNALLY, INTERNAL USE ONLY.
@@ -459,8 +459,8 @@ object_get_children (object_database_t *obj_db,
  */
 extern object_representation_t *
 object_get_matching_descendants (object_database_t *obj_db,
-	int parent_object_type, int parent_object_instance,
-	int matching_object_type, int *returned_count);
+        int parent_object_type, int parent_object_instance,
+        int matching_object_type, int *returned_count);
 
 /*
  * NOT RECOMMENDED TO BE USED EXTERNALLY, INTERNAL USE ONLY.
@@ -470,8 +470,8 @@ object_get_matching_descendants (object_database_t *obj_db,
  */
 extern object_representation_t *
 object_get_descendants (object_database_t *obj_db,
-	int parent_object_type, int parent_object_instance,
-	int *returned_count);
+        int parent_object_type, int parent_object_instance,
+        int *returned_count);
 
 extern int
 object_destroy (object_database_t *obj_db,

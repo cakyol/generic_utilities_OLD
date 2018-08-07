@@ -78,7 +78,7 @@ extern "C" {
 #endif
 
 #define NTRIE_LOW_VALUE         0
-#define NTRIE_HI_VALUE		(0xF)
+#define NTRIE_HI_VALUE          (0xF)
 #define NTRIE_ALPHABET_SIZE     (NTRIE_HI_VALUE - NTRIE_LOW_VALUE + 1)
 
 typedef struct radix_tree_node_s radix_tree_node_t;
@@ -88,7 +88,7 @@ struct radix_tree_node_s {
     radix_tree_node_t* parent;
     radix_tree_node_t *children [NTRIE_ALPHABET_SIZE];
     void *user_data;
-    byte current;	// used for non recursive traversal
+    byte current;       // used for non recursive traversal
     byte value;
     byte n_children;
 };
@@ -129,7 +129,7 @@ radix_tree_remove (radix_tree_t *ntp,
 
 extern void
 radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
-	void *user_param_1, void *user_param_2);
+        void *user_param_1, void *user_param_2);
 
 extern void 
 radix_tree_destroy (radix_tree_t *ntp);

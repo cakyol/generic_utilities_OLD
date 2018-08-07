@@ -6,7 +6,7 @@
 #include "queue_object.h"
 #include "timer_object.h"
 
-#define QUEUE_SIZE	                75000
+#define QUEUE_SIZE                      75000
 #define QUEUE_EXPANSION_INCREMENT       8000
 #define ITER_COUNT                      (QUEUE_SIZE * 20)
 
@@ -20,10 +20,10 @@ int main (int argc, char *argv[])
     void *pointer;
 
     if (queue_obj_init(&qobj, 1,
-		/* QUEUE_SIZE */ (ITER_COUNT + 5),
-		QUEUE_EXPANSION_INCREMENT, NULL)) {
-	    fprintf(stderr, "queue_obj_init failed\n");
-	    return -1;
+                /* QUEUE_SIZE */ (ITER_COUNT + 5),
+                QUEUE_EXPANSION_INCREMENT, NULL)) {
+            fprintf(stderr, "queue_obj_init failed\n");
+            return -1;
     }
 
     /* fill up the fifo */

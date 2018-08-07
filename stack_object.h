@@ -53,18 +53,18 @@ typedef struct stack_obj_s {
 
 extern int
 stack_obj_init (stack_obj_t *stk,
-	int make_it_thread_safe,
-	int maximum_size,
-	int expansion_size,
+        int make_it_thread_safe,
+        int maximum_size,
+        int expansion_size,
         mem_monitor_t *parent_mem_monitor);
 
 extern int
 stack_obj_push (stack_obj_t *stk,
-	void *data);
+        void *data);
 
 extern int
 stack_obj_pop (stack_obj_t *stk,
-	void **returned_data);
+        void **returned_data);
 
 extern void
 stack_obj_destroy (stack_obj_t *stk);

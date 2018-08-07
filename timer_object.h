@@ -24,11 +24,11 @@ extern "C" {
 #include <time.h>
 
 /* seconds to milli seconds multiplier */
-#define SEC_TO_MSEC_FACTOR			(1000)
+#define SEC_TO_MSEC_FACTOR                      (1000)
 
 
 /* seconds to micro seconds multiplier */
-#define SEC_TO_USEC_FACTOR			(1000000LL)
+#define SEC_TO_USEC_FACTOR                      (1000000LL)
 
 /* seconds to nano seconds multiplier */
 #define SEC_TO_NSEC_FACTOR                      (1000000000LL)
@@ -46,7 +46,7 @@ typedef struct timer_obj_s {
 
 #ifdef __APPLE__
 
-#define CLOCK_MONOTONIC		1
+#define CLOCK_MONOTONIC         1
 
 static inline int
 clock_gettime (int clock_id, timespec_t *ts)
@@ -78,8 +78,8 @@ static inline nano_seconds_t
 timer_delay_nsecs (timer_obj_t *tp)
 {
     return
-	(tp->end.tv_sec * SEC_TO_NSEC_FACTOR) + tp->end.tv_nsec -
-	(tp->start.tv_sec * SEC_TO_NSEC_FACTOR) - tp->start.tv_nsec;
+        (tp->end.tv_sec * SEC_TO_NSEC_FACTOR) + tp->end.tv_nsec -
+        (tp->start.tv_sec * SEC_TO_NSEC_FACTOR) - tp->start.tv_nsec;
 }
 
 /*
@@ -95,7 +95,7 @@ time_now (void)
 
     clock_gettime(CLOCK_MONOTONIC, &now);
     return
-	(now.tv_sec * SEC_TO_NSEC_FACTOR) + now.tv_nsec;
+        (now.tv_sec * SEC_TO_NSEC_FACTOR) + now.tv_nsec;
 }
 
 /*

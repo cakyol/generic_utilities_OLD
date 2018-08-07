@@ -64,10 +64,10 @@ extern "C" {
 ** @@@@@ CONVENTIONS
 **
 **      All functions which return type of 'error_t' will
-**	return a 0 for success and NON 0 far an error.	 
+**      return a 0 for success and NON 0 far an error.   
 **
-**	All functions which return an 'int' are actually 
-**	returning a usable value and not an error code.
+**      All functions which return an 'int' are actually 
+**      returning a usable value and not an error code.
 **
 *******************************************************************************
 *******************************************************************************
@@ -82,7 +82,7 @@ extern "C" {
 
 #include <malloc/malloc.h>
 
-#define CLOCK_PROCESS_CPUTIME_ID	1
+#define CLOCK_PROCESS_CPUTIME_ID        1
 
 static inline int
 clock_gettime (int clock_id, struct timespec *ts)
@@ -106,22 +106,22 @@ clock_gettime (int clock_id, struct timespec *ts)
 ** Unix style, all calls return 0 if no error
 */
 #define error           1
-#define ERROR		error
+#define ERROR           error
 
 #define ok              0
-#define OK		ok
+#define OK              ok
 
 typedef int error_t;
 
-#define SUCCEEDED(exp)	((exp) == 0)
-#define FAILED(exp)	((exp) != 0)
+#define SUCCEEDED(exp)  ((exp) == 0)
+#define FAILED(exp)     ((exp) != 0)
 
 #ifndef KILO
 #define KILO            1024
 #endif // KILO
 
 #ifndef MEGA
-#define MEGA		(KILO * 1024)
+#define MEGA            (KILO * 1024)
 #endif // MEGA
 
 #ifndef GIGA
@@ -129,7 +129,7 @@ typedef int error_t;
 #endif // GIGA
 
 #ifndef MILLION
-#define MILLION		(1000 * 1000)
+#define MILLION         (1000 * 1000)
 #endif // MILLION
 
 #ifndef BILLION
@@ -163,17 +163,17 @@ typedef int boolean;
 typedef char tinybool;
 typedef tinybool bool;
 #ifndef TRUE
-#define TRUE	((boolean) 1)
+#define TRUE    ((boolean) 1)
 #endif
 #define true    TRUE
 #ifndef FALSE
-#define FALSE	((boolean) 0)
+#define FALSE   ((boolean) 0)
 #endif
 #define false   FALSE
 #endif // TYPE_BOOLEAN
 
 #ifndef BITS_PER_BYTE
-#define BITS_PER_BYTE	8
+#define BITS_PER_BYTE   8
 #endif // BITS_PER_BYTE
 
 static inline boolean
@@ -184,7 +184,7 @@ no_space (int rv)
         (ENOMEM == rv);
 }
 
-#define SAFE_POINTER_SET(ptr, data)	    if ((ptr)) *(ptr) = (data)
+#define SAFE_POINTER_SET(ptr, data)         if ((ptr)) *(ptr) = (data)
 
 /*
  * a generic structure which can store multiple values.  In the past,
@@ -200,15 +200,15 @@ typedef union datum_u {
 
 } datum_t;
 
-#define NULLIFY_DATUM(datum)		    ((datum).pointer = NULL)
-#define NULLIFY_DATUMP(datump)		    ((datump)->pointer = NULL)
-#define DATUM_IS_NULL(datum)		    (NULL == (datum).pointer)
-#define DATUM_NOT_NULL(datum)		    ((datum).pointer != NULL)
+#define NULLIFY_DATUM(datum)                ((datum).pointer = NULL)
+#define NULLIFY_DATUMP(datump)              ((datump)->pointer = NULL)
+#define DATUM_IS_NULL(datum)                (NULL == (datum).pointer)
+#define DATUM_NOT_NULL(datum)               ((datum).pointer != NULL)
 
-#define SAFE_DATUMP_SET(datump, datum)	    SAFE_POINTER_SET(datump, datum)
-#define SAFE_DATUMP_IS_NULL(datump)	    ((datump) && (NULL == (datump)->pointer))
-#define SAFE_NULLIFY_DATUMP(datump)	    if (datump) (datump)->pointer = NULL
-#define SAFE_DATUMP_NOT_NULL(datump)	    if ((datump) && ((datump)->pointer))
+#define SAFE_DATUMP_SET(datump, datum)      SAFE_POINTER_SET(datump, datum)
+#define SAFE_DATUMP_IS_NULL(datump)         ((datump) && (NULL == (datump)->pointer))
+#define SAFE_NULLIFY_DATUMP(datump)         if (datump) (datump)->pointer = NULL
+#define SAFE_DATUMP_NOT_NULL(datump)        if ((datump) && ((datump)->pointer))
 
 /*
  * Tree traversals may return a collection of datums consecutively
@@ -388,9 +388,9 @@ compare_pointers (datum_t d1, datum_t d2);
 ** 
 ** @@@@@ Memory book keeping object
 **       Use these instead of malloc/free and it keeps a very accurate
-**	 count of how much memory has been used, how many times
-**	 allocation has been called and how many times free has been 
-**	 called.
+**       count of how much memory has been used, how many times
+**       allocation has been called and how many times free has been 
+**       called.
 **
 **       It also zeroes out the allocated memory too.
 **

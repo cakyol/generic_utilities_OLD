@@ -63,17 +63,17 @@ typedef struct queue_obj_s {
 
 extern int
 queue_obj_init (queue_obj_t *qobj,
-	int make_it_thread_safe,
-	int maximum_size, int expansion_increment,
+        int make_it_thread_safe,
+        int maximum_size, int expansion_increment,
         mem_monitor_t *parent_mem_monitor);
 
 extern int
 queue_obj_queue (queue_obj_t *qobj,
-	void *data);
+        void *data);
 
 extern int
 queue_obj_dequeue (queue_obj_t *qobj,
-	void **returned_data);
+        void **returned_data);
 
 extern void
 queue_obj_destroy (queue_obj_t *qobj);

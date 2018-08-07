@@ -8,7 +8,7 @@
 
 #define START_INT   1
 #define END_INT     4000
-#define SIZE	    (END_INT + 1)
+#define SIZE        (END_INT + 1)
 
 byte hashmap [SIZE] = { 0 };
 
@@ -50,7 +50,7 @@ int main (int argc, char *argv[])
         if (rv) {
             fprintf(stderr, "adding %d failed\n", i);
         }
-	hashmap[i] = 1;
+        hashmap[i] = 1;
         rv = linkedlist_add_once(&sll, value, &found);
         if (rv) {
             fprintf(stderr, "adding %d failed in 2nd attempt\n", i);
@@ -93,19 +93,19 @@ int main (int argc, char *argv[])
             count--;
             assert(count == sll.n);
             assert(integer2pointer(i) == d);
-	    hashmap[i] = 0;
+            hashmap[i] = 0;
 
             /* 
              * make sure that the deleted entry is NOT in the list 
              * but ALL others are
              */
             for (j = START_INT; j <= END_INT; j++) {
-		if (hashmap[j]) {
+                if (hashmap[j]) {
                     assert(linkedlist_search(&sll, integer2pointer(j), (void**)&s) == 0);
                     assert(j == pointer2integer(s));
-		} else {
+                } else {
                     assert(linkedlist_search(&sll, integer2pointer(j), (void**)&s) == ENODATA);
-		}
+                }
             }
         } else {
             fprintf(stderr, "linkedlist_delete for %d failed\n", i);
