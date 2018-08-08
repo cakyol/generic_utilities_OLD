@@ -274,7 +274,7 @@ register_for_object_events (event_manager_t *evrp,
  */
 extern void
 un_register_from_object_events (event_manager_t *evrp,
-    int object_type);
+    int object_type, two_parameter_function_pointer ecbf);
 
 /*
  * Same concept as above but this time registration is only for attribute
@@ -293,7 +293,7 @@ register_for_attribute_events (event_manager_t *evrp,
  */
 extern void
 un_register_from_attribute_events (event_manager_t *evrp,
-    int object_type);
+    int object_type, two_parameter_function_pointer ecbf);
 
 extern void
 event_manager_destroy (event_manager_t *evrp);

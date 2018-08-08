@@ -33,7 +33,7 @@ LIB_OBJS =	debug_framework.o \
 		scheduler.o \
 		generic_object_database.o \
 		test_data_generator.o \
-		### event_manager.o \
+		event_manager.o \
 		### utils_common.o \
 
 %.o:		%.c %.h \

@@ -48,9 +48,8 @@ typedef struct event_notification_record_s {
 
 /*
  * determines whether the two event notification records 
- * passed in as params are 'considered' to be equal.  
- * They are so if both the function pointers and the opaque 
- * user parameters match.
+ * passed in as void* params are 'considered' to be equal.  
+ * They are so if their function pointers are the same.
  *
  * Returns 0 for equal, -ve or +ve value if considered less
  * than or greater than.
@@ -58,13 +57,9 @@ typedef struct event_notification_record_s {
 static int
 compare_enrs (void *venr1, void *venr2)
 {
-    int diff;
-    event_notification_record_t *enr1 = (event_notification_record_t*) venr1;
-    event_notification_record_t *enr2 = (event_notification_record_t*) venr2;
-
-    diff = enr1->ecbf - enr2->ecbf;
-    if (diff) return diff;
-    return enr1->opaque_user_parameter - enr2->opaque_user_parameter;
+    return
+        ((event_notification_record_t*) venr1)->ecbf -
+        ((event_notification_record_t*) venr2)->ecbf;
 }
 
 /*
@@ -293,11 +288,11 @@ register_for_object_events (event_manager_t *evrp,
 
 PUBLIC void
 un_register_from_object_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap)
+        int object_type, two_parameter_function_pointer ecbf)
 {
     WRITE_LOCK(evrp);
-    (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
-            OBJECT_EVENTS, 0);
+    (void) thread_unsafe_generic_register_function(evrp, object_type,
+            OBJECT_EVENTS, ecbf, NULL, 0);
     WRITE_UNLOCK(evrp);
 }
 
@@ -307,24 +302,25 @@ un_register_from_object_events (event_manager_t *evrp,
  */
 PUBLIC int
 register_for_attribute_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap)
+        int object_type,
+        two_parameter_function_pointer ecbf, void *user_param)
 {
     int rv;
 
     WRITE_LOCK(evrp);
-    rv = thread_unsafe_generic_register_function(evrp, object_type, pap,
-            ATTRIBUTE_EVENTS, 1);
+    rv = thread_unsafe_generic_register_function(evrp, object_type,
+            ATTRIBUTE_EVENTS, ecbf, user_param, 1);
     WRITE_UNLOCK(evrp);
     return rv;
 }
 
 PUBLIC void
 un_register_from_attribute_events (event_manager_t *evrp,
-        int object_type, process_address_t *pap)
+        int object_type, two_parameter_function_pointer ecbf)
 {
     WRITE_LOCK(evrp);
-    (void) thread_unsafe_generic_register_function(evrp, object_type, pap,
-            ATTRIBUTE_EVENTS, 1);
+    (void) thread_unsafe_generic_register_function(evrp, object_type,
+            ATTRIBUTE_EVENTS, ecbf, NULL, 0);
     WRITE_UNLOCK(evrp);
 }
 
