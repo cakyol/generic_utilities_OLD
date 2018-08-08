@@ -242,7 +242,7 @@ typedef struct event_manager_s {
 } event_manager_t;
 
 extern int
-event_manager_init (event_manager_t *evrp,
+event_manager_init (event_manager_t *emp,
     int make_it_thread_safe,
     mem_monitor_t *parent_mem_monitor);
 
@@ -264,7 +264,7 @@ event_manager_init (event_manager_t *evrp,
  * guaranteed to be of only object creation & deletion events.
  */
 extern int
-register_for_object_events (event_manager_t *evrp,
+register_for_object_events (event_manager_t *emp,
     int object_type, 
     two_parameter_function_pointer ecbf, void *user_param);
 
@@ -273,7 +273,7 @@ register_for_object_events (event_manager_t *evrp,
  * Basically, reverse of the above.
  */
 extern void
-un_register_from_object_events (event_manager_t *evrp,
+un_register_from_object_events (event_manager_t *emp,
     int object_type, two_parameter_function_pointer ecbf);
 
 /*
@@ -284,7 +284,7 @@ un_register_from_object_events (event_manager_t *evrp,
  * will be guaranteed to be only of attribute events.
  */
 extern int
-register_for_attribute_events (event_manager_t *evrp,
+register_for_attribute_events (event_manager_t *emp,
     int object_type, 
     two_parameter_function_pointer ecbf, void *user_param);
 
@@ -292,11 +292,14 @@ register_for_attribute_events (event_manager_t *evrp,
  * reverse of the above
  */
 extern void
-un_register_from_attribute_events (event_manager_t *evrp,
+un_register_from_attribute_events (event_manager_t *emp,
     int object_type, two_parameter_function_pointer ecbf);
 
 extern void
-event_manager_destroy (event_manager_t *evrp);
+notify_event (event_manager_t *emp, event_record_t *erp);
+
+extern void
+event_manager_destroy (event_manager_t *emp);
 
 #ifdef __cplusplus
 } // extern C

@@ -67,7 +67,7 @@ compare_enrs (void *venr1, void *venr2)
  * and relevant registration list that needs to be operated on.
  */
 static linkedlist_t *
-get_correct_list (event_manager_t *evrp,
+get_correct_list (event_manager_t *emp,
         int object_type, int event_type,
         int create_if_missing,
         dynamic_array_t **dynamic_array_returned)
@@ -85,10 +85,10 @@ get_correct_list (event_manager_t *evrp,
 
         if (is_an_object_event(event_type)) {
             return
-                &evrp->all_types_object_registrants;
+                &emp->all_types_object_registrants;
         } else if (is_an_attribute_event(event_type)) {
             return
-                &evrp->all_types_attribute_registrants;
+                &emp->all_types_attribute_registrants;
         }
 
         /* invalid event type */
@@ -103,9 +103,9 @@ get_correct_list (event_manager_t *evrp,
      * create a new list and return it so it is ready for future use.
      */
     if (is_an_object_event(event_type)) {
-        dap = &evrp->specific_object_registrants;
+        dap = &emp->specific_object_registrants;
     } else if (is_an_attribute_event(event_type)) {
-        dap = &evrp->specific_attribute_registrants;
+        dap = &emp->specific_attribute_registrants;
     } else {
         /* invalid event type */
         return NULL;
@@ -126,18 +126,18 @@ get_correct_list (event_manager_t *evrp,
      */
     if ((0 != rv) && create_if_missing) {
 
-        list = MEM_MONITOR_ALLOC(evrp, sizeof(linkedlist_t));
+        list = MEM_MONITOR_ALLOC(emp, sizeof(linkedlist_t));
         if (NULL == list) return NULL;
-        rv = linkedlist_init(list, 0, compare_enrs, evrp->mem_mon_p);
+        rv = linkedlist_init(list, 0, compare_enrs, emp->mem_mon_p);
         if (0 != rv) {
-            MEM_MONITOR_FREE(evrp, list);
+            MEM_MONITOR_FREE(emp, list);
             return NULL;
         }
 
         /* ok list is created, so now store it in the dynamic array */
         rv = dynamic_array_insert(dap, object_type, list);
         if (0 != rv) {
-            MEM_MONITOR_FREE(evrp, list);
+            MEM_MONITOR_FREE(emp, list);
             return NULL;
         }
     }
@@ -146,7 +146,7 @@ get_correct_list (event_manager_t *evrp,
 }
 
 static int
-thread_unsafe_generic_register_function (event_manager_t *evrp,
+thread_unsafe_generic_register_function (event_manager_t *emp,
         int object_type, int event_type,
         two_parameter_function_pointer ecbf, void *user_param,
         int register_it)
@@ -156,7 +156,7 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
     void *found;
     dynamic_array_t *dap;
     linkedlist_t *list = 
-        get_correct_list(evrp, object_type, event_type, register_it, &dap);
+        get_correct_list(emp, object_type, event_type, register_it, &dap);
 
     /*
      * if we are registering, we must create a list in the appropriate
@@ -167,7 +167,7 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
         if (list) {
             
             /* create the event notification record & fill it */
-            enrp = MEM_MONITOR_ALLOC(evrp, sizeof(event_notification_record_t));
+            enrp = MEM_MONITOR_ALLOC(emp, sizeof(event_notification_record_t));
             if (NULL == enrp) return ENOMEM;
             enrp->ecbf = ecbf;
             enrp->opaque_user_parameter = user_param;
@@ -175,7 +175,7 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
             /* add it to the list.  If was already there, no need to store again */
             rv = linkedlist_add_once(list, enrp, &found);
             if (found) {
-                MEM_MONITOR_FREE(evrp, enrp);
+                MEM_MONITOR_FREE(emp, enrp);
                 rv = 0;
             }
 
@@ -211,7 +211,7 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
             if (0 == rv) {
                 assert(found == list);
                 linkedlist_destroy(list);
-                MEM_MONITOR_FREE(evrp, list);
+                MEM_MONITOR_FREE(emp, list);
             }
         }
     }
@@ -219,50 +219,84 @@ thread_unsafe_generic_register_function (event_manager_t *evrp,
     return 0;
 }
 
+static void
+execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
+{
+    event_notification_record_t *enrp;
+
+    FOR_ALL_LINKEDLIST_ELEMENTS(list, enrp) {
+        enrp->ecbf(erp, enrp->opaque_user_parameter);
+    }
+}
+
+static void
+thread_unsafe_notify_event (event_manager_t *emp, event_record_t *erp)
+{
+    linkedlist_t *list;
+    dynamic_array_t *dummy;
+
+    /*
+     * First, notify the event to all registrants who are registered
+     * to receive events for ALL the object types.
+     */
+    list = get_correct_list(emp, ALL_OBJECT_TYPES, erp->event_type, 0, &dummy);
+    if (list) {
+        execute_all_callbacks(list, erp);
+    }
+
+    /*
+     * Next, notify the event to all registrants who are registered
+     * to receive events from this specific type of object.
+     */
+    list = get_correct_list(emp, erp->object_type, erp->event_type, 0, &dummy);
+    if (list) {
+        execute_all_callbacks(list, erp);
+    }
+}
 
 /*****************************************************************************/
 
 PUBLIC int
-event_manager_init (event_manager_t *evrp,
+event_manager_init (event_manager_t *emp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
     int rv;
 
-    MEM_MONITOR_SETUP(evrp);
-    LOCK_SETUP(evrp);
+    MEM_MONITOR_SETUP(emp);
+    LOCK_SETUP(emp);
 
-    rv = linkedlist_init(&evrp->all_types_object_registrants, 
-            0, compare_enrs, evrp->mem_mon_p);
+    rv = linkedlist_init(&emp->all_types_object_registrants, 
+            0, compare_enrs, emp->mem_mon_p);
     if (rv) {
         return rv;
     }
 
-    rv = linkedlist_init(&evrp->all_types_attribute_registrants,
-            0, compare_enrs, evrp->mem_mon_p);
+    rv = linkedlist_init(&emp->all_types_attribute_registrants,
+            0, compare_enrs, emp->mem_mon_p);
     if (rv) {
-        linkedlist_destroy(&evrp->all_types_object_registrants);
+        linkedlist_destroy(&emp->all_types_object_registrants);
         return rv;
     }
 
-    rv = dynamic_array_init(&evrp->specific_object_registrants,
-            0, 3, evrp->mem_mon_p);
+    rv = dynamic_array_init(&emp->specific_object_registrants,
+            0, 3, emp->mem_mon_p);
     if (rv) {
-        linkedlist_destroy(&evrp->all_types_object_registrants);
-        linkedlist_destroy(&evrp->all_types_attribute_registrants);
+        linkedlist_destroy(&emp->all_types_object_registrants);
+        linkedlist_destroy(&emp->all_types_attribute_registrants);
         return rv;
     }
 
-    rv = dynamic_array_init(&evrp->specific_attribute_registrants,
-            0, 3, evrp->mem_mon_p);
+    rv = dynamic_array_init(&emp->specific_attribute_registrants,
+            0, 3, emp->mem_mon_p);
     if (rv) {
-        linkedlist_destroy(&evrp->all_types_object_registrants);
-        linkedlist_destroy(&evrp->all_types_attribute_registrants);
-        dynamic_array_destroy(&evrp->specific_object_registrants);
+        linkedlist_destroy(&emp->all_types_object_registrants);
+        linkedlist_destroy(&emp->all_types_attribute_registrants);
+        dynamic_array_destroy(&emp->specific_object_registrants);
         return rv;
     }
 
-    WRITE_UNLOCK(evrp);
+    WRITE_UNLOCK(emp);
     return rv;
 }
 
@@ -273,27 +307,35 @@ event_manager_init (event_manager_t *evrp,
  * will be ALL object types.
  */
 PUBLIC int
-register_for_object_events (event_manager_t *evrp,
+register_for_object_events (event_manager_t *emp,
         int object_type,
         two_parameter_function_pointer ecbf, void *user_param)
 {
     int rv;
 
-    WRITE_LOCK(evrp);
-    rv = thread_unsafe_generic_register_function(evrp, object_type,
+    WRITE_LOCK(emp);
+    rv = thread_unsafe_generic_register_function(emp, object_type,
             OBJECT_EVENTS, ecbf, user_param, 1);
-    WRITE_UNLOCK(evrp);
+    WRITE_UNLOCK(emp);
     return rv;
 }
 
 PUBLIC void
-un_register_from_object_events (event_manager_t *evrp,
+notify_event (event_manager_t *emp, event_record_t *erp)
+{
+    WRITE_LOCK(emp);
+    thread_unsafe_notify_event(emp, erp);
+    WRITE_UNLOCK(emp);
+}
+
+PUBLIC void
+un_register_from_object_events (event_manager_t *emp,
         int object_type, two_parameter_function_pointer ecbf)
 {
-    WRITE_LOCK(evrp);
-    (void) thread_unsafe_generic_register_function(evrp, object_type,
+    WRITE_LOCK(emp);
+    (void) thread_unsafe_generic_register_function(emp, object_type,
             OBJECT_EVENTS, ecbf, NULL, 0);
-    WRITE_UNLOCK(evrp);
+    WRITE_UNLOCK(emp);
 }
 
 /*
@@ -301,31 +343,31 @@ un_register_from_object_events (event_manager_t *evrp,
  * events including attribute add, delete and all value changes.
  */
 PUBLIC int
-register_for_attribute_events (event_manager_t *evrp,
+register_for_attribute_events (event_manager_t *emp,
         int object_type,
         two_parameter_function_pointer ecbf, void *user_param)
 {
     int rv;
 
-    WRITE_LOCK(evrp);
-    rv = thread_unsafe_generic_register_function(evrp, object_type,
+    WRITE_LOCK(emp);
+    rv = thread_unsafe_generic_register_function(emp, object_type,
             ATTRIBUTE_EVENTS, ecbf, user_param, 1);
-    WRITE_UNLOCK(evrp);
+    WRITE_UNLOCK(emp);
     return rv;
 }
 
 PUBLIC void
-un_register_from_attribute_events (event_manager_t *evrp,
+un_register_from_attribute_events (event_manager_t *emp,
         int object_type, two_parameter_function_pointer ecbf)
 {
-    WRITE_LOCK(evrp);
-    (void) thread_unsafe_generic_register_function(evrp, object_type,
+    WRITE_LOCK(emp);
+    (void) thread_unsafe_generic_register_function(emp, object_type,
             ATTRIBUTE_EVENTS, ecbf, NULL, 0);
-    WRITE_UNLOCK(evrp);
+    WRITE_UNLOCK(emp);
 }
 
 PUBLIC void
-event_manager_destroy (event_manager_t *evrp)
+event_manager_destroy (event_manager_t *emp)
 {
 }
 
