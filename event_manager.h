@@ -83,6 +83,10 @@
 **    he has to explicity do multiple actions.  The system will NOT
 **    automatically do that.
 **
+**  - What "defines" registration is the callback function being registered.
+**    The function pointer is the unique identifier which defines a
+**    registration.
+**
 *******************************************************************************
 *******************************************************************************
 *******************************************************************************
@@ -147,7 +151,7 @@ is_an_attribute_event (int event)
  * events category above.
  *
  * The structure includes all the information needed to process
- * the event completely and it obviously should contain any pointers
+ * the event completely and it obviously should NOT contain any pointers
  * in case events are notified across different processes.
  *
  * The 'event_type' field determines which part of the rest of the structure
@@ -295,6 +299,11 @@ extern void
 un_register_from_attribute_events (event_manager_t *emp,
     int object_type, two_parameter_function_pointer ecbf);
 
+/*
+ * The user calls this when he wants to report the occurence of an event.
+ * Based on the event type, object type in the event record, all the
+ * registered functions will be invoked one by one.
+ */
 extern void
 notify_event (event_manager_t *emp, event_record_t *erp);
 
