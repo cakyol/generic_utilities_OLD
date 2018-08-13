@@ -73,12 +73,16 @@ debug_init (void)
     debug_level_names[INFORMATION_LEVEL] = "INFORMATION";
     debug_level_names[WARNING_LEVEL] = "WARNING";
     debug_level_names[ERROR_LEVEL] = "ERROR";
-    debug_level_names[FATAL_ERROR_LEVEL] = "\n\n***** FATAL ERROR *****";
+    debug_level_names[FATAL_ERROR_LEVEL] = "***** FATAL ERROR *****";
     for (m = 0; m < MAX_MODULES; m++) {
         set_default_module_name(m);
         module_levels[m].level = ERROR_LEVEL;
         module_levels[m].drf = default_debug_reporting_function;
     }
+
+    /* reduce level of module 0 to lowest so everything gets printed */
+    module_levels[0].level = DEBUG_LEVEL;
+
 }
 
 int

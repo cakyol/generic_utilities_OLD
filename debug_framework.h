@@ -89,15 +89,16 @@ extern "C" {
 
 /*
  * Define your own modules here, like such.
- * MUST start from 1 and no larger than (MAX_MODULES-1).
+ * ***MUST*** start from 1 and no larger than (MAX_MODULES-1).
  *
-
-#define SWITCH_MODULE           1
-#define ROUTER_MODULE           2
-#define BUFFER_MODULE           3
-etc.....
-
-*/
+ * like:
+ *
+ * #define SWITCH_MODULE           1
+ * #define ROUTER_MODULE           2
+ * #define BUFFER_MODULE           3
+ * etc.....
+ *
+ */
 
 /*
  * max number of characters of a module name if the user defines
@@ -109,11 +110,24 @@ etc.....
 #define MODULE_NAME_SIZE                32
 
 /*
- * Default string 'reporting' function.  User specified function of what
+ * levels of debugging
+ */
+#define DEBUG_LEVEL                 0
+#define INFORMATION_LEVEL           1
+#define WARNING_LEVEL               2
+#define ERROR_LEVEL                 3
+#define FATAL_ERROR_LEVEL           4
+#define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
+#if MAX_DEBUG_LEVEL > 255
+    #error "max debug level must be < 256"
+#endif
+
+/*
+ * Default debug 'reporting' function.  User specified function of what
  * needs to be done with the message.  It can be printf'd, kprintf'd, 
  * written to a file, whatever.  The string is formatted, null terminated
- * and passed to the user registered function.  Rest is up to the function
- * itself to do whatever it wants with the passed string.
+ * and passed to this function.  Rest is up to the function itself to do 
+ * whatever it wants with the passed string.
  *
  * User can re-define his/her own reporting function for a module which
  * should meet the definition below.
@@ -190,30 +204,28 @@ debug_module_set_reporting_function (int module,
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
- * ***************************************************************************
+ *****************************************************************************
  * fatal error ALWAYS reports AND crashes, regardless of module
  */
 #define FATAL_ERROR(fmt, args...) \
     debug_message_process(0, FATAL_ERROR_LEVEL, \
         __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW THIS LINE DIRECTLY, USE THE MACROS ABOVE */
-
-#define DEBUG_LEVEL                 0
-#define INFORMATION_LEVEL           1
-#define WARNING_LEVEL               2
-#define ERROR_LEVEL                 3
-#define FATAL_ERROR_LEVEL           4
-#define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
-#if MAX_DEBUG_LEVEL > 255
-    #error "max debug level must be < 256"
-#endif
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
+/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
+/*******************************************************************************/
 
 /*
  * each module can have a level set below which the debug messages
@@ -241,27 +253,23 @@ debug_module_data_t module_levels [MAX_MODULES];
 #define USE_A_MACRO
 
 /*
- * module 0 ALWAYS gets printed, wildcard.
- * Otherwise, the level must be allowed for that particular module to report.
- *
+ * Report if the current debug level set for this module is less than or
+ * equal to the level specified in the user call.
  * Test in your compiler whether the macro or the static inline is faster.
  */
 
 #ifdef USE_A_MACRO
 
 #define __module_can_report__(m, l) \
-    (((m) == 0) || \
-     (((m) > 0) && ((m) < MAX_MODULES) && ((l) >= module_levels[(m)].level)))
+    (((m) >= 0) && ((m) < MAX_MODULES) && ((l) >= module_levels[(m)].level))
 
 #else // !USE_A_MACRO
 
 static inline int
-__module_can_report__ (int module, int level) 
+__module_can_report__ (int m, int l) 
 {
     return 
-        (module == 0) ||
-        ((module > 0) && (module < MAX_MODULES) && 
-            (level >= module_levels[module].level));
+        ((m >= 0) && (m < MAX_MODULES) && (l >= module_levels[m].level));
 }
 
 #endif // USE_A_MACRO
