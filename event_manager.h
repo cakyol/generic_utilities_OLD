@@ -81,7 +81,8 @@
 **    must explicitly first un-register from all object types and then
 **    register for the specific objects later.  This is the only time
 **    he has to explicity do multiple actions.  The system will NOT
-**    automatically do that.
+**    automatically do that.  Failure to do so may cause the user
+**    to be notified multiple times with the same event.
 **
 **  - What "defines" registration is the callback function being registered.
 **    The function pointer is the unique identifier which defines a

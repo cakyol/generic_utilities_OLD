@@ -39,12 +39,12 @@ extern "C" {
  * The user callback will be called with the event pointer and the
  * opaque parameter supplied at the time of registration.
  */
-typedef struct event_notification_record_s {
+typedef struct event_registration_record_s {
 
     two_parameter_function_pointer ecbf;
     void *opaque_user_parameter;
 
-} event_notification_record_t;
+} event_registration_record_t;
 
 /*
  * determines whether the two event notification records 
@@ -55,20 +55,20 @@ typedef struct event_notification_record_s {
  * than or greater than.
  */
 static int
-compare_enrs (void *venr1, void *venr2)
+compare_errs (void *errp1, void *errp2)
 {
     return
-        ((event_notification_record_t*) venr1)->ecbf -
-        ((event_notification_record_t*) venr2)->ecbf;
+        ((event_registration_record_t*) errp1)->ecbf -
+        ((event_registration_record_t*) errp2)->ecbf;
 }
 
 /*
- * given the object type & event type, finds the correct
+ * given the object type & event type, this function finds the correct
  * and relevant registration list that needs to be operated on.
  */
 static linkedlist_t *
 get_correct_list (event_manager_t *emp,
-        int object_type, int event_type,
+        int event_type, int object_type,
         int create_if_missing,
         dynamic_array_t **dynamic_array_returned)
 {
@@ -128,7 +128,7 @@ get_correct_list (event_manager_t *emp,
 
         list = MEM_MONITOR_ALLOC(emp, sizeof(linkedlist_t));
         if (NULL == list) return NULL;
-        rv = linkedlist_init(list, 0, compare_enrs, emp->mem_mon_p);
+        rv = linkedlist_init(list, 0, compare_errs, emp->mem_mon_p);
         if (0 != rv) {
             MEM_MONITOR_FREE(emp, list);
             return NULL;
@@ -145,6 +145,33 @@ get_correct_list (event_manager_t *emp,
     return list;
 }
 
+/*
+ * Searches the appropriate list (identified by the event & object type), for
+ * the registration defined by the function pointer ecbf.  Returns the
+ * list pointer in 'list_found', the registration record in 'errtp_found
+ * and function returns 0 if found or NULL and non zero error if not.
+ */
+int
+found_registration (event_manager_t *emp,
+    int event_type, int object_type, two_parameter_function_pointer ecbf,
+    linkedlist_t **list_found, event_registration_record_t **errtp_found)
+{
+    dynamic_array_t *dap;
+    event_registration_record_t errt;
+    linkedlist_t *list = 
+        get_correct_list(emp, event_type, object_type, 0, &dap);
+
+    *list_found = NULL;
+    *errtp_found = NULL;
+    if (NULL == list) return ENODATA;
+    errt.ecbf = ecbf;
+    if (0 == linkedlist_search(list, &errt, (void**) errtp_found)) {
+        *list_found = list;
+        return 0;
+    }
+    return ENODATA;
+}
+
 static int
 thread_unsafe_generic_register_function (event_manager_t *emp,
         int object_type, int event_type,
@@ -152,11 +179,11 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         int register_it)
 {
     int rv;
-    event_notification_record_t enr, *enrp;
+    event_registration_record_t enr, *errp;
     void *found;
     dynamic_array_t *dap;
     linkedlist_t *list = 
-        get_correct_list(emp, object_type, event_type, register_it, &dap);
+        get_correct_list(emp, event_type, object_type, register_it, &dap);
 
     /*
      * if we are registering, we must create a list in the appropriate
@@ -167,15 +194,15 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         if (list) {
             
             /* create the event notification record & fill it */
-            enrp = MEM_MONITOR_ALLOC(emp, sizeof(event_notification_record_t));
-            if (NULL == enrp) return ENOMEM;
-            enrp->ecbf = ecbf;
-            enrp->opaque_user_parameter = user_param;
+            errp = MEM_MONITOR_ALLOC(emp, sizeof(event_registration_record_t));
+            if (NULL == errp) return ENOMEM;
+            errp->ecbf = ecbf;
+            errp->opaque_user_parameter = user_param;
 
             /* add it to the list.  If was already there, no need to store again */
-            rv = linkedlist_add_once(list, enrp, &found);
+            rv = linkedlist_add_once(list, errp, &found);
             if (found) {
-                MEM_MONITOR_FREE(emp, enrp);
+                MEM_MONITOR_FREE(emp, errp);
                 rv = 0;
             }
 
@@ -222,10 +249,10 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 static void
 execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
 {
-    event_notification_record_t *enrp;
+    event_registration_record_t *errp;
 
-    FOR_ALL_LINKEDLIST_ELEMENTS(list, enrp) {
-        enrp->ecbf(erp, enrp->opaque_user_parameter);
+    FOR_ALL_LINKEDLIST_ELEMENTS(list, errp) {
+        errp->ecbf(erp, errp->opaque_user_parameter);
     }
 }
 
@@ -236,7 +263,7 @@ thread_unsafe_notify_event (event_manager_t *emp, event_record_t *erp)
     dynamic_array_t *dummy;
 
     /*
-     * First, notify the event to all registrants who are registered
+     * First, notify the event to the registrants who registered
      * to receive events for ALL the object types.
      */
     list = get_correct_list(emp, ALL_OBJECT_TYPES, erp->event_type, 0, &dummy);
@@ -245,8 +272,8 @@ thread_unsafe_notify_event (event_manager_t *emp, event_record_t *erp)
     }
 
     /*
-     * Next, notify the event to all registrants who are registered
-     * to receive events from this specific type of object.
+     * Next, notify the event to the registrants who are registered
+     * to receive events ONLY from this specific type of object.
      */
     list = get_correct_list(emp, erp->object_type, erp->event_type, 0, &dummy);
     if (list) {
@@ -267,13 +294,13 @@ event_manager_init (event_manager_t *emp,
     LOCK_SETUP(emp);
 
     rv = linkedlist_init(&emp->all_types_object_registrants, 
-            0, compare_enrs, emp->mem_mon_p);
+            0, compare_errs, emp->mem_mon_p);
     if (rv) {
         return rv;
     }
 
     rv = linkedlist_init(&emp->all_types_attribute_registrants,
-            0, compare_enrs, emp->mem_mon_p);
+            0, compare_errs, emp->mem_mon_p);
     if (rv) {
         linkedlist_destroy(&emp->all_types_object_registrants);
         return rv;
