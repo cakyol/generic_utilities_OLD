@@ -142,7 +142,7 @@ avl_lookup_engine (avl_tree_t *tree,
     int res = 0;
 
     /* being traversed, cannot access */
-    if (tree->do_not_access) return NULL;
+    if (tree->cannot_be_modified) return NULL;
 
     *pparent = NULL;
     *unbalanced = node;
@@ -240,7 +240,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     *data_already_present = NULL;
 
     /* traversing the tree, access not allowed */
-    if (tree->do_not_access) return EPERM;
+    if (tree->cannot_be_modified) return EPERM;
 
     found = avl_lookup_engine(tree, data_to_be_inserted,
                 &parent, &unbalanced, &is_left);
@@ -366,7 +366,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     int is_left;
 
     /* being traversed, cannot access */
-    if (tree->do_not_access) return EPERM;
+    if (tree->cannot_be_modified) return EPERM;
 
     /* find the matching node first */
     node = avl_lookup_engine(tree, data_to_be_removed,
@@ -551,7 +551,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     avl_node_t *current;
 
     /* already being traversed */
-    if (tree->do_not_access) return EPERM;
+    if (tree->cannot_be_modified) return EPERM;
 
     /*
      * traversal started.  Until it COMPLETELY finishes, we cannot
@@ -559,7 +559,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
      * what the user provided traversal function will do to the tree,
      * we have to block access to it.
      */
-    tree->do_not_access = 1;
+    tree->cannot_be_modified = 1;
 
     /* if the starting root is NULL, start from top of tree */
     if (NULL == root) {
@@ -593,7 +593,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     }
 
     /* ok, traversal finished */
-    tree->do_not_access = 0;
+    tree->cannot_be_modified = 0;
 
     return 0;
 }
@@ -615,7 +615,7 @@ avl_tree_init (avl_tree_t *tree,
     tree->cmpf = cmpf;
     tree->n = 0;
     tree->root_node = NULL;
-    tree->do_not_access = 0;
+    tree->cannot_be_modified = 0;
 
     WRITE_UNLOCK(tree);
 

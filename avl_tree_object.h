@@ -57,7 +57,7 @@ typedef struct avl_tree_s {
 
     avl_node_t *root_node;
     object_comparer cmpf;
-    int do_not_access;
+    int cannot_be_modified;
     int n;
 
 } avl_tree_t;

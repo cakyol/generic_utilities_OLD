@@ -100,7 +100,7 @@ typedef struct radix_tree_s {
 #ifdef USE_CHUNK_MANAGER
     chunk_manager_t nodes;
 #endif
-    int do_not_access;
+    int cannot_be_modified;
     int node_count;
     radix_tree_node_t radix_tree_root;
 

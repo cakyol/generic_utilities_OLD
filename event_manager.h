@@ -218,6 +218,13 @@ typedef struct event_manager_s {
     MEM_MON_VARIABLES;
 
     /*
+     * while traversing lists and calling the user registered callbacks,
+     * it has to be ensured that the callbacks can NOT register or
+     * deregister to corrupt the lists.
+     */
+    int cannot_be_modified;
+
+    /*
      * list of registrants interested in object creation
      * and deletion events for ALL types of objects.
      */
