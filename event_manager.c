@@ -185,7 +185,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
     linkedlist_t *list;
 
     /* if we are traversing lists, block the callbacks from changing them */
-    if (emp->cannot_be_modified) return EPERM;
+    if (emp->cannot_be_modified) return EBUSY;
 
     list = get_correct_list(emp, event_type, object_type, register_it, &dap);
 
@@ -266,7 +266,11 @@ thread_unsafe_notify_event (event_manager_t *emp, event_record_t *erp)
     linkedlist_t *list;
     dynamic_array_t *dummy;
 
-    /* starting to traverse links, block any changes */
+    /*
+     * starting to traverse links, block any changes which may occur
+     * if any callback function attempts to perform any registrations
+     * and/or changes to the lists.
+     */
     emp->cannot_be_modified = 1;
 
     /*

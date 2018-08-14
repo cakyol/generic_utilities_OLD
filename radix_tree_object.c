@@ -186,7 +186,7 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     *data_found = NULL;
 
     /* being traversed, cannot access */
-    if (ntp->cannot_be_modified) return EPERM;
+    if (ntp->cannot_be_modified) return EBUSY;
 
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
@@ -212,7 +212,7 @@ thread_unsafe_radix_tree_search (radix_tree_t *ntp,
     *data_found = NULL;
 
     /* being traversed, cannot access */
-    if (ntp->cannot_be_modified) return EPERM;
+    if (ntp->cannot_be_modified) return EBUSY;
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
@@ -234,7 +234,7 @@ thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
     *removed_data = NULL;
 
     /* being traversed, cannot access */
-    if (ntp->cannot_be_modified) return EPERM;
+    if (ntp->cannot_be_modified) return EBUSY;
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {

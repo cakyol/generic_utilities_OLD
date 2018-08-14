@@ -240,7 +240,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     *data_already_present = NULL;
 
     /* traversing the tree, access not allowed */
-    if (tree->cannot_be_modified) return EPERM;
+    if (tree->cannot_be_modified) return EBUSY;
 
     found = avl_lookup_engine(tree, data_to_be_inserted,
                 &parent, &unbalanced, &is_left);
@@ -366,7 +366,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     int is_left;
 
     /* being traversed, cannot access */
-    if (tree->cannot_be_modified) return EPERM;
+    if (tree->cannot_be_modified) return EBUSY;
 
     /* find the matching node first */
     node = avl_lookup_engine(tree, data_to_be_removed,
@@ -551,7 +551,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     avl_node_t *current;
 
     /* already being traversed */
-    if (tree->cannot_be_modified) return EPERM;
+    if (tree->cannot_be_modified) return EBUSY;
 
     /*
      * traversal started.  Until it COMPLETELY finishes, we cannot

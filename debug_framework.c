@@ -82,7 +82,6 @@ debug_init (void)
 
     /* reduce level of module 0 to lowest so everything gets printed */
     module_levels[0].level = DEBUG_LEVEL;
-
 }
 
 int

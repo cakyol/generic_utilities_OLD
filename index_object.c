@@ -109,7 +109,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     *exists = NULL;
 
     /* being traversed, no access */
-    if (idx->cannot_be_modified) return EPERM;
+    if (idx->cannot_be_modified) return EBUSY;
 
     /*
     ** see if element is already there and if not,
@@ -165,7 +165,7 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
     int i, dummy;
 
     *found = NULL;
-    if (idx->cannot_be_modified) return EPERM;
+    if (idx->cannot_be_modified) return EBUSY;
 
     i = index_find_position(idx, search_key, &dummy);
 
@@ -186,7 +186,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
     int i, size, dummy;
 
     *actual_data_removed = NULL;
-    if (idx->cannot_be_modified) return EPERM;
+    if (idx->cannot_be_modified) return EBUSY;
 
     /* first see if it is there */
     i = index_find_position(idx, data_to_be_removed, &dummy);
@@ -319,7 +319,7 @@ index_obj_traverse (index_obj_t *idx,
     int i;
     int rv = 0;
 
-    if (idx->cannot_be_modified) return EPERM;
+    if (idx->cannot_be_modified) return EBUSY;
     idx->cannot_be_modified = 1;
 
     READ_LOCK(idx);
