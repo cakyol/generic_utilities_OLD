@@ -54,39 +54,14 @@
 **
 ** Note that a user may register multiple times for different specific
 ** object types.  However, when a user registers for events
-** for ALL objects, there is NO need to register later for a specific
-** object type for the same event later.  The event manager will ensure
-** that the registrations make sense by enforcing the following rules:
+** for ALL objects, user should NOT register later for a specific
+** object type for the same event later, or vice versa.  This will cause
+** the event manager to report the same event multiple times.
+** User should first UN register from the first object type and
+** register again with the desired condition.
 **
-**  - If a user first registers for an event for all objects, and later 
-**    registers for the same events for one specific object type,
-**    since he is already registered for all objects, the second per
-**    object registration will simply be ignored.
-**
-**  - If a user first registers for events for a specific object type
-**    and later he registers for the same events for all object types,
-**    then the first registration will be deleted, since now he has
-**    already registered for all object types.
-**
-**  - If a user first registers for events for a specific object type
-**    and later UN-registers for all object types, the first registration
-**    will be deleted.
-**
-**  - If a user first registers for events for all objects and later
-**    un-registers for one specific object type, the request will be 
-**    ignored.
-**
-**  - If a user wants to transition from a position of getting events
-**    for all objects to getting events for only specific objects, he
-**    must explicitly first un-register from all object types and then
-**    register for the specific objects later.  This is the only time
-**    he has to explicity do multiple actions.  The system will NOT
-**    automatically do that.  Failure to do so may cause the user
-**    to be notified multiple times with the same event.
-**
-**  - What "defines" registration is the callback function being registered.
-**    The function pointer is the unique identifier which defines a
-**    registration.
+** What is meant by the "same" registration means registering with
+** EXACTLY the same callback function AND the user supplied parameter.
 **
 *******************************************************************************
 *******************************************************************************
@@ -257,6 +232,16 @@ extern int
 event_manager_init (event_manager_t *emp,
     int make_it_thread_safe,
     mem_monitor_t *parent_mem_monitor);
+
+/*
+ * Determines if the exact combination of user callback function and
+ * the opaque parameter is already registered for the specified
+ * object & event type.  Returns 0 if so, else a non 0 error.
+ */
+extern int
+already_registered (event_manager_t *emp,
+    int event_type, int object_type,
+    two_parameter_function_pointer ecbf, void *opaque_user_parameter);
 
 /*
  * This function registers the caller to be notified of object events

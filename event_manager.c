@@ -57,9 +57,15 @@ typedef struct event_registration_record_s {
 static int
 compare_errs (void *errp1, void *errp2)
 {
-    return
+    int diff;
+
+    diff =
         ((event_registration_record_t*) errp1)->ecbf -
         ((event_registration_record_t*) errp2)->ecbf;
+    if (diff) return diff;
+    return
+        ((event_registration_record_t*) errp1)->opaque_user_parameter -
+        ((event_registration_record_t*) errp2)->opaque_user_parameter;
 }
 
 /*
@@ -145,31 +151,22 @@ get_correct_list (event_manager_t *emp,
     return list;
 }
 
-/*
- * Searches the appropriate list (identified by the event & object type), for
- * the registration defined by the function pointer ecbf.  Returns the
- * list pointer in 'list_found', the registration record in 'errtp_found
- * and function returns 0 if found or NULL and non zero error if not.
- */
-int
-found_registration (event_manager_t *emp,
-    int event_type, int object_type, two_parameter_function_pointer ecbf,
-    linkedlist_t **list_found, event_registration_record_t **errtp_found)
+static int
+thread_unsafe_already_registered (event_manager_t *emp,
+    int event_type, int object_type,
+    two_parameter_function_pointer ecbf, void *opaque_user_parameter)
 {
     dynamic_array_t *dap;
     event_registration_record_t errt;
+    void *errtp_found;
     linkedlist_t *list = 
         get_correct_list(emp, event_type, object_type, 0, &dap);
 
-    *list_found = NULL;
-    *errtp_found = NULL;
     if (NULL == list) return ENODATA;
     errt.ecbf = ecbf;
-    if (0 == linkedlist_search(list, &errt, (void**) errtp_found)) {
-        *list_found = list;
-        return 0;
-    }
-    return ENODATA;
+    errt.opaque_user_parameter = opaque_user_parameter;
+    return
+        linkedlist_search(list, &errt, &errtp_found);
 }
 
 static int
@@ -340,6 +337,20 @@ event_manager_init (event_manager_t *emp,
     }
 
     WRITE_UNLOCK(emp);
+    return rv;
+}
+
+PUBLIC int
+already_registered (event_manager_t *emp,
+    int event_type, int object_type,
+    two_parameter_function_pointer ecbf, void *opaque_user_parameter)
+{
+    int rv;
+
+    READ_LOCK(emp);
+    rv = thread_unsafe_already_registered(emp, event_type, object_type,
+            ecbf, opaque_user_parameter);
+    READ_UNLOCK(emp);
     return rv;
 }
 
