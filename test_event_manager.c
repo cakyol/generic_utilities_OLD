@@ -17,7 +17,6 @@ int process_event (void *evp, void *arg)
 int main (int argc, char *argv[])
 {
     int i;
-    void *x = &i;
 
     debug_init();
     debug_module_set_name(EVENT_MGR_MODULE, "EventManagerModule");
