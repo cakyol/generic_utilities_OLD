@@ -129,6 +129,10 @@ test_scheduler:		test_scheduler.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_scheduler.c \
 				-o test_scheduler $(LIBNAME) $(STATIC_LIBS)
 
+test_event_manager:	test_event_manager.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
+				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
+
 TESTS =		test_debug_framework \
 		test_lock_object \
 		test_lock_speed \
@@ -149,6 +153,7 @@ TESTS =		test_debug_framework \
 		test_db_speed \
 		test_delay \
 		test_scheduler \
+		test_event_manager \
 		\
 
 tests:		$(TESTS)

@@ -236,7 +236,7 @@ event_manager_init (event_manager_t *emp,
 /*
  * Determines if the exact combination of user callback function and
  * the opaque parameter is already registered for the specified
- * object & event type.  Returns 0 if so, else a non 0 error.
+ * object & event type.  Returns 1 (true) if so, else 0 (false).
  */
 extern int
 already_registered (event_manager_t *emp,

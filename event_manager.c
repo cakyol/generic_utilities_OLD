@@ -162,11 +162,11 @@ thread_unsafe_already_registered (event_manager_t *emp,
     linkedlist_t *list = 
         get_correct_list(emp, event_type, object_type, 0, &dap);
 
-    if (NULL == list) return ENODATA;
+    if (NULL == list) return 0;
     errt.ecbf = ecbf;
     errt.opaque_user_parameter = opaque_user_parameter;
     return
-        linkedlist_search(list, &errt, &errtp_found);
+        0 == linkedlist_search(list, &errt, &errtp_found);
 }
 
 static int
