@@ -144,6 +144,7 @@ debug_message_process (int module, int level,
 
     /* module number 0 ALWAYS reports */
     if (0 == module) {
+
         len += snprintf(&msg_buffer[index], size_left,
                     "%s: <%s:%s:%d> ",
                     debug_level_names[level],

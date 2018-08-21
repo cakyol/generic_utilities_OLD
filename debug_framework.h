@@ -177,10 +177,17 @@ debug_module_set_reporting_function (int module,
         debug_message_process(module, WARNING_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
+/*
+ * [Fatal] Errors will ALWAYS be printed.
+ * Furthermore, Fatal error will crash the process (with an assert).
+ */
 #define MODULE_ERROR(module, fmt, args...) \
-    if (__module_can_report__(module, ERROR_LEVEL)) \
-        debug_message_process(module, ERROR_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+    debug_message_process(module, ERROR_LEVEL, \
+        __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+
+#define FATAL_ERROR(fmt, args...) \
+    debug_message_process(0, FATAL_ERROR_LEVEL, \
+        __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
  * ***************************************************************************
@@ -202,14 +209,6 @@ debug_module_set_reporting_function (int module,
 #define REPORT_ERROR(fmt, args...) \
     debug_message_process(0, ERROR_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-/*
- *****************************************************************************
- * fatal error ALWAYS reports AND crashes, regardless of module
- */
-#define FATAL_ERROR(fmt, args...) \
-    debug_message_process(0, FATAL_ERROR_LEVEL, \
-        __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*******************************************************************************/
 /*******************************************************************************/
