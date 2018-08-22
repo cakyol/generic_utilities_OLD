@@ -182,8 +182,9 @@ debug_module_set_reporting_function (int module,
  * Furthermore, Fatal error will crash the process (with an assert).
  */
 #define MODULE_ERROR(module, fmt, args...) \
-    debug_message_process(module, ERROR_LEVEL, \
-        __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+    if (__valid_module_number__(module)) \
+	debug_message_process(module, ERROR_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define FATAL_ERROR(fmt, args...) \
     debug_message_process(0, FATAL_ERROR_LEVEL, \
@@ -259,16 +260,26 @@ debug_module_data_t module_levels [MAX_MODULES];
 
 #ifdef USE_A_MACRO
 
+#define __valid_module_number__(m) \
+    (((m) >= 0) && ((m) < MAX_MODULES))
+
 #define __module_can_report__(m, l) \
-    (((m) >= 0) && ((m) < MAX_MODULES) && ((l) >= module_levels[(m)].level))
+    (__valid_module_number__(m) && ((l) >= module_levels[(m)].level))
 
 #else // !USE_A_MACRO
+
+static inline int
+__valid_module_number__ (int m)
+{
+    return
+	(m >= 0) && (m < MAX_MODULES);
+}
 
 static inline int
 __module_can_report__ (int m, int l) 
 {
     return 
-        ((m >= 0) && (m < MAX_MODULES) && (l >= module_levels[m].level));
+        (__valid_module_number__(m) && (l >= module_levels[m].level));
 }
 
 #endif // USE_A_MACRO
