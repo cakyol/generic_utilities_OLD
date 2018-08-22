@@ -40,6 +40,8 @@
 **    attribute id is added to an object or an existing attribute id
 **    is deleted from an object or when a value changes in the attribute.
 **
+** Users can register to be notified of both of these types of events.
+**
 ** In addition there are two ways of registering for either type of events.
 ** One is to register in a way so that events are reported for
 ** ALL object types.  The other is such that events involving ONLY
@@ -48,17 +50,24 @@
 ** So, a user can register/un-register to receive events for all the following 
 ** combinations:
 **  - object events for ALL object types
-**  - object events for a specific object type
+**  - object events for specific object types
 **  - attribute events for ALL object types
-**  - attribute events for a specific object type
+**  - attribute events for specific object types
 **
-** Note that a user may register multiple times for different specific
-** object types.  However, when a user registers for events
+** A user can register as many times, with as many objects and as many
+** callbacks as possible.  There is no capacity restriction but there are
+** consequences.  For example, when a user registers for events
 ** for ALL objects, user should NOT register later for a specific
 ** object type for the same event later, or vice versa.  This will cause
 ** the event manager to report the same event multiple times.
 ** User should first UN register from the first object type and
 ** register again with the desired condition.
+**
+** It is up to the user to ensure that such logical errors are not made when
+** registering for events.
+**
+** The only time the event manager will catch a duplication is when a user
+** registers for EXACTLY the same type of event for the same object.
 **
 ** What is meant by the "same" registration means registering with
 ** EXACTLY the same callback function AND the user supplied parameter.
@@ -174,7 +183,10 @@ typedef struct event_record_s {
      *
      * An example of when it is NOT needed is during an object deletion
      * event.  In this case, no other object is involved and these
-     * are not used.
+     * are not used (This is actually not STRICTLY true since when an
+     * object is deleted, its relationship from its parent must be severed.
+     * However, in this case, the system already knows about it and the parent
+     * does not need to be specified).
      */
     int related_object_type;
     int related_object_instance;
