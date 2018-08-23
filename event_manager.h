@@ -206,8 +206,8 @@ typedef struct event_manager_s {
 
     /*
      * while traversing lists and calling the user registered callbacks,
-     * it has to be ensured that the callbacks can NOT register or
-     * deregister to corrupt the lists.
+     * it has to be ensured that the callbacks can NOT cause changes and
+     * corrupt the lists.
      */
     int cannot_be_modified;
 
@@ -246,7 +246,7 @@ event_manager_init (event_manager_t *emp,
     mem_monitor_t *parent_mem_monitor);
 
 /*
- * Determines if the exact combination of user callback function and
+ * Determines if the EXACT COMBINATION of user callback function AND
  * the opaque parameter is already registered for the specified
  * object & event type.  Returns 1 (true) if so, else 0 (false).
  */
@@ -270,7 +270,7 @@ already_registered (event_manager_t *emp,
  *
  * Note that since this is a registration only for object events,
  * the event record passed into the callback function will be 
- * guaranteed to be of only object creation & deletion events.
+ * GUARANTEED to be of only object creation & deletion events.
  */
 extern int
 register_for_object_events (event_manager_t *emp,
@@ -290,7 +290,7 @@ un_register_from_object_events (event_manager_t *emp,
  * events, which are attribute id add/delete and attribute value add/delete.
  *
  * Similar to above, the event record passed into this callback function
- * will be guaranteed to be only of attribute events.
+ * will be GUARANTEED to be only of attribute events.
  */
 extern int
 register_for_attribute_events (event_manager_t *emp,

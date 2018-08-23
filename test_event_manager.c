@@ -3,7 +3,7 @@
 #include "event_manager.h"
 
 #define LOW_OBJECT      15
-#define HI_OBJECT       100
+#define HI_OBJECT       1000
 
 #define EVENT_MGR_MODULE        1
 
@@ -32,7 +32,7 @@ int main (int argc, char *argv[])
         }
         if (register_for_attribute_events(&em, i, process_event, NULL)) {
             MODULE_ERROR(EVENT_MGR_MODULE,
-                "register_for_object_events failed for object %d", i);
+                "register_for_attribute_events failed for object %d", i);
         }
     }
 

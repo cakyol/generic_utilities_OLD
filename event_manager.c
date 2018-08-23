@@ -33,7 +33,7 @@ extern "C" {
 #define PUBLIC
 
 /*
- * Every time an event is registered by a process, these are stored
+ * Every time an event is registered, these two items are stored
  * in the lists.  Registerer can specify an arbitrary user pointer
  * and a callback function to call when the event gets reported.
  * The user callback will be called with the event pointer and the
@@ -49,7 +49,8 @@ typedef struct event_registration_record_s {
 /*
  * determines whether the two event notification records 
  * passed in as void* params are 'considered' to be equal.  
- * They are so if their function pointers are the same.
+ * They are so if their function pointers AND the o9paque
+ * user parameters are the same.
  *
  * Returns 0 for equal, -ve or +ve value if considered less
  * than or greater than.
@@ -105,8 +106,9 @@ get_correct_list (event_manager_t *emp,
      * if here, caller is interested in the correct event list for a
      * SPECIFIC object type, we need to get it from the dynamic arrays.
      * We have to extract the list from the dynamic array indexed by the
-     * specified object type.  If such an entry does not exist, we must 
-     * create a new list and return it so it is ready for future use.
+     * specified object type.  If such an entry does not exist AND is 
+     * requested to be created then we must create a new list and return 
+     * it so it is ready for future use.
      */
     if (is_an_object_event(event_type)) {
         dap = &emp->specific_object_registrants;
@@ -125,10 +127,6 @@ get_correct_list (event_manager_t *emp,
     /* 
      * if no such list exists, create and initialize it,
      * if creation is needed.
-     *
-     * Note that this list will hold all the registrants
-     * which are interested in being notified about the 
-     * specific event type for the specified object type.
      */
     if ((0 != rv) && create_if_missing) {
 
@@ -181,7 +179,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
     dynamic_array_t *dap;
     linkedlist_t *list;
 
-    /* if we are traversing lists, block the callbacks from changing them */
+    /* if we are traversing lists, block any potential changes */
     if (emp->cannot_be_modified) return EBUSY;
 
     list = get_correct_list(emp, event_type, object_type, register_it, &dap);
@@ -304,7 +302,8 @@ event_manager_init (event_manager_t *emp,
     MEM_MONITOR_SETUP(emp);
     LOCK_SETUP(emp);
 
-    emp->cannot_be_modified = 0;
+    /* until initialisation is finished, dont allow registrations */
+    emp->cannot_be_modified = 1;
 
     rv = linkedlist_init(&emp->all_types_object_registrants, 
             0, compare_errs, emp->mem_mon_p);
@@ -335,6 +334,9 @@ event_manager_init (event_manager_t *emp,
         dynamic_array_destroy(&emp->specific_object_registrants);
         return rv;
     }
+
+    /* ok we are cleared to use the object now */
+    emp->cannot_be_modified = 0;
 
     WRITE_UNLOCK(emp);
     return rv;
