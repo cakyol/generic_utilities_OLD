@@ -123,7 +123,12 @@ radix_tree_node_find (radix_tree_t *ntp, byte *key, int key_length)
 
         /* follow hi nibble */
         node = node->children[LO_NIBBLE(*key)];
-        if (NULL == node) return NULL;
+
+        /*
+         * This wont happen since depth is always an even number
+         * (2 nibbles per byte).
+         */
+        // if (NULL == node) return NULL;
 
         /* follow lo nibble */
         node = node->children[HI_NIBBLE(*key)];
