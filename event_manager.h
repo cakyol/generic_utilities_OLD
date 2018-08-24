@@ -29,9 +29,12 @@
 *******************************************************************************
 *******************************************************************************
 *******************************************************************************
-** This is a generic event manager which manages the lists containing
-** all the callbacks interested in receiving all kinds of events.
-** Currently events are divided into two categories:
+**
+** This is a generic event manager which maintains lists of registrants
+** (function pointers & arguments), which will be called one by one
+** for the specific object & events for which they are registered.
+**
+** Currently events are divided into two precise categories:
 **
 **  - object events are events which are generated when an object
 **    is created or deleted.
@@ -49,6 +52,7 @@
 **
 ** So, a user can register/un-register to receive events for all the following 
 ** combinations:
+**
 **  - object events for ALL object types
 **  - object events for specific object types
 **  - attribute events for ALL object types
@@ -56,15 +60,22 @@
 **
 ** A user can register as many times, with as many objects and as many
 ** callbacks as possible.  There is no capacity restriction but there are
-** consequences.  For example, when a user registers for events
-** for ALL objects, user should NOT register later for a specific
-** object type for the same event later, or vice versa.  This will cause
-** the event manager to report the same event multiple times.
+** consequences for duplicate registrations.  For example, when a user 
+** registers for events for ALL objects, user should NOT register later 
+** for a specific object type for the same event later, or vice versa.
+** This will cause the event manager to report the same event twice, 
+** once because of the fact that the registration was made for all 
+** objects (which always matches for any object) and the second time,
+** since the specific object event will also be notified as well.
+**
 ** User should first UN register from the first object type and
 ** register again with the desired condition.
 **
 ** It is up to the user to ensure that such logical errors are not made when
 ** registering for events.
+**
+** In later releases, the software MAY attempt to detect duplication errors but
+** currently, there are no automatic protections.
 **
 ** The only time the event manager will catch a duplication is when a user
 ** registers for EXACTLY the same type of event for the same object.
