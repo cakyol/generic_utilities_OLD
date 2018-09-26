@@ -11,10 +11,10 @@ int main (int argc, char *argv[])
     fprintf(stderr, "\n\nsizeof debg framework for %d modules is %lu bytes\n\n",
             MAX_MODULES, sizeof(module_levels));
     for (m = 0; m < 10; m++) {
-        MODULE_DEBUG(0, "module %d SHOULD be reported", 0);
-        MODULE_INFO(0, "module %d SHOULD be reported", 0);
-        MODULE_WARNING(0, "module %d SHOULD be reported", 0);
-        MODULE_ERROR(0, "module %d should be reported", 0);
+        DEBUG(0, "module %d SHOULD be reported", 0);
+        INFO(0, "module %d SHOULD be reported", 0);
+        WARNING(0, "module %d SHOULD be reported", 0);
+        ERROR(0, "module %d should be reported", 0);
     }
 
     for (m = 0; m < 25; m++) {
@@ -22,29 +22,29 @@ int main (int argc, char *argv[])
             sprintf(name, "MODULE NUMBER %d", m);
             debug_module_set_name(m, name);
             debug_module_set_level(m, ERROR_LEVEL);
-            MODULE_DEBUG(m, "module %d SHOULD NOT be reported", m);
-            MODULE_INFO(m, "module %d SHOULD NOT be reported", m);
-            MODULE_WARNING(m, "module %d SHOULD NOT be reported", m);
-            MODULE_ERROR(m, "module %d should be reported", m);
+            DEBUG(m, "module %d SHOULD NOT be reported", m);
+            INFO(m, "module %d SHOULD NOT be reported", m);
+            WARNING(m, "module %d SHOULD NOT be reported", m);
+            ERROR(m, "module %d should be reported", m);
         } else {
             debug_module_set_name(m, NULL);
             debug_module_set_level(m, DEBUG_LEVEL);
-            MODULE_DEBUG(m, "module %d should be reported", m);
-            MODULE_INFO(m, "module %d should be reported", m);
-            MODULE_WARNING(m, "module %d should be reported", m);
-            MODULE_ERROR(m, "module %d should be reported", m);
+            DEBUG(m, "module %d should be reported", m);
+            INFO(m, "module %d should be reported", m);
+            WARNING(m, "module %d should be reported", m);
+            ERROR(m, "module %d should be reported", m);
         }
     }
 
     /* try & break using an invalid module number */
     for (m = MAX_MODULES; m < (MAX_MODULES + 10); m++) {
-        MODULE_DEBUG(m, "module %d SHOULD NOT be reported", m);
-        MODULE_INFO(m, "module %d SHOULD NOT be reported", m);
-        MODULE_WARNING(m, "module %d SHOULD NOT be reported", m);
-        MODULE_ERROR(m, "module %d SHOULD NOT be reported", m);
+        DEBUG(m, "module %d SHOULD NOT be reported", m);
+        INFO(m, "module %d SHOULD NOT be reported", m);
+        WARNING(m, "module %d SHOULD NOT be reported", m);
+        ERROR(m, "module %d SHOULD NOT be reported", m);
     }
 
-    FATAL_ERROR("finishing module %d with a fatal error", m);
+    FATAL_ERROR(0, "finishing module %d with a fatal error", m);
     while (1);
     return 0;
 }

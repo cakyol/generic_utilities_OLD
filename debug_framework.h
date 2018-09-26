@@ -36,10 +36,13 @@
 ** This is a very generic debug framework which 'reports' an error for a module.
 ** There are about 5 levels of debugging defined and every 'module' can have
 ** its own individual level set.  Modules are defined by the user.  Modules
-** are 1 -> MAX_MODULES.  0 is a special modue number and ALL levels of
-** messages WILL be reported for module 0.  Module names can also be 'registered'
-** so that when the reporting is done, module names can be reported (rather
-** than simply module numbers).
+** are 0 -> MAX_MODULES-1.  
+**
+** Module names can also be 'registered' so that when the reporting is done,
+** module names can be reported (rather than simply module numbers).
+**
+** MAX_MODULES is 256 and should NOT be changed since module numbers are
+** expected to fit into a single byte.
 **
 ** Note that the error level 'FATAL_ERROR' will crash the system with an assert
 ** call.  It should be used only as a last resort.
@@ -77,25 +80,23 @@ extern "C" {
 #include <assert.h>
 
 /*
+ * DO NOT CHANGE THIS
+ * DO NOT CHANGE THIS
+ * DO NOT CHANGE THIS
  * How many modules this debug infrastructure supports.
- * Redefine this if more needs to be supported.
- * Module 0 is special and represents all modules and
- * all levels; ie a debug message for module 0 will ALWAYS
- * be reported regardless of anything else.
- *
- * Valid modules are 1 to (MAX_MODULES-1) inclusive.
+ * Valid modules are 1 to MAX_MODULES-1 inclusive.
  */
-#define MAX_MODULES                     128
+#define MAX_MODULES                     256
+#define MODULE_MASK			(0xFF)
 
 /*
  * Define your own modules here, like such.
- * ***MUST*** start from 1 and no larger than (MAX_MODULES-1).
  *
  * like:
  *
- * #define SWITCH_MODULE           1
- * #define ROUTER_MODULE           2
- * #define BUFFER_MODULE           3
+ * #define SWITCH_MODULE           0
+ * #define ROUTER_MODULE           1
+ * #define BUFFER_MODULE           7
  * etc.....
  *
  */
@@ -112,31 +113,34 @@ extern "C" {
 /*
  * levels of debugging
  */
-#define DEBUG_LEVEL                 0
+#define LOWEST_DEBUG_LEVEL	    0
+#define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
 #define INFORMATION_LEVEL           1
 #define WARNING_LEVEL               2
 #define ERROR_LEVEL                 3
 #define FATAL_ERROR_LEVEL           4
-#define DEBUG_LEVEL_SPAN            (FATAL_ERROR_LEVEL - DEBUG_LEVEL + 1)
-#if MAX_DEBUG_LEVEL > 255
-    #error "max debug level must be < 256"
-#endif
+#define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
 
 /*
- * Default debug 'reporting' function.  User specified function of what
+ * The definition of 'reporting' function.  User specified function of what
  * needs to be done with the message.  It can be printf'd, kprintf'd, 
  * written to a file, whatever.  The string is formatted, null terminated
  * and passed to this function.  Rest is up to the function itself to do 
  * whatever it wants with the passed string.
  *
  * User can re-define his/her own reporting function for a module which
- * should meet the definition below.
+ * should meet the sytax below.
  */
 typedef void (*debug_reporting_function_t)(char*);
 
 /*
  * Call this to initialize the debug framework.
- * For all modules, default levels & reporting functions will be used.
+ * For all modules, default levels, reporting functions
+ * and module names will be used.
+ *
+ * The default reporting level is ERROR_LEVEL.
+ * The default printing function will printf to stderr.
+ * The default module name will be m_27 (27th module).
  */
 extern void
 debug_init (void);
@@ -146,13 +150,13 @@ debug_init (void);
  * passing NULL as pointers will reset those values back
  * to the defaults.
  */
-extern int
+extern void
 debug_module_set_name (int module, char *module_name);
 
-extern int
+extern void
 debug_module_set_level (int module, int level);
 
-extern int
+extern void
 debug_module_set_reporting_function (int module,
         debug_reporting_function_t drf);
 
@@ -162,54 +166,32 @@ debug_module_set_reporting_function (int module,
  * threshold set for the specific module.
  */
 
-#define MODULE_DEBUG(module, fmt, args...) \
+#define DEBUG(module, fmt, args...) \
     if (__module_can_report__(module, DEBUG_LEVEL)) \
         debug_message_process(module, DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-#define MODULE_INFO(module, fmt, args...) \
+#define INFO(module, fmt, args...) \
     if (__module_can_report__(module, INFORMATION_LEVEL)) \
         debug_message_process(module, INFORMATION_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-#define MODULE_WARNING(module, fmt, args...) \
+#define WARNING(module, fmt, args...) \
     if (__module_can_report__(module, WARNING_LEVEL)) \
         debug_message_process(module, WARNING_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*
- * [Fatal] Errors will ALWAYS be printed.
- * Furthermore, Fatal error will crash the process (with an assert).
+ * Errors will ALWAYS be reported.
+ * Furthermore, a Fatal error will crash the process (with an assert).
  */
-#define MODULE_ERROR(module, fmt, args...) \
-    if (__valid_module_number__(module)) \
-	debug_message_process(module, ERROR_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+#define ERROR(module, fmt, args...) \
+    debug_message_process(module, ERROR_LEVEL, \
+	__FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
-#define FATAL_ERROR(fmt, args...) \
-    debug_message_process(0, FATAL_ERROR_LEVEL, \
+#define FATAL_ERROR(module, fmt, args...) \
+    debug_message_process(module, FATAL_ERROR_LEVEL, \
         __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-/*
- * ***************************************************************************
- * These macros ALWAYS report, regardless of module or level
- */
-
-#define REPORT_DEBUG(fmt, args...) \
-    debug_message_process(0, DEBUG_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-#define REPORT_INFO(fmt, args...) \
-    debug_message_process(0, INFORMATION_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-#define REPORT_WARNING(fmt, args...) \
-    debug_message_process(0, WARNING_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-#define REPORT_ERROR(fmt, args...) \
-    debug_message_process(0, ERROR_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -250,39 +232,17 @@ default_debug_reporting_function (char *debug_message);
 extern
 debug_module_data_t module_levels [MAX_MODULES];
 
-#define USE_A_MACRO
-
 /*
  * Report if the current debug level set for this module is less than or
  * equal to the level specified in the user call.
- * Test in your compiler whether the macro or the static inline is faster.
  */
 
-#ifdef USE_A_MACRO
-
-#define __valid_module_number__(m) \
-    (((m) >= 0) && ((m) < MAX_MODULES))
-
-#define __module_can_report__(m, l) \
-    (__valid_module_number__(m) && ((l) >= module_levels[(m)].level))
-
-#else // !USE_A_MACRO
-
 static inline int
-__valid_module_number__ (int m)
+__module_can_report__ (int module, int level) 
 {
     return
-	(m >= 0) && (m < MAX_MODULES);
+	(level >= module_levels[module & MODULE_MASK].level);
 }
-
-static inline int
-__module_can_report__ (int m, int l) 
-{
-    return 
-        (__valid_module_number__(m) && (l >= module_levels[m].level));
-}
-
-#endif // USE_A_MACRO
 
 extern void
 debug_message_process (int module, int level,

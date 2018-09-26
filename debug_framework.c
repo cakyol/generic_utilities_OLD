@@ -41,9 +41,11 @@ debug_module_data_t module_levels [MAX_MODULES] = {
     }
 };
 
+
 /*
  * debug level number to debug level name string lookup table.
  */
+#define DEBUG_LEVEL_SPAN	(HIGHEST_DEBUG_LEVEL - LOWEST_DEBUG_LEVEL + 1)
 static char *debug_level_names [DEBUG_LEVEL_SPAN] = { "???" };
 
 void
@@ -53,15 +55,10 @@ default_debug_reporting_function (char *debug_string)
     fflush(stderr);
 }
 
-#define BAIL_IF_BAD_MODULE_INDEX(m) \
-    if (((m) < 1) || ((m) >= MAX_MODULES)) return EINVAL
-
-static int
+static void
 set_default_module_name (int m)
 {
-    BAIL_IF_BAD_MODULE_INDEX(m);
-    sprintf(module_levels[m].name, "module %d", m);
-    return 0;
+    sprintf(module_levels[m & MODULE_MASK].name, "m_%d", m);
 }
 
 void
@@ -70,7 +67,7 @@ debug_init (void)
     int m;
 
     debug_level_names[DEBUG_LEVEL] = "DEBUG";
-    debug_level_names[INFORMATION_LEVEL] = "INFORMATION";
+    debug_level_names[INFORMATION_LEVEL] = "INFO";
     debug_level_names[WARNING_LEVEL] = "WARNING";
     debug_level_names[ERROR_LEVEL] = "ERROR";
     debug_level_names[FATAL_ERROR_LEVEL] = "***** FATAL ERROR *****";
@@ -79,27 +76,26 @@ debug_init (void)
         module_levels[m].level = ERROR_LEVEL;
         module_levels[m].drf = default_debug_reporting_function;
     }
-
-    /* reduce level of module 0 to lowest so everything gets printed */
-    module_levels[0].level = DEBUG_LEVEL;
 }
 
-int
+void
 debug_module_set_name (int module, char *module_name)
 {
-    BAIL_IF_BAD_MODULE_INDEX(module);
+    /* trim module number */
+    module &= MODULE_MASK;
+
     if (NULL == module_name) {
         set_default_module_name(module);
     } else {
         strncpy(module_levels[module].name, module_name, (MODULE_NAME_SIZE - 1));
     }
-    return 0;
 }
 
-int 
+void 
 debug_module_set_level (int module, int level)
 {
-    BAIL_IF_BAD_MODULE_INDEX(module);
+    /* trim module number */
+    module &= MODULE_MASK;
 
     /* trim debug level to limits */
     if (level < DEBUG_LEVEL) 
@@ -109,18 +105,14 @@ debug_module_set_level (int module, int level)
 
     /* set it */
     module_levels[module].level = (unsigned char) level;
-
-    /* done */
-    return 0;
 }
 
-int
+void
 debug_module_set_reporting_function (int module,
         debug_reporting_function_t drf)
 {
-    BAIL_IF_BAD_MODULE_INDEX(module);
+    module &= MODULE_MASK;
     module_levels[module].drf = drf ? drf : default_debug_reporting_function;
-    return 0;
 }
 
 void
@@ -135,38 +127,21 @@ debug_message_process (int module, int level,
     char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
     int index, size_left, len;
 
+    /* trim module number */
+    module &= MODULE_MASK;
+
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
 
     /* make the last byte a 0 so any printing function stops here */
     msg_buffer[size_left] = 0;
 
     len = index = 0;
-
-    /* module number 0 ALWAYS reports */
-    if (0 == module) {
-
-        len += snprintf(&msg_buffer[index], size_left,
-                    "%s: <%s:%s:%d> ",
-                    debug_level_names[level],
-                    file_name,
-                    function_name,
-                    line_number);
-
-    /*
-     * for others, module validity is assumed to be checked
-     * thru the macro calling this (via debug_module_can_report)
-     * function.
-     */
-    } else {
-
-        len += snprintf(&msg_buffer[index], size_left,
-                    "%s: <%s:%s:%s:%d> ",
-                    debug_level_names[level],
-                    module_levels[module].name,
-                    file_name,
-                    function_name,
-                    line_number);
-    }
+    len += snprintf(&msg_buffer[index], size_left,
+		"%s: <%s:%s:%d> ",
+		debug_level_names[level],
+		file_name,
+		function_name,
+		line_number);
 
     size_left -= len;
     index += len;
