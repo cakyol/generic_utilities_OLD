@@ -58,7 +58,7 @@ default_debug_reporting_function (char *debug_string)
 static void
 set_default_module_name (int m)
 {
-    sprintf(module_levels[m & MODULE_MASK].name, "m_%d", m);
+    sprintf(module_levels[m].name, "M_%d", m);
 }
 
 void
@@ -78,43 +78,46 @@ debug_init (void)
     }
 }
 
-void
+#define CHECK_MODULE_NUMBER(m)	\
+    if ((m < 0) || (m >= MAX_MODULES)) return EINVAL;
+
+int
 debug_module_set_name (int module, char *module_name)
 {
-    /* trim module number */
-    module &= MODULE_MASK;
-
+    CHECK_MODULE_NUMBER(module);
     if (NULL == module_name) {
         set_default_module_name(module);
     } else {
-        strncpy(module_levels[module].name, module_name, (MODULE_NAME_SIZE - 1));
+        strncpy(module_levels[module].name, module_name,
+	    (MODULE_NAME_SIZE - 1));
     }
+    return 0;
 }
 
-void 
+int 
 debug_module_set_level (int module, int level)
 {
-    /* trim module number */
-    module &= MODULE_MASK;
-
-    /* trim debug level to limits */
+    CHECK_MODULE_NUMBER(module);
     if (level < DEBUG_LEVEL) 
         level = DEBUG_LEVEL;
     else if (level > FATAL_ERROR_LEVEL) 
         level = FATAL_ERROR_LEVEL;
-
-    /* set it */
     module_levels[module].level = (unsigned char) level;
+    return 0;
 }
 
-void
+int
 debug_module_set_reporting_function (int module,
         debug_reporting_function_t drf)
 {
-    module &= MODULE_MASK;
+    CHECK_MODULE_NUMBER(module);
     module_levels[module].drf = drf ? drf : default_debug_reporting_function;
+    return 0;
 }
 
+/*
+ * This function assumes 'module' is valid & within bounds.
+ */
 void
 debug_message_process (int module, int level,
     const char *file_name, const char *function_name, int line_number,
@@ -127,9 +130,6 @@ debug_message_process (int module, int level,
     char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
     int index, size_left, len;
 
-    /* trim module number */
-    module &= MODULE_MASK;
-
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
 
     /* make the last byte a 0 so any printing function stops here */
@@ -137,7 +137,8 @@ debug_message_process (int module, int level,
 
     len = index = 0;
     len += snprintf(&msg_buffer[index], size_left,
-		"%s: <%s:%s:%d> ",
+		"%s:%s: <%s:%s:%d> ",
+		module_levels[module].name,
 		debug_level_names[level],
 		file_name,
 		function_name,

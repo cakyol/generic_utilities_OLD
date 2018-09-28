@@ -41,9 +41,6 @@
 ** Module names can also be 'registered' so that when the reporting is done,
 ** module names can be reported (rather than simply module numbers).
 **
-** MAX_MODULES is 256 and should NOT be changed since module numbers are
-** expected to fit into a single byte.
-**
 ** Note that the error level 'FATAL_ERROR' will crash the system with an assert
 ** call.  It should be used only as a last resort.
 **
@@ -67,6 +64,19 @@
 extern "C" {
 #endif
 
+/*
+ * Define this if you want the debug infrastructure to be
+ * included in your system.  Not defining this will save
+ * a bit of code size and run slightly faster.
+ * Note that regardless of this directive, ERRORS &
+ * FATAL_ERRORS will ALWAYS be reported.
+ */
+// #undef DEBUGGING_ENABLED
+
+#ifndef DEBUGGING_ENABLED
+#define DEBUGGING_ENABLED
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -80,14 +90,10 @@ extern "C" {
 #include <assert.h>
 
 /*
- * DO NOT CHANGE THIS
- * DO NOT CHANGE THIS
- * DO NOT CHANGE THIS
  * How many modules this debug infrastructure supports.
- * Valid modules are 1 to MAX_MODULES-1 inclusive.
+ * Redefine this as you wish.
  */
-#define MAX_MODULES                     256
-#define MODULE_MASK			(0xFF)
+#define MAX_MODULES                     64
 
 /*
  * Define your own modules here, like such.
@@ -150,13 +156,13 @@ debug_init (void);
  * passing NULL as pointers will reset those values back
  * to the defaults.
  */
-extern void
+extern int
 debug_module_set_name (int module, char *module_name);
 
-extern void
+extern int
 debug_module_set_level (int module, int level);
 
-extern void
+extern int
 debug_module_set_reporting_function (int module,
         debug_reporting_function_t drf);
 
@@ -165,6 +171,8 @@ debug_module_set_reporting_function (int module,
  * These macros report (or not) depending on the debug level
  * threshold set for the specific module.
  */
+
+#ifdef DEBUGGING_ENABLED
 
 #define DEBUG(module, fmt, args...) \
     if (__module_can_report__(module, DEBUG_LEVEL)) \
@@ -181,17 +189,27 @@ debug_module_set_reporting_function (int module,
         debug_message_process(module, WARNING_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
+#else /* ! DEBUGGING_ENABLED */
+
+#define DEBUG(module, fmt, args...)
+#define INFO(module, fmt, args...)
+#define WARNING(module, fmt, args...)
+
+#endif /* ! DEBUGGING_ENABLED */
+
 /*
  * Errors will ALWAYS be reported.
  * Furthermore, a Fatal error will crash the process (with an assert).
  */
 #define ERROR(module, fmt, args...) \
-    debug_message_process(module, ERROR_LEVEL, \
-	__FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+    if ((module >= 0) && (module < MAX_MODULES)) \
+	debug_message_process(module, ERROR_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 #define FATAL_ERROR(module, fmt, args...) \
-    debug_message_process(module, FATAL_ERROR_LEVEL, \
-        __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+    if ((module >= 0) && (module < MAX_MODULES)) \
+	debug_message_process(module, FATAL_ERROR_LEVEL, \
+	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
 
 /*******************************************************************************/
 /*******************************************************************************/
@@ -241,7 +259,8 @@ static inline int
 __module_can_report__ (int module, int level) 
 {
     return
-	(level >= module_levels[module & MODULE_MASK].level);
+	(module >= 0) && (module < MAX_MODULES) &&
+	(level >= module_levels[module].level);
 }
 
 extern void
