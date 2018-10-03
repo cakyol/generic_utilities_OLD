@@ -112,7 +112,7 @@ extern "C" {
  * a verbose and printable name for a specific module.  Otherwise,
  * by default, the system will assign the name "mN" where N is
  * the module number.  For example, module 17's default name will
- * be "m17".
+ * be "M_17".
  */
 #define MODULE_NAME_SIZE                32
 
@@ -172,46 +172,61 @@ debug_module_set_reporting_function (int module,
  * threshold set for the specific module.
  */
 
-#ifdef DEBUGGING_ENABLED
-
-#define DEBUG(module, fmt, args...) \
-    if (__module_can_report__(module, DEBUG_LEVEL)) \
-        debug_message_process(module, DEBUG_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-#define INFO(module, fmt, args...) \
-    if (__module_can_report__(module, INFORMATION_LEVEL)) \
-        debug_message_process(module, INFORMATION_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-#define WARNING(module, fmt, args...) \
-    if (__module_can_report__(module, WARNING_LEVEL)) \
-        debug_message_process(module, WARNING_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
-
-#else /* ! DEBUGGING_ENABLED */
+#ifdef EXCLUDE_ALL_DEBUGGING_CODE
 
 #define DEBUG(module, fmt, args...)
 #define INFO(module, fmt, args...)
 #define WARNING(module, fmt, args...)
 
-#endif /* ! DEBUGGING_ENABLED */
+#else /* include debugging */
+
+#define DEBUG(module, fmt, args...) \
+    do { \
+	if (__module_can_report__(module, DEBUG_LEVEL)) { \
+	    debug_message_process(module, DEBUG_LEVEL, \
+		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	} \
+    } while (0)
+
+#define INFO(module, fmt, args...) \
+    do { \
+	if (__module_can_report__(module, INFORMATION_LEVEL)) { \
+	    debug_message_process(module, INFORMATION_LEVEL, \
+		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	} \
+    } while (0)
+
+#define WARNING(module, fmt, args...) \
+    do { \
+	if (__module_can_report__(module, WARNING_LEVEL)) { \
+	    debug_message_process(module, WARNING_LEVEL, \
+		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	} \
+    } while (0)
+
+#endif /* EXCLUDE_ALL_DEBUGGING_CODE */
 
 /*
  * Errors will ALWAYS be reported.
  * Furthermore, a Fatal error will crash the process (with an assert).
  */
 #define ERROR(module, fmt, args...) \
-    if ((module >= 0) && (module < MAX_MODULES)) \
-	debug_message_process(module, ERROR_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+    do { \
+	if ((module >= 0) && (module < MAX_MODULES)) { \
+	    debug_message_process(module, ERROR_LEVEL, \
+		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	} \
+    } while (0)
 
 #define FATAL_ERROR(module, fmt, args...) \
-    if ((module >= 0) && (module < MAX_MODULES)) \
-	debug_message_process(module, FATAL_ERROR_LEVEL, \
-	    __FILE__, __FUNCTION__, __LINE__, fmt, ## args)
+    do { \
+	if ((module >= 0) && (module < MAX_MODULES)) { \
+	    debug_message_process(module, FATAL_ERROR_LEVEL, \
+		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	} \
+    } while (0)
 
-/*******************************************************************************/
+/******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
