@@ -68,14 +68,13 @@ extern "C" {
  * Define this if you want the debug infrastructure to be
  * included in your system.  Not defining this will save
  * a bit of code size and run slightly faster.
+ *
  * Note that regardless of this directive, ERRORS &
  * FATAL_ERRORS will ALWAYS be reported.
  */
-// #undef DEBUGGING_ENABLED
 
-#ifndef DEBUGGING_ENABLED
-#define DEBUGGING_ENABLED
-#endif
+// #undef INCLUDE_ALL_DEBUGGING_CODE
+#define INCLUDE_ALL_DEBUGGING_CODE
 
 #include <stdlib.h>
 #include <string.h>
@@ -172,39 +171,39 @@ debug_module_set_reporting_function (int module,
  * threshold set for the specific module.
  */
 
-#ifdef EXCLUDE_ALL_DEBUGGING_CODE
+#ifdef INCLUDE_ALL_DEBUGGING_CODE
 
-#define DEBUG(module, fmt, args...)
-#define INFO(module, fmt, args...)
-#define WARNING(module, fmt, args...)
+    #define DEBUG(module, fmt, args...) \
+	do { \
+	    if (__module_can_report__(module, DEBUG_LEVEL)) { \
+		debug_message_process(module, DEBUG_LEVEL, \
+		    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	    } \
+	} while (0)
 
-#else /* include debugging */
+    #define INFO(module, fmt, args...) \
+	do { \
+	    if (__module_can_report__(module, INFORMATION_LEVEL)) { \
+		debug_message_process(module, INFORMATION_LEVEL, \
+		    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	    } \
+	} while (0)
 
-#define DEBUG(module, fmt, args...) \
-    do { \
-	if (__module_can_report__(module, DEBUG_LEVEL)) { \
-	    debug_message_process(module, DEBUG_LEVEL, \
-		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	} \
+    #define WARNING(module, fmt, args...) \
+	do { \
+	    if (__module_can_report__(module, WARNING_LEVEL)) { \
+		debug_message_process(module, WARNING_LEVEL, \
+		    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+	    } \
     } while (0)
 
-#define INFO(module, fmt, args...) \
-    do { \
-	if (__module_can_report__(module, INFORMATION_LEVEL)) { \
-	    debug_message_process(module, INFORMATION_LEVEL, \
-		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	} \
-    } while (0)
+#else /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
-#define WARNING(module, fmt, args...) \
-    do { \
-	if (__module_can_report__(module, WARNING_LEVEL)) { \
-	    debug_message_process(module, WARNING_LEVEL, \
-		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	} \
-    } while (0)
+    #define DEBUG(module, fmt, args...)
+    #define INFO(module, fmt, args...)
+    #define WARNING(module, fmt, args...)
 
-#endif /* EXCLUDE_ALL_DEBUGGING_CODE */
+#endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
 /*
  * Errors will ALWAYS be reported.
