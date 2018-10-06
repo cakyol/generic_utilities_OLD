@@ -96,6 +96,7 @@ extern "C" {
 
 /*
  * Define your own modules here, like such.
+ * They must be 0 <= module < MAX_MODULES
  *
  * like:
  *
@@ -107,26 +108,6 @@ extern "C" {
  */
 
 /*
- * max number of characters of a module name if the user defines
- * a verbose and printable name for a specific module.  Otherwise,
- * by default, the system will assign the name "mN" where N is
- * the module number.  For example, module 17's default name will
- * be "M_17".
- */
-#define MODULE_NAME_SIZE                32
-
-/*
- * levels of debugging
- */
-#define LOWEST_DEBUG_LEVEL	    0
-#define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
-#define INFORMATION_LEVEL           1
-#define WARNING_LEVEL               2
-#define ERROR_LEVEL                 3
-#define FATAL_ERROR_LEVEL           4
-#define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
-
-/*
  * The definition of 'reporting' function.  User specified function of what
  * needs to be done with the message.  It can be printf'd, kprintf'd, 
  * written to a file, whatever.  The string is formatted, null terminated
@@ -134,7 +115,7 @@ extern "C" {
  * whatever it wants with the passed string.
  *
  * User can re-define his/her own reporting function for a module which
- * should meet the sytax below.
+ * should meet the syntax below.
  */
 typedef void (*debug_reporting_function_t)(char*);
 
@@ -173,6 +154,7 @@ debug_module_set_reporting_function (int module,
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
+    /* lowest level of reporting */
     #define DEBUG(module, fmt, args...) \
 	do { \
 	    if (__module_can_report__(module, DEBUG_LEVEL)) { \
@@ -181,6 +163,7 @@ debug_module_set_reporting_function (int module,
 	    } \
 	} while (0)
 
+    /* one higher level of reporting */
     #define INFO(module, fmt, args...) \
 	do { \
 	    if (__module_can_report__(module, INFORMATION_LEVEL)) { \
@@ -189,6 +172,7 @@ debug_module_set_reporting_function (int module,
 	    } \
 	} while (0)
 
+    /* one higher level of reporting */
     #define WARNING(module, fmt, args...) \
 	do { \
 	    if (__module_can_report__(module, WARNING_LEVEL)) { \
@@ -206,7 +190,9 @@ debug_module_set_reporting_function (int module,
 #endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
 /*
- * Errors will ALWAYS be reported.
+ * Errors will ALWAYS be reported regardless of what the reporting
+ * level for the module is set to.
+ *
  * Furthermore, a Fatal error will crash the process (with an assert).
  */
 #define ERROR(module, fmt, args...) \
@@ -242,6 +228,30 @@ debug_module_set_reporting_function (int module,
 /*******************************************************************************/
 
 /*
+ * max number of characters of a module name if the user defines
+ * a verbose and printable name for a specific module.  Otherwise,
+ * by default, the system will assign the name "M_N" where N is
+ * the module number.  For example, module 17's default name will
+ * be "M_17".
+ */
+#define MODULE_NAME_SIZE                32
+
+/*
+ * Levels of debugging.  Additional levels can be defined
+ * if needed as long as the HIGHEST_DEBUG_LEVEL numerically
+ * fits into a SINGLE byte (max 255).
+ */
+#define LOWEST_DEBUG_LEVEL	    0
+
+#define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
+#define INFORMATION_LEVEL           5
+#define WARNING_LEVEL               10
+#define ERROR_LEVEL                 15
+#define FATAL_ERROR_LEVEL           20
+
+#define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
+
+/*
  * each module can have a level set below which the debug messages
  * do not get reported.  Also, each one does have its own 'reporting' 
  * function.  This helps report each module differently if the need be.
@@ -258,23 +268,22 @@ typedef struct debug_module_data_s {
 
 } debug_module_data_t;
 
-extern void
-default_debug_reporting_function (char *debug_message);
-
 extern
 debug_module_data_t module_levels [MAX_MODULES];
+
+extern void
+default_debug_reporting_function (char *debug_message);
 
 /*
  * Report if the current debug level set for this module is less than or
  * equal to the level specified in the user call.
  */
-
 static inline int
 __module_can_report__ (int module, int level) 
 {
     return
 	(module >= 0) && (module < MAX_MODULES) &&
-	(level >= module_levels[module].level);
+	    (level >= module_levels[module].level);
 }
 
 extern void
