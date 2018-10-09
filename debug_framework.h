@@ -234,7 +234,7 @@ debug_module_set_reporting_function (int module,
  * the module number.  For example, module 17's default name will
  * be "M_17".
  */
-#define MODULE_NAME_SIZE                32
+#define MODULE_NAME_SIZE                48
 
 /*
  * Levels of debugging.  Additional levels can be defined
@@ -242,14 +242,16 @@ debug_module_set_reporting_function (int module,
  * fits into a SINGLE byte (max 255).
  */
 #define LOWEST_DEBUG_LEVEL	    0
-
 #define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
 #define INFORMATION_LEVEL           5
 #define WARNING_LEVEL               10
 #define ERROR_LEVEL                 15
 #define FATAL_ERROR_LEVEL           20
-
 #define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
+
+#if HIGHEST_DEBUG_LEVEL > 255
+    #error "HIGHEST_DEBUG_LEVEL is too high, should be <= 255"
+#endif
 
 /*
  * each module can have a level set below which the debug messages

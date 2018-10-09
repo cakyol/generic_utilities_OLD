@@ -34,10 +34,14 @@
 ** (function pointers & arguments), which will be called one by one
 ** for the specific object & events for which they are registered.
 **
+** The use of this module is specifically tailored to be used by the
+** object manager although generic uses are not excluded if its
+** limitations and idiosyncrasies are taken into account.
+**
 ** Currently events are divided into two precise categories:
 **
 **  - object events are events which are generated when an object
-**    is created or deleted.
+**    TYPE (not type and instance.. type ONLY) is created or deleted.  
 **
 **  - attribute events are events which are generated when a new
 **    attribute id is added to an object or an existing attribute id
@@ -45,7 +49,11 @@
 **
 ** Users can register to be notified of both of these types of events.
 **
-** In addition there are two ways of registering for either type of events.
+** Note that events are notified on a per object TYPE basis.  The
+** specific object instance cannot be specified.  This would make 
+** the manager too complex and extremely granular.
+**
+** There are two ways of registering for either type of events.
 ** One is to register in a way so that events are reported for
 ** ALL object types.  The other is such that events involving ONLY
 ** one type of object is of interest.
@@ -54,15 +62,15 @@
 ** combinations:
 **
 **  - object events for ALL object types
-**  - object events for specific object types
+**  - object events for SPECIFIC object types
 **  - attribute events for ALL object types
-**  - attribute events for specific object types
+**  - attribute events for SPECIFIC object types
 **
-** A user can register as many times, with as many objects and as many
+** A user can register as many times, with as many object types and as many
 ** callbacks as possible.  There is no capacity restriction but there are
-** consequences for duplicate registrations.  For example, when a user 
-** registers for events for ALL objects, user should NOT register later 
-** for a specific object type for the same event later, or vice versa.
+** consequences for duplicate registrations.  For example, if a user 
+** registers for events for ALL objects, later user should NOT register
+** for a specific object type for the same event, or vice versa.
 ** This will cause the event manager to report the same event twice, 
 ** once because of the fact that the registration was made for all 
 ** objects (which always matches for any object) and the second time,
@@ -81,7 +89,8 @@
 ** registers for EXACTLY the same type of event for the same object.
 **
 ** What is meant by the "same" registration means registering with
-** EXACTLY the same callback function AND the user supplied parameter.
+** EXACTLY the same callback function AND the user supplied parameter FOR
+** the exact same object TYPE.
 **
 *******************************************************************************
 *******************************************************************************

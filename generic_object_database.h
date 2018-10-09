@@ -32,12 +32,12 @@
 **
 ** @@@@@ GENERIC OBJECT DATABASE
 **
-**      This is a VERY fast and a VERY flexible object database.
+**      This is a VERY fast and a VERY flexible hierarchical object database.
 **
 **      Almost every data structure is either an avl tree or a binary
 **      index object, making it very efficient.
 **
-**      An object always have ONE parent but can have many children.  
+**      An object always has ONE parent but can have MANY children.  
 **      It is up to the user to make sure an object's child cannot 
 **      also be a parent otherwise infinite loops will be created.
 **
