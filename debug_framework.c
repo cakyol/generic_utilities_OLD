@@ -67,7 +67,7 @@ debug_init (void)
     int m;
 
     debug_level_names[DEBUG_LEVEL] = "DEBUG";
-    debug_level_names[INFORMATION_LEVEL] = "INFO";
+    debug_level_names[NOTIFICATION_LEVEL] = "NOTIFICATION";
     debug_level_names[WARNING_LEVEL] = "WARNING";
     debug_level_names[ERROR_LEVEL] = "ERROR";
     debug_level_names[FATAL_ERROR_LEVEL] = "***** FATAL ERROR *****";
@@ -119,7 +119,7 @@ debug_module_set_reporting_function (int module,
  * This function assumes 'module' is valid & within bounds.
  */
 void
-debug_message_process (int module, int level,
+_process_debug_message_ (int module, int level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...)
 {
