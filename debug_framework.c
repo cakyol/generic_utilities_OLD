@@ -85,24 +85,30 @@ int
 debug_module_set_name (int module, char *module_name)
 {
     CHECK_MODULE_NUMBER(module);
+
     if (NULL == module_name) {
         set_default_module_name(module);
     } else {
         strncpy(module_levels[module].name, module_name,
 	    (MODULE_NAME_SIZE - 1));
     }
+
     return 0;
 }
 
 int 
-debug_module_set_level (int module, int level)
+debug_module_set_minimum_reporting_level (int module, int level)
 {
     CHECK_MODULE_NUMBER(module);
+
+    /* clip level to boundaries */
     if (level < DEBUG_LEVEL) 
         level = DEBUG_LEVEL;
     else if (level > FATAL_ERROR_LEVEL) 
         level = FATAL_ERROR_LEVEL;
+
     module_levels[module].level = (unsigned char) level;
+
     return 0;
 }
 
@@ -137,7 +143,7 @@ _process_debug_message_ (int module, int level,
 
     len = index = 0;
     len += snprintf(&msg_buffer[index], size_left,
-		"%s:%s: <%s:%s:%d> ",
+		"%s: %s: <%s: %s: %d> ",
 		module_levels[module].name,
 		debug_level_names[level],
 		file_name,

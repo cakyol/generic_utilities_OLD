@@ -126,7 +126,7 @@ typedef void (*debug_reporting_function_t)(char*);
  *
  * The default reporting level is ERROR_LEVEL.
  * The default printing function will printf to stderr.
- * The default module name will be m_27 (27th module).
+ * The default module name will be M_27 (27th module).
  */
 extern void
 debug_init (void);
@@ -140,7 +140,7 @@ extern int
 debug_module_set_name (int module, char *module_name);
 
 extern int
-debug_module_set_level (int module, int level);
+debug_module_set_minimum_reporting_level (int module, int level);
 
 extern int
 debug_module_set_reporting_function (int module,

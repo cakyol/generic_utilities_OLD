@@ -21,14 +21,14 @@ int main (int argc, char *argv[])
         if (m & 1) {
             sprintf(name, "MODULE NUMBER %d", m);
             debug_module_set_name(m, name);
-            debug_module_set_level(m, ERROR_LEVEL);
+            debug_module_set_minimum_reporting_level(m, ERROR_LEVEL);
             DEBUG(m, "module %d SHOULD NOT be reported", m);
             NOTIFY(m, "module %d SHOULD NOT be reported", m);
             WARNING(m, "module %d SHOULD NOT be reported", m);
             ERROR(m, "module %d should be reported", m);
         } else {
             debug_module_set_name(m, NULL);
-            debug_module_set_level(m, DEBUG_LEVEL);
+            debug_module_set_minimum_reporting_level(m, DEBUG_LEVEL);
             DEBUG(m, "module %d should be reported", m);
             NOTIFY(m, "module %d should be reported", m);
             WARNING(m, "module %d should be reported", m);
