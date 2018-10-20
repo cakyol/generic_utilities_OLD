@@ -26,7 +26,6 @@ extern "C" {
 /* seconds to milli seconds multiplier */
 #define SEC_TO_MSEC_FACTOR                      (1000)
 
-
 /* seconds to micro seconds multiplier */
 #define SEC_TO_USEC_FACTOR                      (1000000LL)
 

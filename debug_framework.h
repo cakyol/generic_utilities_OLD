@@ -89,6 +89,23 @@ extern "C" {
 #include <assert.h>
 
 /*
+ * Levels of debugging.  Additional levels can be defined
+ * if needed as long as the HIGHEST_DEBUG_LEVEL numerically
+ * fits into a SINGLE byte (max 255).
+ */
+#define LOWEST_DEBUG_LEVEL	    0
+#define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
+#define NOTIFICATION_LEVEL          5
+#define WARNING_LEVEL               10
+#define ERROR_LEVEL                 15
+#define FATAL_ERROR_LEVEL           20
+#define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
+
+#if HIGHEST_DEBUG_LEVEL > 255
+    #error "HIGHEST_DEBUG_LEVEL is too high, should be <= 255"
+#endif
+
+/*
  * How many modules this debug infrastructure supports.
  * Redefine this as you wish.
  */
@@ -235,23 +252,6 @@ debug_module_set_reporting_function (int module,
  * be "M_17".
  */
 #define MODULE_NAME_SIZE                48
-
-/*
- * Levels of debugging.  Additional levels can be defined
- * if needed as long as the HIGHEST_DEBUG_LEVEL numerically
- * fits into a SINGLE byte (max 255).
- */
-#define LOWEST_DEBUG_LEVEL	    0
-#define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
-#define NOTIFICATION_LEVEL          5
-#define WARNING_LEVEL               10
-#define ERROR_LEVEL                 15
-#define FATAL_ERROR_LEVEL           20
-#define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
-
-#if HIGHEST_DEBUG_LEVEL > 255
-    #error "HIGHEST_DEBUG_LEVEL is too high, should be <= 255"
-#endif
 
 /*
  * each module can have a level set below which the debug messages
