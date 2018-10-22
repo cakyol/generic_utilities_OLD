@@ -4,8 +4,8 @@
 #include "debug_framework.h"
 
 #define TEST			0
-#define EXECUTE_ITERATIONS	((long long int) 20000000)
-#define CHECK_ITERATIONS	(1000 * EXECUTE_ITERATIONS)
+#define EXECUTE_ITERATIONS	((long long int) 10000000)
+#define CHECK_ITERATIONS	(1500 * EXECUTE_ITERATIONS)
 
 timer_obj_t tmr;
 
@@ -30,7 +30,7 @@ int main (int argc, char *argv[])
     printf("overhead of simply CHECKING debug framework\n");
     timer_report(&tmr, CHECK_ITERATIONS);
 
-    /* Now measure the overhead of reporting with an empy function */
+    /* Now measure the overhead of reporting with an empty function */
     printf("\ncalculating how much overhead is taken to execute framework\n");
     debug_module_set_reporting_function(TEST, do_nothing);
     debug_module_set_minimum_reporting_level(TEST, DEBUG_LEVEL);
