@@ -36,7 +36,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * MAX_DATA);
+    timer_report(&timr, ITER * MAX_DATA, NULL);
     printf("successfully added %d (found %d failed %d) of %d data (nodes %d)\n", 
         valid, found, failed, ITER*MAX_DATA, radix_tree_obj.node_count);
     OBJECT_MEMORY_USAGE(&radix_tree_obj, mem, megabytes);
@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * MAX_DATA);
+    timer_report(&timr, ITER * MAX_DATA, NULL);
     printf("successfully found %d valid entries out of a total of %d entries\n",
         valid, (ITER*MAX_DATA) - 1);
 

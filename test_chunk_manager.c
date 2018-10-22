@@ -69,7 +69,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&tp);
-    timer_report(&tp, iter);
+    timer_report(&tp, iter, NULL);
 #ifndef USE_MALLOC
     assert(MAX_CHUNKS+1 == chunk_manager_trim(&cmgr));
     assert(0 == chunk_manager_trim(&cmgr));

@@ -15,11 +15,19 @@ void do_nothing (char *message)
 
 int main (int argc, char *argv[])
 {
-    long long int i;
+    volatile long long int i;
+    double loop_overhead, total_overhead;
 
     debug_init();
 
-    /* First measure the overhead of NOT reporting */
+    /* First measure the overhead of the for loop alone */
+    printf("\nmeasuring the overhead of the for loop ...\n");
+    timer_start(&tmr);
+    for (i = 0; i < CHECK_ITERATIONS; i++) {
+    }
+    timer_end(&tmr);
+    timer_report(&tmr, CHECK_ITERATIONS, &loop_overhead);
+
     printf("\ncalculating how much overhead is taken to only CHECK debug framework\n");
     debug_module_set_minimum_reporting_level(TEST, ERROR_LEVEL);
     timer_start(&tmr);
@@ -28,7 +36,9 @@ int main (int argc, char *argv[])
     }
     timer_end(&tmr);
     printf("overhead of simply CHECKING debug framework\n");
-    timer_report(&tmr, CHECK_ITERATIONS);
+    timer_report(&tmr, CHECK_ITERATIONS, &total_overhead);
+    printf("exact overhead of debug checking: %.4lf nano seconds\n",
+	total_overhead - loop_overhead);
 
     /* Now measure the overhead of reporting with an empty function */
     printf("\ncalculating how much overhead is taken to execute framework\n");
@@ -40,7 +50,7 @@ int main (int argc, char *argv[])
     }
     timer_end(&tmr);
     printf("overhead of executing the debug framework\n");
-    timer_report(&tmr, EXECUTE_ITERATIONS);
+    timer_report(&tmr, EXECUTE_ITERATIONS, NULL);
 
     return 0;
 }

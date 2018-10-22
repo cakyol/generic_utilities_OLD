@@ -66,7 +66,7 @@ printf("FILLING INITIAL DATA\n");
     }
     timer_end(&timr);
     printf("INITIAL DATA FILLED, object expanded %d times\n", index.expansion_count);
-    timer_report(&timr, MAX_SZ);
+    timer_report(&timr, MAX_SZ, NULL);
 
     lodata.first = lodata.second = -5;
     hidata.first = hidata.second = MAX_SZ + 5;
@@ -93,7 +93,7 @@ printf("SEARCHING DATA\n");
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * MAX_SZ);
+    timer_report(&timr, ITER * MAX_SZ, NULL);
 
     printf ("\n\n\n");
 printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
@@ -118,7 +118,7 @@ printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
         }
     }
     timer_end(&timr);
-    timer_report(&timr, BIG_ITER * 2);
+    timer_report(&timr, BIG_ITER * 2, NULL);
 
     printf ("\n\n\n");
 printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
@@ -135,7 +135,7 @@ printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * 2 * 200);
+    timer_report(&timr, ITER * 2 * 200, NULL);
 
     printf ("\n\n\n");
     return 0;

@@ -41,7 +41,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, count);
+    timer_report(&timr, count, NULL);
     printf("\n");
 
     OBJECT_MEMORY_USAGE(&db, bytes_used, megabytes_used);
@@ -75,7 +75,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, count);
+    timer_report(&timr, count, NULL);
     printf("\n");
 
     /* delete objects */
@@ -92,7 +92,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, count);
+    timer_report(&timr, count, NULL);
     printf("\n");
 
     return 0;

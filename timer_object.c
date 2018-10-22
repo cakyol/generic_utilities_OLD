@@ -48,7 +48,8 @@ extern "C" {
 #define PUBLIC
 
 PUBLIC void 
-timer_report (timer_obj_t *tp, long long int iterations)
+timer_report (timer_obj_t *tp, long long int iterations,
+    double *returned_per_iteration_time_in_nsecs)
 {
     long long int start_ns, end_ns, elapsed_ns;
     double elapsed_s, per_iter;
@@ -61,6 +62,9 @@ timer_report (timer_obj_t *tp, long long int iterations)
         elapsed_s, elapsed_ns, iterations);
     per_iter = ((double) elapsed_ns / (double) iterations);
     printf("took %.3lf nano seconds per operation\n", per_iter);
+    if (returned_per_iteration_time_in_nsecs) {
+	*returned_per_iteration_time_in_nsecs = per_iter;
+    }
 }
 
 #ifdef __cplusplus

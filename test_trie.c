@@ -70,7 +70,7 @@ char *argv [];
         }
     }
     timer_end(&timr);
-    timer_report(&timr, total);
+    timer_report(&timr, total, NULL);
 
     printf("successfully added %d of %d strings to trie (nodes %d)\n", 
         count, total, trie_obj.node_count);
@@ -90,7 +90,7 @@ char *argv [];
     }
     timer_end(&timr);
     printf("found %d strings of %d strings\n", count, total);
-    timer_report(&timr, total);
+    timer_report(&timr, total, NULL);
 
     return 0;
 }

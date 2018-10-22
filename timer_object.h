@@ -116,7 +116,8 @@ nano_seconds_sleep (nano_seconds_t nsecs)
  * just a printf convenience
  */
 extern 
-void timer_report (timer_obj_t *tp, long long int iterations);
+void timer_report (timer_obj_t *tp, long long int iterations,
+    double *returned_per_iteration_time_in_nsecs);
 
 #ifdef __cplusplus
 } // extern C

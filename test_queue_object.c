@@ -38,7 +38,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER_COUNT);
+    timer_report(&timr, ITER_COUNT, NULL);
 
     n_stored = qobj.n;
     OBJECT_MEMORY_USAGE(&qobj, bytes, mbytes);
@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
         i++;
     }
     timer_end(&timr);
-    timer_report(&timr, i);
+    timer_report(&timr, i, NULL);
     assert((qobj.n == 0) && (i == n_stored));
     printf("\nqueue object is sane\n  capacity %d\n  expanded %d times\n"
             "  memory %lld bytes %f mbytes\n",

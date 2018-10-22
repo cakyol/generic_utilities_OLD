@@ -115,7 +115,7 @@ int main (int argc, char *argv[])
     }
     timer_end(&timr);
     printf("MUTEX ONLY:\n");
-    timer_report(&timr, MAX_ITERATION);
+    timer_report(&timr, MAX_ITERATION, NULL);
     /* give time to view screen before scroll off begins below */
     sleep(1);
 
@@ -129,7 +129,7 @@ int main (int argc, char *argv[])
     }
     timer_end(&timr);
     printf("ENTIRE LOCK OBJECT:\n");
-    timer_report(&timr, MAX_ITERATION);
+    timer_report(&timr, MAX_ITERATION, NULL);
     /* give time to view screen before scroll off begins below */
     sleep(1);
 

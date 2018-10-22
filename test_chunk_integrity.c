@@ -81,7 +81,7 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&tp);
-    timer_report(&tp, iter);
+    timer_report(&tp, iter, NULL);
     trimmed_chunks = chunk_manager_trim(&cmgr);
     printf("chunk manager grew %llu times and trimmed %d chunks\n",
             cmgr.grow_count, trimmed_chunks);
