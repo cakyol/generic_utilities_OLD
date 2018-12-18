@@ -51,6 +51,14 @@
 ** it does not have to be.  It is defined by the user.  By default however,
 ** for every module, a function is registered which prints to stderr only.
 **
+** To activate/include this in the source code, #include 'INCLUDE_ALL_DEBUGGING_CODE'.
+** Otherwise, all debug statements will compile to nothing mening they will
+** NOT impose ANY overhead to the code.  Note that however, whether the #include
+** is defined or not, error & fatal error messages will ALAYS be processed.
+**
+** As far as performance implications are concerned, the level checking
+** penalty is EXTREMELY small.
+**
 *******************************************************************************
 *******************************************************************************
 *******************************************************************************
