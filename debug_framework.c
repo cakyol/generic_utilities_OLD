@@ -137,10 +137,6 @@ _process_debug_message_ (int module, int level,
     int index, size_left, len;
 
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
-
-    /* make the last byte a 0 so any printing function stops here */
-    msg_buffer[size_left] = 0;
-
     len = index = 0;
     len += snprintf(&msg_buffer[index], size_left,
 		"%s: %s: <%s: %s: %d> ",
@@ -160,6 +156,9 @@ _process_debug_message_ (int module, int level,
     /* add a newline and terminate with a null */
     msg_buffer[len] = '\n';
     msg_buffer[len + 1] = 0;
+
+    /* precaution */
+    msg_buffer[DEBUG_MESSAGE_BUFFER_SIZE - 1] = 0;
 
     /*
      * do the actual printing/reporting operation here using

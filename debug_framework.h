@@ -256,7 +256,7 @@ debug_module_set_reporting_function (int module,
 /*
  * each module can have a level set below which the debug messages
  * do not get reported.  Also, each one does have its own 'reporting' 
- * function.  This helps report each module differently if the need be.
+ * function.  This helps each module report differently if need be.
  * Some can write to the output, some into a file,. etc etc.  It is
  * totally user driven.
  *

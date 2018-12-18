@@ -19,10 +19,13 @@
 ** as ownership and/or patent claims are NOT made to it by ANYONE
 ** or ANY ENTITY.
 **
-** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+** It ALWAYS is and WILL remain the sole property of Cihangir Metin Akyol.
 **
-** For proper indentation viewing, no tabs are used.  This way, every
-** text editor should display the code properly.
+** For proper indentation/viewing, regardless of which editor is being used,
+** no tabs are used, ONLY spaces are used and the width of lines never
+** exceed 80 characters.  This way, every text editor/terminal should
+** display the code properly.  If modifying, please stick to this
+** convention.
 **
 *******************************************************************************
 *******************************************************************************
