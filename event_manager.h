@@ -41,7 +41,7 @@
 ** Currently events are divided into two precise categories:
 **
 **  - object events are events which are generated when an object
-**    TYPE (not type and instance.. type ONLY) is created or deleted.  
+**    created or deleted.  
 **
 **  - attribute events are events which are generated when a new
 **    attribute id is added to an object or an existing attribute id
@@ -49,9 +49,14 @@
 **
 ** Users can register to be notified of both of these types of events.
 **
-** Note that events are notified on a per object TYPE basis.  The
-** specific object instance cannot be specified.  This would make 
-** the manager too complex and extremely granular.
+** Note that users can register for either of these events based ONLY
+** on the type of the object (not the instance).  Including filtering
+** also based on instance numbers would make the system too complex
+** and extremely granular.  Having said that, when an event is reported,
+** the event record WILL contain the instance of the object that the
+** event applies to.  The limitation is that the user cannot REGISTER
+** for a specific instance.  In summary, users can NOT register with instance
+** numbers but WILL be notified of the instance when the event is reported.
 **
 ** There are two ways of registering for either type of events.
 ** One is to register in a way so that events are reported for
