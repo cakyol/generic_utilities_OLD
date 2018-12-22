@@ -41,12 +41,13 @@ debug_module_data_t module_levels [MAX_MODULES] = {
     }
 };
 
-
 /*
  * debug level number to debug level name string lookup table.
  */
 #define DEBUG_LEVEL_SPAN	(HIGHEST_DEBUG_LEVEL - LOWEST_DEBUG_LEVEL + 1)
 static char *debug_level_names [DEBUG_LEVEL_SPAN] = { "???" };
+static int indent = 0;
+#define INDENT	2
 
 void
 default_debug_reporting_function (char *debug_string)
@@ -58,14 +59,18 @@ default_debug_reporting_function (char *debug_string)
 static void
 default_function_entry_report (char *fn_name, char *filename, int line)
 {
-    fprintf(stderr, "ENTERED %s <%s:%d>\n", fn_name, filename, line);
+    fprintf(stderr, "%*sENTERED FUNCTION %s <%s:%d>\n",
+	indent, "", fn_name, filename, line);
+	indent += INDENT;
     fflush(stderr);
 }
 
 static void
 default_function_exit_report (char *fn_name, char *filename, int line)
 {
-    fprintf(stderr, "EXITING %s <%s:%d>\n", fn_name, filename, line);
+    indent -= INDENT;
+    fprintf(stderr, "%*sEXITING FUNCTION %s <%s:%d>\n",
+	indent, "", fn_name, filename, line);
     fflush(stderr);
 }
 

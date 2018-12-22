@@ -2,6 +2,33 @@
 #include <unistd.h>
 #include "debug_framework.h"
 
+int function1 (void)
+{
+    FENTER;
+    FEXIT(0);
+}
+
+int function2 (void)
+{
+    FENTER;
+    function1();
+    FEXIT(0);
+}
+
+int function3 (void)
+{
+    FENTER;
+    function2();
+    FEXIT(0);
+}
+
+int function4 (void)
+{
+    FENTER;
+    function3();
+    FEXIT(0);
+}
+
 int main (int argc, char *argv[])
 {
     int m;
@@ -45,6 +72,8 @@ int main (int argc, char *argv[])
         WARNING(m, "module %d SHOULD NOT be reported", m);
         ERROR(m, "module %d SHOULD NOT be reported", m);
     }
+
+    function4();
 
     FEXIT(0); 
 }
