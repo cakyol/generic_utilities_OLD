@@ -8,6 +8,8 @@ int main (int argc, char *argv[])
     char name [64];
 
     debug_init();
+
+    FENTER;
     fprintf(stderr, "\n\nsizeof debg framework for %d modules is %lu bytes\n\n",
             MAX_MODULES, sizeof(module_levels));
     for (m = 0; m < 10; m++) {
@@ -44,9 +46,7 @@ int main (int argc, char *argv[])
         ERROR(m, "module %d SHOULD NOT be reported", m);
     }
 
-    FATAL_ERROR(0, "finishing module %d with a fatal error", m);
-    while (1);
-    return 0;
+    FEXIT(0); 
 }
 
 

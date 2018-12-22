@@ -145,6 +145,16 @@ extern "C" {
 typedef void (*debug_reporting_function_t)(char*);
 
 /*
+ * This is the definition of reporting function when function tracing is
+ * done.  This reports when a function is entered and exited.  The first
+ * parameter is true if a function is being entered.  Otherwise, it indicates
+ * that the function is being exited.  Rest of the params are the
+ * function name, file name and the line number at which the event occured.
+ */
+typedef void (*function_trace_reporting_fp_t)
+    (int enter, char *fn_name, char *filename, int line);
+
+/*
  * Call this to initialize the debug framework.
  * For all modules, default levels, reporting functions
  * and module names will be used.
@@ -172,12 +182,32 @@ debug_module_set_reporting_function (int module,
         debug_reporting_function_t drf);
 
 /*
+ * This one sets the function to call when function entry/exit tracing is 
+ * enabled.  By default, it will print to stderr.
+ */
+extern int
+debug_module_set_function_trace_reporter (debug_reporting_function_t drf);
+
+/*
  * ***************************************************************************
  * These macros report (or not) depending on the debug level
  * threshold set for the specific module.
  */
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
+
+    extern function_trace_reporting_fp_t ftrfp;
+
+    /* function enter */
+    #define FENTER \
+	ftrfp(1, (char*) __FUNCTION__, (char*)  __FILE__, __LINE__)
+
+    /* function function exit */
+    #define FEXIT(expr) \
+	do { \
+	    ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
+	    return((expr)); \
+	} while (0)
 
     /* lowest level of reporting */
     #define DEBUG(module, fmt, args...) \
@@ -208,6 +238,8 @@ debug_module_set_reporting_function (int module,
 
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
+    #define FENTER
+    #define FEXIT(expr)
     #define DEBUG(module, fmt, args...)
     #define NOTIFY(module, fmt, args...)
     #define WARNING(module, fmt, args...)
@@ -283,6 +315,8 @@ debug_module_data_t module_levels [MAX_MODULES];
 
 extern void
 default_debug_reporting_function (char *debug_message);
+
+extern debug_reporting_function_t function_trace_reporter;
 
 /*
  * Report if the current debug level set for this module is less than or

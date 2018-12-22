@@ -56,6 +56,34 @@ default_debug_reporting_function (char *debug_string)
 }
 
 static void
+default_function_entry_report (char *fn_name, char *filename, int line)
+{
+    fprintf(stderr, "ENTERED %s <%s:%d>\n", fn_name, filename, line);
+    fflush(stderr);
+}
+
+static void
+default_function_exit_report (char *fn_name, char *filename, int line)
+{
+    fprintf(stderr, "EXITING %s <%s:%d>\n", fn_name, filename, line);
+    fflush(stderr);
+}
+
+static void
+default_function_trace_reporting_function (int enter,
+    char *fn_name, char *filename, int line)
+{
+    if (enter) {
+	default_function_entry_report(fn_name, filename, line);
+    } else {
+	default_function_exit_report(fn_name, filename, line);
+    }
+}
+
+function_trace_reporting_fp_t ftrfp =
+    default_function_trace_reporting_function;
+
+static void
 set_default_module_name (int m)
 {
     sprintf(module_levels[m].name, "M_%d", m);
@@ -76,6 +104,7 @@ debug_init (void)
         module_levels[m].level = ERROR_LEVEL;
         module_levels[m].drf = default_debug_reporting_function;
     }
+    ftrfp = default_function_trace_reporting_function;
 }
 
 #define CHECK_MODULE_NUMBER(m)	\
@@ -119,6 +148,12 @@ debug_module_set_reporting_function (int module,
     CHECK_MODULE_NUMBER(module);
     module_levels[module].drf = drf ? drf : default_debug_reporting_function;
     return 0;
+}
+
+void
+debug_module_set_function_trace_reporting_fp (function_trace_reporting_fp_t new_fp)
+{
+    ftrfp = new_fp ? new_fp : default_function_trace_reporting_function;
 }
 
 /*
