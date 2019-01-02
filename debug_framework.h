@@ -199,14 +199,21 @@ debug_module_set_function_trace_reporter (debug_reporting_function_t drf);
     extern function_trace_reporting_fp_t ftrfp;
 
     /* function enter */
-    #define FENTER \
+    #define F_ENTER \
 	ftrfp(1, (char*) __FUNCTION__, (char*)  __FILE__, __LINE__)
 
-    /* function function exit */
-    #define FEXIT(expr) \
+    /* function exit WITHOUT returning anything */
+    #define F_EXIT \
 	do { \
 	    ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
-	    return((expr)); \
+	    return; \
+	} while (0)
+
+    /* function exit RETURNING a value */
+    #define F_EXIT_V(value) \
+	do { \
+	    ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
+	    return((value)); \
 	} while (0)
 
     /* lowest level of reporting */

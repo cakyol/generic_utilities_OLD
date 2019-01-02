@@ -59,7 +59,7 @@ default_debug_reporting_function (char *debug_string)
 static void
 default_function_entry_report (char *fn_name, char *filename, int line)
 {
-    fprintf(stderr, "%*sENTERED FUNCTION %s <%s:%d>\n",
+    fprintf(stderr, "%*sENTERED %s <%s:%d>\n",
 	indent, "", fn_name, filename, line);
 	indent += INDENT;
     fflush(stderr);
@@ -69,7 +69,7 @@ static void
 default_function_exit_report (char *fn_name, char *filename, int line)
 {
     indent -= INDENT;
-    fprintf(stderr, "%*sEXITING FUNCTION %s <%s:%d>\n",
+    fprintf(stderr, "%*sEXITING %s <%s:%d>\n",
 	indent, "", fn_name, filename, line);
     fflush(stderr);
 }

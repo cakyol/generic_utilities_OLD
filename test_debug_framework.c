@@ -2,31 +2,31 @@
 #include <unistd.h>
 #include "debug_framework.h"
 
-int function1 (void)
+void function1 (void)
 {
-    FENTER;
-    FEXIT(0);
+    F_ENTER;
+    F_EXIT;
 }
 
 int function2 (void)
 {
-    FENTER;
+    F_ENTER;
     function1();
-    FEXIT(0);
+    F_EXIT_V(0);
 }
 
 int function3 (void)
 {
-    FENTER;
+    F_ENTER;
     function2();
-    FEXIT(0);
+    F_EXIT_V(0);
 }
 
 int function4 (void)
 {
-    FENTER;
+    F_ENTER;
     function3();
-    FEXIT(0);
+    F_EXIT_V(0);
 }
 
 int main (int argc, char *argv[])
@@ -36,7 +36,7 @@ int main (int argc, char *argv[])
 
     debug_init();
 
-    FENTER;
+    F_ENTER;
     fprintf(stderr, "\n\nsizeof debg framework for %d modules is %lu bytes\n\n",
             MAX_MODULES, sizeof(module_levels));
     for (m = 0; m < 10; m++) {
@@ -75,7 +75,7 @@ int main (int argc, char *argv[])
 
     function4();
 
-    FEXIT(0); 
+    F_EXIT_V(0); 
 }
 
 
