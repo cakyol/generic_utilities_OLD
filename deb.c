@@ -1,72 +1,75 @@
 
 #include <stdio.h>
 
-/*
- * Declare a byte for module <module_name>.
- * This will contain the highest level of debug
- * messages that module is allowed to process.
- * The higher the bit, the higher the level of
- * messages it can report.
- */
-#define DEFINE_DEBUG_MODULE(module_name) \
-    char debug_variable_for_module_ ## module_name
+typedef unsigned char debug_flag_t;
 
-#define DEBUG_LEVEL		(0b1)
-#define INFO_LEVEL		(0b11)
-#define WARNING_LEVEL		(0b111)
-#define ERROR_LEVEL		(0b1111)
+#define DEBUG_LEVEL             (0b00000001)
+#define DEBUG_LEVEL_MASK        (0b11111111)
 
-#define DEBUG_LEVEL_MASK	(0b1)
-#define INFO_LEVEL_MASK		(0b10)
-#define WARNING_LEVEL_MASK	(0b100)
-#define ERROR_LEVEL_MASK	(0b1000)
+#define INFORMATION_LEVEL       (0b00000010)
+#define INFORMATION_LEVEL_MASK  (0b11111110)
 
-/*
- * Turn off ALL debugging for module <module_name>
- */
-#define TURN_DEBUG_OFF(module_name) \
-    debug_variable_for_module_ ## module_name = 0;
+#define WARNING_LEVEL           (0b00000100)
+#define WARNING_LEVEL_MASK      (0b11111100)
 
-/*
- * Set the level of debugging for module <module_name>
- * to DEBUG level (lowest level)
- */
-#define SET_DEBUG_LEVEL_TO_DEBUG(module_name) \
-    debug_variable_for_module_ ## module_name = DEBUG_LEVEL
+#define ERROR_LEVEL             (0b00001000)
+#define ERROR_LEVEL_MASK        (0b11111000)
 
-/*
- * Set the level of debugging for module <module_name>
- * to INFO level (one level more than DEBUG)
- */
-#define SET_DEBUG_LEVEL_TO_INFO(module_name) \
-    debug_variable_for_module_ ## module_name = INFO_LEVEL
+#ifdef INCLUDE_ALL_DEBUGGING_CODE
 
-/*
- * Set the level of debugging for module <module_name>
- * to WARNING level (two levels more than DEBUG)
- */
-#define SET_DEBUG_LEVEL_TO_WARNING(module_name) \
-    debug_variable_for_module_ ## module_name = WARNING_LEVEL
+#define ENABLE_DEBUG(module)         (module = DEBUG_LEVEL)
+#define ENABLE_INFORMATION(module)   (module = INFORMATION_LEVEL)
+#define ENABLE_WARNING(module)       (module = WARNING_LEVEL)
+#define ENABLE_ERROR(module)         (module = ERROR_LEVEL)
+
+#define DEBUG(module, fmt, args...) \
+    do { \
+        if (module & DEBUG_LEVEL_MASK) { \
+            _process_debug_message_(module, DEBUG_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
+    } while (0)
+
+#define INFORMATION(module, fmt, args...) \
+    do { \
+        if (module & INFORMATION_LEVEL_MASK) { \
+            _process_debug_message_(module, INFORMATION_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
+    } while (0)
+
+#define WARNING(module, fmt, args...) \
+    do { \
+        if (module & WARNING_LEVEL_MASK) { \
+            _process_debug_message_(module, WARNING_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
+    } while (0)
 
 /*
- * Set the level of debugging for module <module_name>
- * to ERROR level (highest level)
+ * Should this always report regardless ?
  */
-#define SET_DEBUG_LEVEL_TO_ERROR(module_name) \
-    debug_variable_for_module_ ## module_name = ERROR_LEVEL
+#define ERROR(module, fmt, args...) \
+    do { \
+        if (module & ERROR_LEVEL_MASK) { \
+            _process_debug_message_(module, ERROR_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
+    } while (0)
 
-#define CAN_REPORT_DEBUG(module_name) \
-    (debug_variable_for_module_ ## module_name & DEBUG_LEVEL_MASK)
-#define CAN_REPORT_INFO(module_name) \
-    (debug_variable_for_module_ ## module_name & INFO_LEVEL_MASK)
-#define CAN_REPORT_WARNING(module_name) \
-    (debug_variable_for_module_ ## module_name & WARNING_LEVEL_MASK)
-#define CAN_REPORT_ERROR(module_name) \
-    (debug_variable_for_module_ ## module_name & ERROR_LEVEL_MASK)
+#else /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
-DEFINE_DEBUG_MODULE(mmm);
-DEFINE_DEBUG_MODULE(mmm);
-DEFINE_DEBUG_MODULE(mmm);
+    #define ENABLE_DEBUG(module)
+    #define ENABLE_INFORMATION(module)
+    #define ENABLE_WARNING(module)
+    #define ENABLE_ERROR(module)
+
+    #define DEBUG(module, fmt, args...)
+    #define INFORMATION(module, fmt, args...)
+    #define WARNING(module, fmt, args...)
+    #define ERROR(module, fmt, args...) \
+
+#endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
 int main (int argc, char *argv[])
 {
@@ -74,35 +77,35 @@ int main (int argc, char *argv[])
 
     for (i = 0; i < 5; i++) {
 
-	TURN_DEBUG_OFF(mmm);
-	if (CAN_REPORT_DEBUG(mmm)) printf("INCORRECT\n");
-	if (CAN_REPORT_INFO(mmm)) printf("INCORRECT\n");
-	if (CAN_REPORT_WARNING(mmm)) printf("INCORRECT\n");
-	if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
+    TURN_DEBUG_OFF(mmm);
+    if (CAN_REPORT_DEBUG(mmm)) printf("INCORRECT\n");
+    if (CAN_REPORT_INFO(mmm)) printf("INCORRECT\n");
+    if (CAN_REPORT_WARNING(mmm)) printf("INCORRECT\n");
+    if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
 
-	SET_DEBUG_LEVEL_TO_DEBUG(mmm);
-	if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
-	if (CAN_REPORT_INFO(mmm)) printf("INCORRECT\n");
-	if (CAN_REPORT_WARNING(mmm)) printf("INCORRECT\n");
-	if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
+    SET_DEBUG_LEVEL_TO_DEBUG(mmm);
+    if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
+    if (CAN_REPORT_INFO(mmm)) printf("INCORRECT\n");
+    if (CAN_REPORT_WARNING(mmm)) printf("INCORRECT\n");
+    if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
 
-	SET_DEBUG_LEVEL_TO_INFO(mmm);
-	if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
-	if (CAN_REPORT_INFO(mmm)) printf("correct\n");
-	if (CAN_REPORT_WARNING(mmm)) printf("INCORRECT\n");
-	if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
+    SET_DEBUG_LEVEL_TO_INFO(mmm);
+    if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
+    if (CAN_REPORT_INFO(mmm)) printf("correct\n");
+    if (CAN_REPORT_WARNING(mmm)) printf("INCORRECT\n");
+    if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
 
-	SET_DEBUG_LEVEL_TO_WARNING(mmm);
-	if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
-	if (CAN_REPORT_INFO(mmm)) printf("correct\n");
-	if (CAN_REPORT_WARNING(mmm)) printf("correct\n");
-	if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
+    SET_DEBUG_LEVEL_TO_WARNING(mmm);
+    if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
+    if (CAN_REPORT_INFO(mmm)) printf("correct\n");
+    if (CAN_REPORT_WARNING(mmm)) printf("correct\n");
+    if (CAN_REPORT_ERROR(mmm)) printf("INCORRECT\n");
 
-	SET_DEBUG_LEVEL_TO_ERROR(mmm);
-	if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
-	if (CAN_REPORT_INFO(mmm)) printf("correct\n");
-	if (CAN_REPORT_WARNING(mmm)) printf("correct\n");
-	if (CAN_REPORT_ERROR(mmm)) printf("correct\n");
+    SET_DEBUG_LEVEL_TO_ERROR(mmm);
+    if (CAN_REPORT_DEBUG(mmm)) printf("correct\n");
+    if (CAN_REPORT_INFO(mmm)) printf("correct\n");
+    if (CAN_REPORT_WARNING(mmm)) printf("correct\n");
+    if (CAN_REPORT_ERROR(mmm)) printf("correct\n");
     }
     return 0;
 }
