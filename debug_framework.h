@@ -101,13 +101,13 @@ extern "C" {
  * if needed as long as the HIGHEST_DEBUG_LEVEL numerically
  * fits into a SINGLE byte (max 255).
  */
-#define LOWEST_DEBUG_LEVEL	    0
+#define LOWEST_DEBUG_LEVEL      0
 #define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
 #define NOTIFICATION_LEVEL          5
 #define WARNING_LEVEL               10
 #define ERROR_LEVEL                 15
 #define FATAL_ERROR_LEVEL           20
-#define HIGHEST_DEBUG_LEVEL	    FATAL_ERROR_LEVEL
+#define HIGHEST_DEBUG_LEVEL     FATAL_ERROR_LEVEL
 
 #if HIGHEST_DEBUG_LEVEL > 255
     #error "HIGHEST_DEBUG_LEVEL is too high, should be <= 255"
@@ -179,7 +179,7 @@ debug_module_set_minimum_reporting_level (int module, int level);
 
 extern int
 debug_module_set_reporting_function (int module,
-        debug_reporting_function_t drf);
+    debug_reporting_function_t drf);
 
 /*
  * This one sets the function to call when function entry/exit tracing is 
@@ -200,47 +200,47 @@ debug_module_set_function_trace_reporter (debug_reporting_function_t drf);
 
     /* function enter */
     #define F_ENTER \
-	ftrfp(1, (char*) __FUNCTION__, (char*)  __FILE__, __LINE__)
+        ftrfp(1, (char*) __FUNCTION__, (char*)  __FILE__, __LINE__)
 
     /* function exit WITHOUT returning anything */
     #define F_EXIT \
-	do { \
-	    ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
-	    return; \
-	} while (0)
+        do { \
+            ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
+            return; \
+        } while (0)
 
     /* function exit RETURNING a value */
     #define F_EXIT_V(value) \
-	do { \
-	    ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
-	    return((value)); \
-	} while (0)
+        do { \
+            ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
+            return((value)); \
+        } while (0)
 
     /* lowest level of reporting */
     #define DEBUG(module, fmt, args...) \
-	do { \
-	    if (__module_can_report__(module, DEBUG_LEVEL)) { \
-		_process_debug_message_(module, DEBUG_LEVEL, \
-		    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	    } \
-	} while (0)
+    do { \
+        if (__module_can_report__(module, DEBUG_LEVEL)) { \
+            _process_debug_message_(module, DEBUG_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
+    } while (0)
 
     /* one higher level of reporting */
     #define NOTIFY(module, fmt, args...) \
-	do { \
-	    if (__module_can_report__(module, NOTIFICATION_LEVEL)) { \
-		_process_debug_message_(module, NOTIFICATION_LEVEL, \
-		    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	    } \
-	} while (0)
+    do { \
+        if (__module_can_report__(module, NOTIFICATION_LEVEL)) { \
+            _process_debug_message_(module, NOTIFICATION_LEVEL, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
+    } while (0)
 
     /* one higher level of reporting */
     #define WARNING(module, fmt, args...) \
-	do { \
-	    if (__module_can_report__(module, WARNING_LEVEL)) { \
-		_process_debug_message_(module, WARNING_LEVEL, \
-		    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	    } \
+    do { \
+        if (__module_can_report__(module, WARNING_LEVEL)) { \
+            _process_debug_message_(module, WARNING_LEVEL, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
     } while (0)
 
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
@@ -261,18 +261,18 @@ debug_module_set_function_trace_reporter (debug_reporting_function_t drf);
  */
 #define ERROR(module, fmt, args...) \
     do { \
-	if ((module >= 0) && (module < MAX_MODULES)) { \
-	    _process_debug_message_(module, ERROR_LEVEL, \
-		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	} \
+        if ((module >= 0) && (module < MAX_MODULES)) { \
+            _process_debug_message_(module, ERROR_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
     } while (0)
 
 #define FATAL_ERROR(module, fmt, args...) \
     do { \
-	if ((module >= 0) && (module < MAX_MODULES)) { \
-	    _process_debug_message_(module, FATAL_ERROR_LEVEL, \
-		__FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-	} \
+        if ((module >= 0) && (module < MAX_MODULES)) { \
+            _process_debug_message_(module, FATAL_ERROR_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        } \
     } while (0)
 
 /******************************************************************************/
@@ -333,8 +333,8 @@ static inline int
 __module_can_report__ (int module, int level) 
 {
     return
-	(module >= 0) && (module < MAX_MODULES) &&
-	    (level >= module_levels[module].level);
+        (module >= 0) && (module < MAX_MODULES) &&
+            (level >= module_levels[module].level);
 }
 
 extern void
