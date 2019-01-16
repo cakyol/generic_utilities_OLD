@@ -5,7 +5,7 @@ const char *debug_string = "DEBUG";
 const char *information_string = "INFORMATION";
 const char *warning_string = "WARNING";
 const char *error_string = "ERROR";
-const char *fatal_error_string = "FATAL_ERROR";
+const char *fatal_error_string = "FATAL";
 
 static void
 default_debug_reporting_function (const char *msg)
@@ -115,7 +115,7 @@ int main (int argc, char *argv[])
         ERROR("module", flag, "%s", correct);
     }
 
-    FATAL_ERROR("CRASH", "CRASHING DELIBERATELY %d", i);
+    FATAL("CRASH", "CRASHING DELIBERATELY %d", i);
     return 0;
 }
 

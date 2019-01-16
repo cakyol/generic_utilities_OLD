@@ -126,7 +126,7 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
             } \
         } while (0)
 
-    #define FATAL_ERROR(module_name, fmt, args...) \
+    #define FATAL(module_name, fmt, args...) \
         do { \
             _process_debug_message_(module_name, fatal_error_string, \
                 __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
