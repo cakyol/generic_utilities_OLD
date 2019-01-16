@@ -7,6 +7,25 @@ const char *warning_string = "WARNING";
 const char *error_string = "ERROR";
 const char *fatal_error_string = "FATAL_ERROR";
 
+static void
+default_debug_reporting_function (char *msg)
+{
+    fprintf(stderr, msg);
+}
+
+static 
+debug_reporting_function_pointer debug_reporter = default_debug_reporting_function;
+
+void
+debugger_set_reporting_function (debug_reporting_function_pointer fn)
+{
+    if (fn) {
+        debug_reporter = fn;
+    } else {
+        debug_reporter = default_debug_reporting_function;
+    }
+}
+
 void
 _process_debug_message_ (char *module_name, const char *level,
     const char *file_name, const char *function_name, int line_number,
@@ -43,16 +62,24 @@ _process_debug_message_ (char *module_name, const char *level,
      * do the actual printing/reporting operation here using
      * the currently registered debug printing function
      */
-    //module_number_levels[module_number].drf(msg_buffer);
-    printf("%s", msg_buffer);
+    debug_reporter(msg_buffer);
 }
 
 char *correct = "correct";
 char *incorrect = "*** INCORRECT ***";
 
+void report (char *msg)
+{
+    static int xxx = 0;
+    xxx++;
+    printf("%d\n", xxx);
+}
+
 int main (int argc, char *argv[])
 {
     int i, flag;
+
+    debugger_set_reporting_function(NULL);
 
     for (i = 0; i < 5; i++) {
 

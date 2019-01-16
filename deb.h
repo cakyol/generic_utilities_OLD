@@ -1,16 +1,59 @@
 
+/******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+**
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com, gee_akyol@yahoo.com
+** Copyright: Cihangir Metin Akyol, April 2014 -> ....
+**
+** All this code has been personally developed by and belongs to 
+** Mr. Cihangir Metin Akyol.  It has been developed in his own 
+** personal time using his own personal resources.  Therefore,
+** it is NOT owned by any establishment, group, company or 
+** consortium.  It is the sole property and work of the named
+** individual.
+**
+** It CAN be used by ANYONE or ANY company for ANY purpose as long 
+** as ownership and/or patent claims are NOT made to it by ANYONE
+** or ANY ENTITY.
+**
+** It ALWAYS is and WILL remain the sole property of Cihangir Metin Akyol.
+**
+** For proper indentation/viewing, regardless of which editor is being used,
+** no tabs are used, ONLY spaces are used and the width of lines never
+** exceed 80 characters.  This way, every text editor/terminal should
+** display the code properly.  If modifying, please stick to this
+** convention.
+**
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+*******************************************************************************
+******************************************************************************/
+
+#ifndef __DEBUG__H__
+#define __DEBUG__H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-#undef NDEBUG
 #include <assert.h>
 
-#define INCLUDE_ALL_DEBUGGING_CODE
-
 typedef unsigned char module_debug_flag_t;
+typedef void (*debug_reporting_function_pointer)(char *msg);
+
+extern void
+debugger_set_reporting_function (debug_reporting_function_pointer fn);
+
+#define INCLUDE_ALL_DEBUGGING_CODE
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
@@ -121,6 +164,11 @@ _process_debug_message_ (char *module_name, const char *level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...);
 
+#ifdef __cplusplus
+} // extern C
+#endif
+
+#endif /* __DEBUG__H__ */
 
 
 
