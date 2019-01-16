@@ -47,8 +47,25 @@ extern "C" {
 #include <stdio.h>
 #include <assert.h>
 
+/*
+ * This is a debug flag which contains the level for which debug
+ * messages for it can be processed.  Every module can have its 
+ * own debug flag.
+ */
 typedef unsigned char module_debug_flag_t;
-typedef void (*debug_reporting_function_pointer)(char *msg);
+
+/*
+ * By default, all outputs from this debug framework go to stderr.
+ * If you want to perform different operations, define your own
+ * handling function.
+ *
+ * The function takes one char* parameter, which is the fully 
+ * formatted, newline & NULL terminated string.  It returns
+ * nothing.
+ *
+ * Your function should NOT change the string.
+ */
+typedef void (*debug_reporting_function_pointer)(const char *msg);
 
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
@@ -57,18 +74,23 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
+    /* Turn off all debugging for this module */
     #define DISABLE_ALL_DEBUGS(module_debug_flag) \
         (module_debug_flag = 0)
 
+    /* Turn on all debugging from lowest level up */
     #define ENABLE_DEBUG_LEVEL(module_debug_flag) \
         (module_debug_flag = DEBUG_LEVEL)
 
+    /* Turn on all debug messages information level & up */
     #define ENABLE_INFORMATION_LEVEL(module_debug_flag) \
         (module_debug_flag = INFORMATION_LEVEL)
 
+    /* Turn on all debug messages warning level & up */
     #define ENABLE_WARNING_LEVEL(module_debug_flag) \
         (module_debug_flag = WARNING_LEVEL)
 
+    /* Turn on all debug messages error level & up */
     #define ENABLE_ERROR_LEVEL(module_debug_flag) \
         (module_debug_flag = ERROR_LEVEL)
 

@@ -8,9 +8,9 @@ const char *error_string = "ERROR";
 const char *fatal_error_string = "FATAL_ERROR";
 
 static void
-default_debug_reporting_function (char *msg)
+default_debug_reporting_function (const char *msg)
 {
-    fprintf(stderr, msg);
+    fprintf(stderr, "%s", msg);
 }
 
 static 
@@ -41,8 +41,8 @@ _process_debug_message_ (char *module_name, const char *level,
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
     len = index = 0;
     len += snprintf(&msg_buffer[index], size_left,
-		"%s %s: <%s: %s(%d)> ",
-		module_name, level, file_name, function_name, line_number);
+		"%s: module %s: <%s: %s(%d)> ",
+		level, module_name, file_name, function_name, line_number);
 
     size_left -= len;
     index += len;
