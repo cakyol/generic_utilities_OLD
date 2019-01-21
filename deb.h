@@ -75,23 +75,23 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
     /* Turn off all debugging for this module */
-    #define DISABLE_ALL_DEBUGS(module_debug_flag) \
+    #define DEBUGGER_DISABLE(module_debug_flag) \
         (module_debug_flag = 0)
 
     /* Turn on all debugging from lowest level up */
-    #define ENABLE_DEBUG_LEVEL(module_debug_flag) \
+    #define DEBUGGER_ENABLE_DEBUG(module_debug_flag) \
         (module_debug_flag = DEBUG_LEVEL)
 
     /* Turn on all debug messages information level & up */
-    #define ENABLE_INFORMATION_LEVEL(module_debug_flag) \
+    #define DEBUGGER_ENABLE_INFO(module_debug_flag) \
         (module_debug_flag = INFORMATION_LEVEL)
 
     /* Turn on all debug messages warning level & up */
-    #define ENABLE_WARNING_LEVEL(module_debug_flag) \
+    #define DEBUGGER_ENABLE_WARNING(module_debug_flag) \
         (module_debug_flag = WARNING_LEVEL)
 
     /* Turn on all debug messages error level & up */
-    #define ENABLE_ERROR_LEVEL(module_debug_flag) \
+    #define DEBUGGER_ENABLE_ERROR(module_debug_flag) \
         (module_debug_flag = ERROR_LEVEL)
 
     #define DEBUG(module_name, module_debug_flag, fmt, args...) \
@@ -102,10 +102,10 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
             } \
         } while (0)
     
-    #define INFORMATION(module_name, module_debug_flag, fmt, args...) \
+    #define INFO(module_name, module_debug_flag, fmt, args...) \
         do { \
             if (module_debug_flag & INFORMATION_LEVEL_MASK) { \
-                _process_debug_message_(module_name, information_string, \
+                _process_debug_message_(module_name, info_string, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
             } \
         } while (0)
@@ -135,17 +135,17 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
     
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
  
-    #define DISABLE_ALL_DEBUGS(module_debug_flag)
-    #define ENABLE_DEBUG_LEVEL(module_debug_flag)
-    #define ENABLE_INFORMATION_LEVEL(module_debug_flag)
-    #define ENABLE_WARNING_LEVEL(module_debug_flag)
-    #define ENABLE_ERROR_LEVEL(module_debug_flag)
+    #define DEBUGGER_DISABLE(module_debug_flag)
+    #define DEBUGGER_ENABLE_DEBUG(module_debug_flag)
+    #define DEBUGGER_ENABLE_INFO(module_debug_flag)
+    #define DEBUGGER_ENABLE_WARNING(module_debug_flag)
+    #define DEBUGGER_ENABLE_ERROR(module_debug_flag)
 
     #define DEBUG(module_name, module_debug_flag, fmt, args...)
-    #define INFORMATION(module_name, module_debug_flag, fmt, args...)
+    #define INFO(module_name, module_debug_flag, fmt, args...)
     #define WARNING(module_name, module_debug_flag, fmt, args...)
     #define ERROR(module_name, module_debug_flag, fmt, args...)
-    #define FATAL_ERROR(module_name, fmt, args...)
+    #define FATAL(module_name, fmt, args...)
 
 #endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
@@ -176,7 +176,7 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
 #define FATAL_ERROR_LEVEL       (0b00010000)
 
 extern const char *debug_string;
-extern const char *information_string;
+extern const char *info_string;
 extern const char *warning_string;
 extern const char *error_string;
 extern const char *fatal_error_string;

@@ -2,7 +2,7 @@
 #include "deb.h"
 
 const char *debug_string = "DEBUG";
-const char *information_string = "INFORMATION";
+const char *info_string = "INFO";
 const char *warning_string = "WARNING";
 const char *error_string = "ERROR";
 const char *fatal_error_string = "FATAL";
@@ -83,34 +83,34 @@ int main (int argc, char *argv[])
 
     for (i = 0; i < 5; i++) {
 
-        DISABLE_ALL_DEBUGS(flag);
+        DEBUGGER_DISABLE(flag);
 
         DEBUG("module", flag, "%s", incorrect);
-        INFORMATION("module", flag, "%s", incorrect);
+        INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", incorrect);
         ERROR("module", flag, "%s", incorrect);
         
-        ENABLE_DEBUG_LEVEL(flag);
+        DEBUGGER_ENABLE_DEBUG(flag);
         DEBUG("module", flag, "%s", correct);
-        INFORMATION("module", flag, "%s", correct);
+        INFO("module", flag, "%s", correct);
         WARNING("module", flag, "%s", correct);
         ERROR("module", flag, "%s", correct);
 
-        ENABLE_INFORMATION_LEVEL(flag);
+        DEBUGGER_ENABLE_INFO(flag);
         DEBUG("module", flag, "%s", incorrect);
-        INFORMATION("module", flag, "%s", correct);
+        INFO("module", flag, "%s", correct);
         WARNING("module", flag, "%s", correct);
         ERROR("module", flag, "%s", correct);
 
-        ENABLE_WARNING_LEVEL(flag);
+        DEBUGGER_ENABLE_WARNING(flag);
         DEBUG("module", flag, "%s", incorrect);
-        INFORMATION("module", flag, "%s", incorrect);
+        INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", correct);
         ERROR("module", flag, "%s", correct);
 
-        ENABLE_ERROR_LEVEL(flag);
+        DEBUGGER_ENABLE_ERROR(flag);
         DEBUG("module", flag, "%s", incorrect);
-        INFORMATION("module", flag, "%s", incorrect);
+        INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", incorrect);
         ERROR("module", flag, "%s", correct);
     }
