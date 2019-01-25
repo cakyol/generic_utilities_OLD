@@ -75,23 +75,23 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
     /* Turn off all debugging for this module */
-    #define DEBUGGER_DISABLE(module_debug_flag) \
+    #define DEBUGGER_DISABLE_ALL(module_debug_flag) \
         (module_debug_flag = 0)
 
     /* Turn on all debugging from lowest level up */
-    #define DEBUGGER_ENABLE_DEBUG(module_debug_flag) \
+    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
         (module_debug_flag = DEBUG_LEVEL)
 
     /* Turn on all debug messages information level & up */
-    #define DEBUGGER_ENABLE_INFO(module_debug_flag) \
+    #define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
         (module_debug_flag = INFORMATION_LEVEL)
 
     /* Turn on all debug messages warning level & up */
-    #define DEBUGGER_ENABLE_WARNING(module_debug_flag) \
+    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
         (module_debug_flag = WARNING_LEVEL)
 
     /* Turn on all debug messages error level & up */
-    #define DEBUGGER_ENABLE_ERROR(module_debug_flag) \
+    #define DEBUGGER_ENABLE_ERRORS(module_debug_flag) \
         (module_debug_flag = ERROR_LEVEL)
 
     #define DEBUG(module_name, module_debug_flag, fmt, args...) \
@@ -135,11 +135,11 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
     
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
  
-    #define DEBUGGER_DISABLE(module_debug_flag)
-    #define DEBUGGER_ENABLE_DEBUG(module_debug_flag)
-    #define DEBUGGER_ENABLE_INFO(module_debug_flag)
-    #define DEBUGGER_ENABLE_WARNING(module_debug_flag)
-    #define DEBUGGER_ENABLE_ERROR(module_debug_flag)
+    #define DEBUGGER_DISABLE_ALL(module_debug_flag)
+    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag)
+    #define DEBUGGER_ENABLE_INFOS(module_debug_flag)
+    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag)
+    #define DEBUGGER_ENABLE_ERRORS(module_debug_flag)
 
     #define DEBUG(module_name, module_debug_flag, fmt, args...)
     #define INFO(module_name, module_debug_flag, fmt, args...)

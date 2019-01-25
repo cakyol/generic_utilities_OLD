@@ -83,32 +83,32 @@ int main (int argc, char *argv[])
 
     for (i = 0; i < 5; i++) {
 
-        DEBUGGER_DISABLE(flag);
+        DEBUGGER_DISABLE_ALL(flag);
 
         DEBUG("module", flag, "%s", incorrect);
         INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", incorrect);
         ERROR("module", flag, "%s", incorrect);
         
-        DEBUGGER_ENABLE_DEBUG(flag);
+        DEBUGGER_ENABLE_DEBUGS(flag);
         DEBUG("module", flag, "%s", correct);
         INFO("module", flag, "%s", correct);
         WARNING("module", flag, "%s", correct);
         ERROR("module", flag, "%s", correct);
 
-        DEBUGGER_ENABLE_INFO(flag);
+        DEBUGGER_ENABLE_INFOS(flag);
         DEBUG("module", flag, "%s", incorrect);
         INFO("module", flag, "%s", correct);
         WARNING("module", flag, "%s", correct);
         ERROR("module", flag, "%s", correct);
 
-        DEBUGGER_ENABLE_WARNING(flag);
+        DEBUGGER_ENABLE_WARNINGS(flag);
         DEBUG("module", flag, "%s", incorrect);
         INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", correct);
         ERROR("module", flag, "%s", correct);
 
-        DEBUGGER_ENABLE_ERROR(flag);
+        DEBUGGER_ENABLE_ERRORS(flag);
         DEBUG("module", flag, "%s", incorrect);
         INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", incorrect);
