@@ -68,7 +68,7 @@ _process_debug_message_ (char *module_name, const char *level,
 char *correct = "correct";
 char *incorrect = "*** INCORRECT ***";
 
-void report (char *msg)
+void report (const char *msg)
 {
     static int xxx = 0;
     xxx++;
@@ -80,6 +80,7 @@ int main (int argc, char *argv[])
     int i, flag;
 
     debugger_set_reporting_function(NULL);
+    //debugger_set_reporting_function(report);
 
     for (i = 0; i < 5; i++) {
 
@@ -88,7 +89,7 @@ int main (int argc, char *argv[])
         DEBUG("module", flag, "%s", incorrect);
         INFO("module", flag, "%s", incorrect);
         WARNING("module", flag, "%s", incorrect);
-        ERROR("module", flag, "%s", incorrect);
+        ERROR("module", flag, "%s", correct);
         
         DEBUGGER_ENABLE_DEBUGS(flag);
         DEBUG("module", flag, "%s", correct);

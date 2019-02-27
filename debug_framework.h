@@ -19,7 +19,13 @@
 ** as ownership and/or patent claims are NOT made to it by ANYONE
 ** or ANY ENTITY.
 **
-** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+** It ALWAYS is and WILL remain the sole property of Cihangir Metin Akyol.
+**
+** For proper indentation/viewing, regardless of which editor is being used,
+** no tabs are used, ONLY spaces are used and the width of lines never
+** exceed 80 characters.  This way, every text editor/terminal should
+** display the code properly.  If modifying, please stick to this
+** convention.
 **
 *******************************************************************************
 *******************************************************************************
@@ -33,31 +39,28 @@
 *******************************************************************************
 *******************************************************************************
 **
-** This is a very generic debug framework which 'reports' an error for a module.
-** There are about 5 levels of debugging defined and every 'module' can have
-** its own individual level set.  Modules are defined by the user.  Modules
-** are 0 -> MAX_MODULES-1.  
+** This is a generic debug framework which 'reports' bugs/errors based on
+** the level allowed for a module.
 **
-** Module names can also be 'registered' so that when the reporting is done,
-** module names can be reported (rather than simply module numbers).
+** There are 5 levels of debugging: debug, information, warning, error and
+** fatal error in that specific order.  If a specifi8c level is set for a
+** module, lower level debugs will not be reported.  For example, if module
+** 'my_module' flog is set to the warning level, debugs and informations
+** will not be reported.
 **
-** Note that the error level 'FATAL_ERROR' will crash the system with an assert
-** call.  It should be used only as a last resort.
+** Note that fatal error call will crash the system with an assert call.
+** It should be used only as a last resort.
 **
-** Note the word used as 'reporting' rather than 'printing' a message.  Every
-** module can have its own specific reporting function that the user defines
-** and that is what will be called by the framework.  The user can perform
-** whatever they want with the message.  Typically that will be printing but
-** it does not have to be.  It is defined by the user.  By default however,
-** for every module, a function is registered which prints to stderr only.
+** Note the word used as 'reporting' rather than 'printing' a message.  This
+** is because the user can decide what to do exactly with the message.
+** Typically that will be printing but it does not have to be.  It can be 
+** redefined by the user.  By default however, the message is printed to
+** stderr.
 **
-** To activate/include this in the source code, #include 'INCLUDE_ALL_DEBUGGING_CODE'.
-** Otherwise, all debug statements will compile to nothing mening they will
-** NOT impose ANY overhead to the code.  Note that however, whether the #include
-** is defined or not, error & fatal error messages will ALAYS be processed.
-**
-** As far as performance implications are concerned, the level checking
-** penalty is EXTREMELY small.
+** To activate this in the source code, #include 'INCLUDE_ALL_DEBUGGING_CODE'.
+** Otherwise, all debug statements will compile to nothing meaning they will
+** NOT impose ANY overhead to the code.  There is an exception to this
+** and that is, errors and fatal errors will ALWAYS be reported.
 **
 *******************************************************************************
 *******************************************************************************
@@ -72,273 +75,141 @@
 extern "C" {
 #endif
 
-/*
- * Define this if you want the debug infrastructure to be
- * included in your system.  Not defining this will save
- * a bit of code size and run slightly faster.
- *
- * Note that regardless of this directive, ERRORS &
- * FATAL_ERRORS will ALWAYS be reported.
- */
-
-// #undef INCLUDE_ALL_DEBUGGING_CODE
-#define INCLUDE_ALL_DEBUGGING_CODE
-
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-/*
- * Undefine this otherwise assert may not work properly.
- */
-#undef NDEBUG
 #include <assert.h>
 
 /*
- * Levels of debugging.  Additional levels can be defined
- * if needed as long as the HIGHEST_DEBUG_LEVEL numerically
- * fits into a SINGLE byte (max 255).
+ * This is a debug flag which contains the level for which debug
+ * messages for it can be processed.  Every module can have its 
+ * own debug flag.
  */
-#define LOWEST_DEBUG_LEVEL      0
-#define DEBUG_LEVEL                 LOWEST_DEBUG_LEVEL
-#define NOTIFICATION_LEVEL          5
-#define WARNING_LEVEL               10
-#define ERROR_LEVEL                 15
-#define FATAL_ERROR_LEVEL           20
-#define HIGHEST_DEBUG_LEVEL     FATAL_ERROR_LEVEL
-
-#if HIGHEST_DEBUG_LEVEL > 255
-    #error "HIGHEST_DEBUG_LEVEL is too high, should be <= 255"
-#endif
+typedef unsigned char module_debug_flag_t;
 
 /*
- * How many modules this debug infrastructure supports.
- * Redefine this as you wish.
+ * By default, all outputs from this debug framework go to stderr.
+ * If you want to perform different operations, define your own
+ * handling function.
+ *
+ * The function takes one char* parameter, which is the fully 
+ * formatted, newline & NULL terminated string.  It returns
+ * nothing.
+ *
+ * Your function should NOT change the string.
  */
-#define MAX_MODULES                     64
+typedef void (*debug_reporting_function_pointer)(const char *msg);
 
 /*
- * Define your own modules here, like such.
- * They must be 0 <= module < MAX_MODULES
- *
- * like:
- *
- * #define SWITCH_MODULE           0
- * #define ROUTER_MODULE           1
- * #define BUFFER_MODULE           7
- * etc.....
- *
- */
-
-/*
- * The definition of 'reporting' function.  User specified function of what
- * needs to be done with the message.  It can be printf'd, kprintf'd, 
- * written to a file, whatever.  The string is formatted, null terminated
- * and passed to this function.  Rest is up to the function itself to do 
- * whatever it wants with the passed string.
- *
- * User can re-define his/her own reporting function for a module which
- * should meet the syntax below.
- */
-typedef void (*debug_reporting_function_t)(char*);
-
-/*
- * This is the definition of reporting function when function tracing is
- * done.  This reports when a function is entered and exited.  The first
- * parameter is true if a function is being entered.  Otherwise, it indicates
- * that the function is being exited.  Rest of the params are the
- * function name, file name and the line number at which the event occured.
- */
-typedef void (*function_trace_reporting_fp_t)
-    (int enter, char *fn_name, char *filename, int line);
-
-/*
- * Call this to initialize the debug framework.
- * For all modules, default levels, reporting functions
- * and module names will be used.
- *
- * The default reporting level is ERROR_LEVEL.
- * The default printing function will printf to stderr.
- * The default module name will be M_27 (27th module).
+ * User can redfine the reporting function by setting a new function
+ * using this call.
  */
 extern void
-debug_init (void);
+debugger_set_reporting_function (debug_reporting_function_pointer fn);
 
-/*
- * Functions below set various parameters for the module.
- * passing NULL as pointers will reset those values back
- * to the defaults.
- */
-extern int
-debug_module_set_name (int module, char *module_name);
-
-extern int
-debug_module_set_minimum_reporting_level (int module, int level);
-
-extern int
-debug_module_set_reporting_function (int module,
-    debug_reporting_function_t drf);
-
-/*
- * This one sets the function to call when function entry/exit tracing is 
- * enabled.  By default, it will print to stderr.
- */
-extern int
-debug_module_set_function_trace_reporter (debug_reporting_function_t drf);
-
-/*
- * ***************************************************************************
- * These macros report (or not) depending on the debug level
- * threshold set for the specific module.
- */
+#define INCLUDE_ALL_DEBUGGING_CODE
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
-    extern function_trace_reporting_fp_t ftrfp;
+    /* Turn off all debugging for this module */
+    #define DEBUGGER_DISABLE_ALL(module_debug_flag) \
+        (module_debug_flag = 0)
 
-    /* function enter */
-    #define F_ENTER \
-        ftrfp(1, (char*) __FUNCTION__, (char*)  __FILE__, __LINE__)
+    /* Turn on all debugging from lowest level up */
+    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
+        (module_debug_flag = DEBUG_LEVEL)
 
-    /* function exit WITHOUT returning anything */
-    #define F_EXIT \
+    /* Turn on all debug messages information level & up */
+    #define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
+        (module_debug_flag = INFORMATION_LEVEL)
+
+    /* Turn on all debug messages warning level & up */
+    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
+        (module_debug_flag = WARNING_LEVEL)
+
+    #define DEBUG(module_name, module_debug_flag, fmt, args...) \
         do { \
-            ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
-            return; \
+            if (module_debug_flag & DEBUG_LEVEL_MASK) { \
+                _process_debug_message_(module_name, debug_string, \
+                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+            } \
         } while (0)
-
-    /* function exit RETURNING a value */
-    #define F_EXIT_V(value) \
+    
+    #define INFO(module_name, module_debug_flag, fmt, args...) \
         do { \
-            ftrfp(0, (char*) __FUNCTION__, (char*) __FILE__, __LINE__); \
-            return((value)); \
+            if (module_debug_flag & INFORMATION_LEVEL_MASK) { \
+                _process_debug_message_(module_name, info_string, \
+                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+            } \
         } while (0)
-
-    /* lowest level of reporting */
-    #define DEBUG(module, fmt, args...) \
-    do { \
-        if (__module_can_report__(module, DEBUG_LEVEL)) { \
-            _process_debug_message_(module, DEBUG_LEVEL, \
-                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } \
-    } while (0)
-
-    /* one higher level of reporting */
-    #define NOTIFY(module, fmt, args...) \
-    do { \
-        if (__module_can_report__(module, NOTIFICATION_LEVEL)) { \
-            _process_debug_message_(module, NOTIFICATION_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } \
-    } while (0)
-
-    /* one higher level of reporting */
-    #define WARNING(module, fmt, args...) \
-    do { \
-        if (__module_can_report__(module, WARNING_LEVEL)) { \
-            _process_debug_message_(module, WARNING_LEVEL, \
-            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } \
-    } while (0)
-
+    
+    #define WARNING(module_name, module_debug_flag, fmt, args...) \
+        do { \
+            if (module_debug_flag & WARNING_LEVEL_MASK) { \
+                _process_debug_message_(module_name, warning_string, \
+                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+            } \
+        } while (0)
+    
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
+ 
+    #define DEBUGGER_DISABLE_ALL(module_debug_flag)
+    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag)
+    #define DEBUGGER_ENABLE_INFOS(module_debug_flag)
+    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag)
 
-    #define FENTER
-    #define FEXIT(expr)
-    #define DEBUG(module, fmt, args...)
-    #define NOTIFY(module, fmt, args...)
-    #define WARNING(module, fmt, args...)
+    #define DEBUG(module_name, module_debug_flag, fmt, args...)
+    #define INFO(module_name, module_debug_flag, fmt, args...)
+    #define WARNING(module_name, module_debug_flag, fmt, args...)
 
 #endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
-/*
- * Errors will ALWAYS be reported regardless of what the reporting
- * level for the module is set to.
- *
- * Furthermore, a Fatal error will crash the process (with an assert).
- */
-#define ERROR(module, fmt, args...) \
+/* errors are ALWAYS reported */
+#define ERROR(module_name, module_debug_flag, fmt, args...) \
     do { \
-        if ((module >= 0) && (module < MAX_MODULES)) { \
-            _process_debug_message_(module, ERROR_LEVEL, \
-                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } \
+        _process_debug_message_(module_name, error_string, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
     } while (0)
 
-#define FATAL_ERROR(module, fmt, args...) \
+/* fatal errors are ALWAYS reported */
+#define FATAL_ERROR(module_name, fmt, args...) \
     do { \
-        if ((module >= 0) && (module < MAX_MODULES)) { \
-            _process_debug_message_(module, FATAL_ERROR_LEVEL, \
-                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } \
+        _process_debug_message_(module_name, fatal_error_string, \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        assert(0); \
     } while (0)
 
-/******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
-/* PRIVATE, DO NOT USE ANYTHING BELOW HERE DIRECTLY, ONLY USE THE MACROS ABOVE */
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-/*******************************************************************************/
-
-/*
- * max number of characters of a module name if the user defines
- * a verbose and printable name for a specific module.  Otherwise,
- * by default, the system will assign the name "M_N" where N is
- * the module number.  For example, module 17's default name will
- * be "M_17".
- */
-#define MODULE_NAME_SIZE                48
-
-/*
- * each module can have a level set below which the debug messages
- * do not get reported.  Also, each one does have its own 'reporting' 
- * function.  This helps each module report differently if need be.
- * Some can write to the output, some into a file,. etc etc.  It is
- * totally user driven.
+/*****************************************************************************
+ *****************************************************************************
+ *****************************************************************************
+ *****************************************************************************
  *
- * By default however, the drf is simply writing to stderr.
- */
-typedef struct debug_module_data_s {
+ * DO NOT TOUCH OR USE ANYTHING BELOW HERE
+ *
+ *****************************************************************************
+ *****************************************************************************
+ *****************************************************************************
+ ****************************************************************************/
 
-        char name [MODULE_NAME_SIZE];
-        debug_reporting_function_t drf;
-        unsigned char level;
+#define DEBUG_LEVEL             (0b00000001)
+#define DEBUG_LEVEL_MASK        (0b00000001)
 
-} debug_module_data_t;
+#define INFORMATION_LEVEL       (0b00000010)
+#define INFORMATION_LEVEL_MASK  (0b00000011)
 
-extern
-debug_module_data_t module_levels [MAX_MODULES];
+#define WARNING_LEVEL           (0b00000100)
+#define WARNING_LEVEL_MASK      (0b00000111)
 
-extern void
-default_debug_reporting_function (char *debug_message);
-
-extern debug_reporting_function_t function_trace_reporter;
-
-/*
- * Report if the current debug level set for this module is less than or
- * equal to the level specified in the user call.
- */
-static inline int
-__module_can_report__ (int module, int level) 
-{
-    return
-        (module >= 0) && (module < MAX_MODULES) &&
-            (level >= module_levels[module].level);
-}
+extern const char *debug_string;
+extern const char *info_string;
+extern const char *warning_string;
+extern const char *error_string;
+extern const char *fatal_error_string;
 
 extern void
-_process_debug_message_ (int module, int level,
+_process_debug_message_ (char *module_name, const char *level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...);
 
@@ -346,5 +217,7 @@ _process_debug_message_ (int module, int level,
 } // extern C
 #endif
 
-#endif // __DEBUG_FRAMEWORK_H__
+#endif /* __DEBUG_FRAMEWORK_H__ */
+
+
 

@@ -19,7 +19,13 @@
 ** as ownership and/or patent claims are NOT made to it by ANYONE
 ** or ANY ENTITY.
 **
-** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+** It ALWAYS is and WILL remain the sole property of Cihangir Metin Akyol.
+**
+** For proper indentation/viewing, regardless of which editor is being used,
+** no tabs are used, ONLY spaces are used and the width of lines never
+** exceed 80 characters.  This way, every text editor/terminal should
+** display the code properly.  If modifying, please stick to this
+** convention.
 **
 *******************************************************************************
 *******************************************************************************
@@ -27,145 +33,39 @@
 *******************************************************************************
 ******************************************************************************/
 
+#include "debug_framework.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "debug_framework.h"
+const char *debug_string = "DEBUG";
+const char *info_string = "INFO";
+const char *warning_string = "WARNING";
+const char *error_string = "ERROR";
+const char *fatal_error_string = "FATAL";
 
-debug_module_data_t module_levels [MAX_MODULES] = {
-    {
-        { 0 },
-        default_debug_reporting_function,
-        ERROR_LEVEL
-    }
-};
+static void
+default_debug_reporting_function (const char *msg)
+{
+    fprintf(stderr, "%s", msg);
+}
 
-/*
- * debug level number to debug level name string lookup table.
- */
-#define DEBUG_LEVEL_SPAN	(HIGHEST_DEBUG_LEVEL - LOWEST_DEBUG_LEVEL + 1)
-static char *debug_level_names [DEBUG_LEVEL_SPAN] = { "???" };
-static int indent = 0;
-#define INDENT	2
+static 
+debug_reporting_function_pointer debug_reporter = default_debug_reporting_function;
 
 void
-default_debug_reporting_function (char *debug_string)
+debugger_set_reporting_function (debug_reporting_function_pointer fn)
 {
-    fprintf(stderr, "%s", debug_string);
-    fflush(stderr);
-}
-
-static void
-default_function_entry_report (char *fn_name, char *filename, int line)
-{
-    fprintf(stderr, "%*sENTERED %s <%s:%d>\n",
-	indent, "", fn_name, filename, line);
-	indent += INDENT;
-    fflush(stderr);
-}
-
-static void
-default_function_exit_report (char *fn_name, char *filename, int line)
-{
-    indent -= INDENT;
-    fprintf(stderr, "%*sEXITING %s <%s:%d>\n",
-	indent, "", fn_name, filename, line);
-    fflush(stderr);
-}
-
-static void
-default_function_trace_reporting_function (int enter,
-    char *fn_name, char *filename, int line)
-{
-    if (enter) {
-	default_function_entry_report(fn_name, filename, line);
+    if (fn) {
+        debug_reporter = fn;
     } else {
-	default_function_exit_report(fn_name, filename, line);
+        debug_reporter = default_debug_reporting_function;
     }
 }
 
-function_trace_reporting_fp_t ftrfp =
-    default_function_trace_reporting_function;
-
-static void
-set_default_module_name (int m)
-{
-    sprintf(module_levels[m].name, "M_%d", m);
-}
-
 void
-debug_init (void)
-{
-    int m;
-
-    debug_level_names[DEBUG_LEVEL] = "DEBUG";
-    debug_level_names[NOTIFICATION_LEVEL] = "NOTIFICATION";
-    debug_level_names[WARNING_LEVEL] = "WARNING";
-    debug_level_names[ERROR_LEVEL] = "ERROR";
-    debug_level_names[FATAL_ERROR_LEVEL] = "***** FATAL ERROR *****";
-    for (m = 0; m < MAX_MODULES; m++) {
-        set_default_module_name(m);
-        module_levels[m].level = ERROR_LEVEL;
-        module_levels[m].drf = default_debug_reporting_function;
-    }
-    ftrfp = default_function_trace_reporting_function;
-}
-
-#define CHECK_MODULE_NUMBER(m)	\
-    if ((m < 0) || (m >= MAX_MODULES)) return EINVAL;
-
-int
-debug_module_set_name (int module, char *module_name)
-{
-    CHECK_MODULE_NUMBER(module);
-
-    if (NULL == module_name) {
-        set_default_module_name(module);
-    } else {
-        strncpy(module_levels[module].name, module_name,
-	    (MODULE_NAME_SIZE - 1));
-    }
-
-    return 0;
-}
-
-int 
-debug_module_set_minimum_reporting_level (int module, int level)
-{
-    CHECK_MODULE_NUMBER(module);
-
-    /* clip level to boundaries */
-    if (level < DEBUG_LEVEL) 
-        level = DEBUG_LEVEL;
-    else if (level > FATAL_ERROR_LEVEL) 
-        level = FATAL_ERROR_LEVEL;
-
-    module_levels[module].level = (unsigned char) level;
-
-    return 0;
-}
-
-int
-debug_module_set_reporting_function (int module,
-        debug_reporting_function_t drf)
-{
-    CHECK_MODULE_NUMBER(module);
-    module_levels[module].drf = drf ? drf : default_debug_reporting_function;
-    return 0;
-}
-
-void
-debug_module_set_function_trace_reporting_fp (function_trace_reporting_fp_t new_fp)
-{
-    ftrfp = new_fp ? new_fp : default_function_trace_reporting_function;
-}
-
-/*
- * This function assumes 'module' is valid & within bounds.
- */
-void
-_process_debug_message_ (int module, int level,
+_process_debug_message_ (char *module_name, const char *level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...)
 {
@@ -179,12 +79,8 @@ _process_debug_message_ (int module, int level,
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
     len = index = 0;
     len += snprintf(&msg_buffer[index], size_left,
-		"%s: %s: <%s: %s: %d> ",
-		module_levels[module].name,
-		debug_level_names[level],
-		file_name,
-		function_name,
-		line_number);
+		"%s: module %s: <%s: %s(%d)> ",
+		level, module_name, file_name, function_name, line_number);
 
     size_left -= len;
     index += len;
@@ -204,16 +100,12 @@ _process_debug_message_ (int module, int level,
      * do the actual printing/reporting operation here using
      * the currently registered debug printing function
      */
-    module_levels[module].drf(msg_buffer);
-
-    /* fatal error MUST ALWAYS crash the system */
-    if (level >= FATAL_ERROR_LEVEL) assert(0);
+    debug_reporter(msg_buffer);
 }
 
 #ifdef __cplusplus
 } // extern C
 #endif
-
 
 
 

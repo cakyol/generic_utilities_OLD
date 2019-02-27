@@ -118,14 +118,14 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
             } \
         } while (0)
     
+    /* errors are ALWAYS reported */
     #define ERROR(module_name, module_debug_flag, fmt, args...) \
         do { \
-            if (module_debug_flag & ERROR_LEVEL_MASK) { \
-                _process_debug_message_(module_name, error_string, \
-                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            } \
+            _process_debug_message_(module_name, error_string, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
         } while (0)
 
+    /* fatal errors are ALWAYS reported */
     #define FATAL(module_name, fmt, args...) \
         do { \
             _process_debug_message_(module_name, fatal_error_string, \
