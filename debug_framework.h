@@ -103,15 +103,51 @@ typedef unsigned char module_debug_flag_t;
 typedef void (*debug_reporting_function_pointer)(const char *msg);
 
 /*
- * User can redfine the reporting function by setting a new function
+ * User can redefine the reporting function by setting a new function
  * using this call.
  */
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
 
+extern unsigned char function_trace_on;
+extern unsigned int function_trace_indent;
+extern const char *function_entered, *function_exited;
+extern char function_trace_string [];
+extern debug_reporting_function_pointer debug_reporter;
+
+/* Turn off function entry/exit tracing */
+static inline void DISABLE_FUNCTION_TRACING (void)
+{ function_trace_on = 0; }
+
+static inline void ENABLE_FUNCTION_TRACING (void)
+{ function_trace_on = 1; }
+
 #define INCLUDE_ALL_DEBUGGING_CODE
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
+
+    /* function entered notification */
+    #define F_ENTER \
+        do { \
+            if (function_trace_on) { \
+                sprintf(function_trace_string, "%*s%s%s\n", \
+                    function_trace_indent, " ", function_entered, __FUNCTION__); \
+                function_trace_indent++; \
+                debug_reporter(function_trace_string); \
+            } \
+        } while (0)
+
+    /* function exit notification */
+    #define F_RETURN(value) \
+        do { \
+            if (function_trace_on) { \
+                function_trace_indent--; \
+                sprintf(function_trace_string, "%*s%s%s\n", \
+                    function_trace_indent, " ", function_exited, __FUNCTION__); \
+                debug_reporter(function_trace_string); \
+            } \
+            return (value); \
+        } while (0)
 
     /* Turn off all debugging for this module */
     #define DEBUGGER_DISABLE_ALL(module_debug_flag) \
@@ -154,6 +190,9 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
         } while (0)
     
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
+
+    #define F_ENTER
+    #define F_EXIT(value)   return (value)
  
     #define DEBUGGER_DISABLE_ALL(module_debug_flag)
     #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag)

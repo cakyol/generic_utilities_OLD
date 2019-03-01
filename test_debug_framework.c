@@ -11,6 +11,15 @@ void report (const char *msg)
     printf("%d\n", xxx);
 }
 
+int rcount = 0;
+
+int recurse (void)
+{
+    F_ENTER;
+    if (rcount++ < 30) recurse();
+    F_RETURN(0);
+}
+
 int main (int argc, char *argv[])
 {
     int i, flag;
@@ -51,6 +60,9 @@ int main (int argc, char *argv[])
         WARNING("module", flag, "%s", incorrect);
         ERROR("module", flag, "%s", correct);
     }
+
+    ENABLE_FUNCTION_TRACING();
+    recurse();
 
     FATAL_ERROR("CRASH", "CRASHING DELIBERATELY %d", i);
     return 0;

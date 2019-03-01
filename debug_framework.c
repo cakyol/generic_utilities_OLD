@@ -39,6 +39,12 @@
 extern "C" {
 #endif
 
+unsigned char function_trace_on = 0;
+unsigned int function_trace_indent = 1;
+const char *function_entered = "entered ";
+const char *function_exited = "exited ";
+char function_trace_string [80] = { 0 };
+
 const char *debug_string = "DEBUG";
 const char *info_string = "INFO";
 const char *warning_string = "WARNING";
@@ -51,7 +57,6 @@ default_debug_reporting_function (const char *msg)
     fprintf(stderr, "%s", msg);
 }
 
-static 
 debug_reporting_function_pointer debug_reporter = default_debug_reporting_function;
 
 void
