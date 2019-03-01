@@ -12,17 +12,20 @@ void report (const char *msg)
 }
 
 int rcount = 0;
+module_debug_flag_t flag = 0;
 
 int recurse (void)
 {
     F_ENTER();
+    ERROR("MMM", flag, "TeStInG %d", rcount);
     if (rcount++ < 30) recurse();
+    ERROR("MMM", flag, "exiting current function");
     F_EXIT(0);
 }
 
 int main (int argc, char *argv[])
 {
-    int i, flag;
+    int i;
 
     debugger_set_reporting_function(NULL);
     //debugger_set_reporting_function(report);

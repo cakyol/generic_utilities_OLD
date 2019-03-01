@@ -69,22 +69,33 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn)
     }
 }
 
+/*
+ * We use a global message buffer ASSUMING that a thread swap will NOT
+ * occur during the middle of processing a debug message.  If that DOES
+ * happen, it will be a disaster.  So...  maybe we should protect the
+ * '_process_debug_message_' function below with an exclusive mutex.
+ */
+#define DEBUG_MESSAGE_BUFFER_SIZE      512
+static char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
+
 void
 _process_debug_message_ (char *module_name, const char *level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...)
 {
-
-#define DEBUG_MESSAGE_BUFFER_SIZE      256
-
     va_list args;
-    char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
     int index, size_left, len;
 
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
     len = index = 0;
+
+    /*
+     * align the error messages to be
+     * printed also with the proper indentation.
+     */
     len += snprintf(&msg_buffer[index], size_left,
-		"%s: module %s: <%s: %s(%d)> ",
+		"%*s%s: module: %s: <%s: %s(%d)> ",
+        function_trace_indent, " ",
 		level, module_name, file_name, function_name, line_number);
 
     size_left -= len;
