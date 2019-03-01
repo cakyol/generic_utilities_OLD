@@ -122,48 +122,50 @@ static inline void DISABLE_FUNCTION_TRACING (void)
 static inline void ENABLE_FUNCTION_TRACING (void)
 { function_trace_on = 1; }
 
+/* Turn off all debugging for this module */
+#define DEBUGGER_DISABLE_ALL(module_debug_flag) \
+    (module_debug_flag = 0)
+
+/* Turn on all debugging from lowest level up */
+#define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
+    (module_debug_flag = DEBUG_LEVEL)
+
+/* Turn on all debug messages information level & up */
+#define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
+    (module_debug_flag = INFORMATION_LEVEL)
+
+/* Turn on all debug messages warning level & up */
+#define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
+    (module_debug_flag = WARNING_LEVEL)
+
 #define INCLUDE_ALL_DEBUGGING_CODE
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
     /* function entered notification */
-    #define F_ENTER \
+    #define F_ENTER() \
         do { \
             if (function_trace_on) { \
-                sprintf(function_trace_string, "%*s%s%s\n", \
-                    function_trace_indent, " ", function_entered, __FUNCTION__); \
+                sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
+                    function_trace_indent, " ", function_entered, \
+                        __FUNCTION__, __LINE__); \
                 function_trace_indent++; \
                 debug_reporter(function_trace_string); \
             } \
         } while (0)
 
-    /* function exit notification */
-    #define F_RETURN(value) \
+        /* function exit notification */
+        #define F_EXIT(value) \
         do { \
             if (function_trace_on) { \
                 function_trace_indent--; \
-                sprintf(function_trace_string, "%*s%s%s\n", \
-                    function_trace_indent, " ", function_exited, __FUNCTION__); \
+                sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
+                    function_trace_indent, " ", function_exited, \
+                        __FUNCTION__, __LINE__); \
                 debug_reporter(function_trace_string); \
             } \
             return (value); \
         } while (0)
-
-    /* Turn off all debugging for this module */
-    #define DEBUGGER_DISABLE_ALL(module_debug_flag) \
-        (module_debug_flag = 0)
-
-    /* Turn on all debugging from lowest level up */
-    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
-        (module_debug_flag = DEBUG_LEVEL)
-
-    /* Turn on all debug messages information level & up */
-    #define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
-        (module_debug_flag = INFORMATION_LEVEL)
-
-    /* Turn on all debug messages warning level & up */
-    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
-        (module_debug_flag = WARNING_LEVEL)
 
     #define DEBUG(module_name, module_debug_flag, fmt, args...) \
         do { \
@@ -191,14 +193,9 @@ static inline void ENABLE_FUNCTION_TRACING (void)
     
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
-    #define F_ENTER
+    #define F_ENTER()
     #define F_EXIT(value)   return (value)
  
-    #define DEBUGGER_DISABLE_ALL(module_debug_flag)
-    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag)
-    #define DEBUGGER_ENABLE_INFOS(module_debug_flag)
-    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag)
-
     #define DEBUG(module_name, module_debug_flag, fmt, args...)
     #define INFO(module_name, module_debug_flag, fmt, args...)
     #define WARNING(module_name, module_debug_flag, fmt, args...)

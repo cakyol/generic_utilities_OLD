@@ -15,9 +15,9 @@ int rcount = 0;
 
 int recurse (void)
 {
-    F_ENTER;
+    F_ENTER();
     if (rcount++ < 30) recurse();
-    F_RETURN(0);
+    F_EXIT(0);
 }
 
 int main (int argc, char *argv[])

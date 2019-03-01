@@ -70,7 +70,7 @@ typedef void (*debug_reporting_function_pointer)(const char *msg);
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
 
-#define INCLUDE_ALL_DEBUGGING_CODE
+//#define INCLUDE_ALL_DEBUGGING_CODE
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
