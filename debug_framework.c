@@ -94,9 +94,10 @@ _process_debug_message_ (char *module_name, const char *level,
      * printed also with the proper indentation.
      */
     len += snprintf(&msg_buffer[index], size_left,
-		"%*s%s: module: %s: <%s: %s(%d)> ",
-        function_trace_indent, " ",
-		level, module_name, file_name, function_name, line_number);
+		"%*s%s: %s <%s: %s(%d)> ",
+        function_trace_indent, " ", level,
+        module_name ? module_name : "",
+        file_name, function_name, line_number);
 
     size_left -= len;
     index += len;
