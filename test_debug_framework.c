@@ -16,11 +16,15 @@ module_debug_flag_t flag = 0;
 
 int recurse (void)
 {
-    F_ENTER();
+    ENTER_FUNCTION();
     ERROR(NULL, flag, "TeStInG %d", rcount);
+    ERROR(NULL, flag, "TeStInG 2 %d", rcount);
+    ERROR(NULL, flag, "TeStInG 3 %d", rcount);
     if (rcount++ < 30) recurse();
     ERROR(NULL, flag, "exiting current function");
-    F_EXIT(0);
+    ERROR(NULL, flag, "exiting current function 2");
+    ERROR(NULL, flag, "exiting current function 3");
+    EXIT_FUNCTION(0);
 }
 
 int main (int argc, char *argv[])

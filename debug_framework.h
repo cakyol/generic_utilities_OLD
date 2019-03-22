@@ -143,7 +143,7 @@ static inline void ENABLE_FUNCTION_TRACING (void)
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
     /* function entered notification */
-    #define F_ENTER() \
+    #define ENTER_FUNCTION() \
         do { \
             if (function_trace_on) { \
                 sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
@@ -155,7 +155,7 @@ static inline void ENABLE_FUNCTION_TRACING (void)
         } while (0)
 
         /* function exit notification */
-        #define F_EXIT(value) \
+        #define EXIT_FUNCTION(value) \
         do { \
             if (function_trace_on) { \
                 function_trace_indent--; \
@@ -193,8 +193,8 @@ static inline void ENABLE_FUNCTION_TRACING (void)
     
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
-    #define F_ENTER()
-    #define F_EXIT(value)   return (value)
+    #define ENTER_FUNCTION()
+    #define EXIT_FUNCTION(value)   return (value)
  
     #define DEBUG(module_name, module_debug_flag, fmt, args...)
     #define INFO(module_name, module_debug_flag, fmt, args...)
