@@ -43,7 +43,7 @@
 ** the level allowed for a module.
 **
 ** There are 5 levels of debugging: debug, information, warning, error and
-** fatal error in that specific order.  If a specifi8c level is set for a
+** fatal error in that specific order.  If a specific level is set for a
 ** module, lower level debugs will not be reported.  For example, if module
 ** 'my_module' flog is set to the warning level, debugs and informations
 ** will not be reported.
@@ -115,32 +115,32 @@ extern const char *function_entered, *function_exited;
 extern char function_trace_string [];
 extern debug_reporting_function_pointer debug_reporter;
 
-/* Turn off function entry/exit tracing */
-static inline void DISABLE_FUNCTION_TRACING (void)
-{ function_trace_on = 0; }
-
-static inline void ENABLE_FUNCTION_TRACING (void)
-{ function_trace_on = 1; }
-
-/* Turn off all debugging for this module */
-#define DEBUGGER_DISABLE_ALL(module_debug_flag) \
-    (module_debug_flag = 0)
-
-/* Turn on all debugging from lowest level up */
-#define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
-    (module_debug_flag = DEBUG_LEVEL)
-
-/* Turn on all debug messages information level & up */
-#define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
-    (module_debug_flag = INFORMATION_LEVEL)
-
-/* Turn on all debug messages warning level & up */
-#define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
-    (module_debug_flag = WARNING_LEVEL)
-
 #define INCLUDE_ALL_DEBUGGING_CODE
 
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
+
+    /* Turn off function entry/exit tracing */
+    static inline void DISABLE_FUNCTION_TRACING (void)
+    { function_trace_on = 0; }
+
+    static inline void ENABLE_FUNCTION_TRACING (void)
+    { function_trace_on = 1; }
+
+    /* Turn off all debugging for this module */
+    #define DEBUGGER_DISABLE_ALL(module_debug_flag) \
+        (module_debug_flag = 0)
+
+    /* Turn on all debugging from lowest level up */
+    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
+        (module_debug_flag = DEBUG_LEVEL)
+
+    /* Turn on all debug messages information level & up */
+    #define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
+        (module_debug_flag = INFORMATION_LEVEL)
+
+    /* Turn on all debug messages warning level & up */
+    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
+        (module_debug_flag = WARNING_LEVEL)
 
     /* function entered notification */
     #define ENTER_FUNCTION() \
@@ -193,8 +193,16 @@ static inline void ENABLE_FUNCTION_TRACING (void)
     
 #else /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
+    #define DISABLE_FUNCTION_TRACING()
+    #define ENABLE_FUNCTION_TRACING()
+
+    #define DEBUGGER_DISABLE_ALL(module_debug_flag)
+    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag)
+    #define DEBUGGER_ENABLE_INFOS(module_debug_flag)
+    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag)
+    
     #define ENTER_FUNCTION()
-    #define EXIT_FUNCTION(value)   return (value)
+    #define EXIT_FUNCTION(value)   return(value)
  
     #define DEBUG(module_name, module_debug_flag, fmt, args...)
     #define INFO(module_name, module_debug_flag, fmt, args...)
