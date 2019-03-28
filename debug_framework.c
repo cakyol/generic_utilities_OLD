@@ -43,6 +43,8 @@ unsigned char function_trace_on = 0;
 unsigned int function_trace_indent = 1;
 const char *function_entered = "ENTERED ";
 const char *function_exited = "EXITED ";
+static int buffer_lock_not_initialized = 1;
+lock_obj_t buffer_lock;
 char function_trace_string [80] = { 0 };
 
 const char *debug_string = "DEBUG";
@@ -86,6 +88,13 @@ _process_debug_message_ (char *module_name, const char *level,
     va_list args;
     int index, size_left, len;
 
+    if (buffer_lock_not_initialized) {
+        lock_obj_init(&buffer_lock);
+        buffer_lock_not_initialized = 0;
+    }
+
+    grab_write_lock(&buffer_lock);
+
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
     len = index = 0;
 
@@ -118,6 +127,8 @@ _process_debug_message_ (char *module_name, const char *level,
      * the currently registered debug printing function
      */
     debug_reporter(msg_buffer);
+
+    release_write_lock(&buffer_lock);
 }
 
 #ifdef __cplusplus

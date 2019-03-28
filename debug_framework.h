@@ -82,6 +82,8 @@ extern "C" {
 #include <stdio.h>
 #include <assert.h>
 
+#include "lock_object.h"
+
 /*
  * This is a debug flag which contains the level for which debug
  * messages for it can be processed.  Every module can have its 
@@ -112,6 +114,7 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
 extern unsigned char function_trace_on;
 extern unsigned int function_trace_indent;
 extern const char *function_entered, *function_exited;
+extern lock_obj_t buffer_lock;
 extern char function_trace_string [];
 extern debug_reporting_function_pointer debug_reporter;
 
@@ -146,11 +149,13 @@ extern debug_reporting_function_pointer debug_reporter;
     #define ENTER_FUNCTION() \
         do { \
             if (function_trace_on) { \
+                grab_write_lock(&buffer_lock); \
                 sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
                     function_trace_indent, " ", function_entered, \
                         __FUNCTION__, __LINE__); \
                 function_trace_indent++; \
                 debug_reporter(function_trace_string); \
+                release_write_lock(&buffer_lock); \
             } \
         } while (0)
 
@@ -158,11 +163,13 @@ extern debug_reporting_function_pointer debug_reporter;
         #define EXIT_FUNCTION(value) \
         do { \
             if (function_trace_on) { \
+                grab_write_lock(&buffer_lock); \
                 function_trace_indent--; \
                 sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
                     function_trace_indent, " ", function_exited, \
                         __FUNCTION__, __LINE__); \
                 debug_reporter(function_trace_string); \
+                release_write_lock(&buffer_lock); \
             } \
             return (value); \
         } while (0)
