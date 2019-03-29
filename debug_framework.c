@@ -45,7 +45,7 @@ const char *function_entered = "ENTERED ";
 const char *function_exited = "EXITED ";
 static int buffer_lock_not_initialized = 1;
 lock_obj_t buffer_lock;
-char function_trace_string [80] = { 0 };
+char function_trace_string [128] = { 0 };
 
 const char *debug_string = "DEBUG";
 const char *info_string = "INFO";
@@ -72,12 +72,10 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn)
 }
 
 /*
- * We use a global message buffer ASSUMING that a thread swap will NOT
- * occur during the middle of processing a debug message.  If that DOES
- * happen, it will be a disaster.  So...  maybe we should protect the
- * '_process_debug_message_' function below with an exclusive mutex.
+ * We use a global message buffer to save stack space and protect
+ * it with a lock for multi threaded applications.
  */
-#define DEBUG_MESSAGE_BUFFER_SIZE      512
+#define DEBUG_MESSAGE_BUFFER_SIZE      1024
 static char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
 
 void

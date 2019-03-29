@@ -36,32 +36,32 @@ int main (int argc, char *argv[])
 
     for (i = 0; i < 5; i++) {
 
-        DEBUGGER_DISABLE_ALL(flag);
+        DISABLE_ALL_DEBUG_MESSAGES(flag);
 
         DEBUG(NULL, flag, "%s", incorrect);
         INFO(NULL, flag, "%s", incorrect);
         WARNING(NULL, flag, "%s", incorrect);
         ERROR(NULL, flag, "%s", correct);
         
-        DEBUGGER_ENABLE_DEBUGS(flag);
+        ENABLE_DEBUG_MESSAGES(flag);
         DEBUG(NULL, flag, "%s", correct);
         INFO(NULL, flag, "%s", correct);
         WARNING(NULL, flag, "%s", correct);
         ERROR(NULL, flag, "%s", correct);
 
-        DEBUGGER_ENABLE_INFOS(flag);
+        ENABLE_INFO_MESSAGES(flag);
         DEBUG(NULL, flag, "%s", incorrect);
         INFO(NULL, flag, "%s", correct);
         WARNING(NULL, flag, "%s", correct);
         ERROR(NULL, flag, "%s", correct);
 
-        DEBUGGER_ENABLE_WARNINGS(flag);
+        ENABLE_WARNING_MESSAGES(flag);
         DEBUG(NULL, flag, "%s", incorrect);
         INFO(NULL, flag, "%s", incorrect);
         WARNING(NULL, flag, "%s", correct);
         ERROR(NULL, flag, "%s", correct);
 
-        DEBUGGER_DISABLE_ALL(flag);
+        DISABLE_ALL_DEBUG_MESSAGES(flag);
         DEBUG(NULL, flag, "%s", incorrect);
         INFO(NULL, flag, "%s", incorrect);
         WARNING(NULL, flag, "%s", incorrect);

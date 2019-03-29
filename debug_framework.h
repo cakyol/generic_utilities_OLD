@@ -130,19 +130,19 @@ extern debug_reporting_function_pointer debug_reporter;
     { function_trace_on = 1; }
 
     /* Turn off all debugging for this module */
-    #define DEBUGGER_DISABLE_ALL(module_debug_flag) \
+    #define DISABLE_ALL_DEBUG_MESSAGES(module_debug_flag) \
         (module_debug_flag = 0)
 
     /* Turn on all debugging from lowest level up */
-    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag) \
+    #define ENABLE_DEBUG_MESSAGES(module_debug_flag) \
         (module_debug_flag = DEBUG_LEVEL)
 
     /* Turn on all debug messages information level & up */
-    #define DEBUGGER_ENABLE_INFOS(module_debug_flag) \
+    #define ENABLE_INFO_MESSAGES(module_debug_flag) \
         (module_debug_flag = INFORMATION_LEVEL)
 
     /* Turn on all debug messages warning level & up */
-    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag) \
+    #define ENABLE_WARNING_MESSAGES(module_debug_flag) \
         (module_debug_flag = WARNING_LEVEL)
 
     /* function entered notification */
@@ -159,8 +159,8 @@ extern debug_reporting_function_pointer debug_reporter;
             } \
         } while (0)
 
-        /* function exit notification */
-        #define EXIT_FUNCTION(value) \
+    /* function exit notification */
+    #define EXIT_FUNCTION(value) \
         do { \
             if (function_trace_on) { \
                 grab_write_lock(&buffer_lock); \
@@ -203,10 +203,10 @@ extern debug_reporting_function_pointer debug_reporter;
     #define DISABLE_FUNCTION_TRACING()
     #define ENABLE_FUNCTION_TRACING()
 
-    #define DEBUGGER_DISABLE_ALL(module_debug_flag)
-    #define DEBUGGER_ENABLE_DEBUGS(module_debug_flag)
-    #define DEBUGGER_ENABLE_INFOS(module_debug_flag)
-    #define DEBUGGER_ENABLE_WARNINGS(module_debug_flag)
+    #define DISABLE_ALL_DEBUG_MESSAGES(module_debug_flag)
+    #define ENABLE_DEBUG_MESSAGES(module_debug_flag)
+    #define ENABLE_INFO_MESSAGES(module_debug_flag)
+    #define ENABLE_WARNING_MESSAGES(module_debug_flag)
     
     #define ENTER_FUNCTION()
     #define EXIT_FUNCTION(value)   return(value)
