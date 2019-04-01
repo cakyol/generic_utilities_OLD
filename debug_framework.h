@@ -46,7 +46,8 @@
 ** fatal error in that specific order.  If a specific level is set for a
 ** module, lower level debugs will not be reported.  For example, if module
 ** 'my_module' flog is set to the warning level, debugs and informations
-** will not be reported.
+** will not be reported.  The exception to this is that errors & fatal
+** errors will ALWAYS be reported.
 **
 ** Note that fatal error call will crash the system with an assert call.
 ** It should be used only as a last resort.
@@ -55,12 +56,12 @@
 ** is because the user can decide what to do exactly with the message.
 ** Typically that will be printing but it does not have to be.  It can be 
 ** redefined by the user.  By default however, the message is printed to
-** stderr.
+** stderr.  If reporting function is redefined by the user, it should NOT
+** call any debug/error messages itelf otherwise a deadlock will result.
 **
 ** To activate this in the source code, #include 'INCLUDE_ALL_DEBUGGING_CODE'.
 ** Otherwise, all debug statements will compile to nothing meaning they will
-** NOT impose ANY overhead to the code.  There is an exception to this
-** and that is, errors and fatal errors will ALWAYS be reported.
+** NOT impose ANY overhead to the code.
 **
 *******************************************************************************
 *******************************************************************************
@@ -87,7 +88,7 @@ extern "C" {
 /*
  * This is a debug flag which contains the level for which debug
  * messages for it can be processed.  Every module can have its 
- * own debug flag.
+ * own debug flag.  The user defines his/her modules.
  */
 typedef unsigned char module_debug_flag_t;
 

@@ -178,7 +178,8 @@ is_an_attribute_event (int event)
 typedef struct event_record_s {
 
     /*
-     * this MUST be first field since during reads & writes, it needs
+     * How many total bytes is this event record ?
+     * This MUST be first field since during reads & writes, it needs
      * to be determined at the very beginning.  It will also be used
      * to copy the entire structure since its length is variable.
      */
