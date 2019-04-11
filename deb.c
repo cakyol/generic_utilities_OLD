@@ -42,7 +42,8 @@ _process_debug_message_ (char *module_name, const char *level,
     len = index = 0;
     len += snprintf(&msg_buffer[index], size_left,
 		"%s: module %s: <%s: %s(%d)> ",
-		level, module_name, file_name, function_name, line_number);
+		level, module_name ? module_name : "",
+        file_name, function_name, line_number);
 
     size_left -= len;
     index += len;

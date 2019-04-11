@@ -85,8 +85,6 @@ extern "C" {
 
 #include "lock_object.h"
 
-extern lock_obj_t debugger_lock;
-
 /*
  * This is a debug flag which contains the level for which debug
  * messages for it can be processed.  Every module can have its 
@@ -107,12 +105,18 @@ typedef unsigned char module_debug_flag_t;
  */
 typedef void (*debug_reporting_function_pointer)(const char *msg);
 
+extern lock_obj_t debugger_lock;
 extern unsigned char function_trace_on;
 extern unsigned int function_trace_indent;
 extern const char *function_entered, *function_exited;
-extern lock_obj_t debugger_lock;
 extern char function_trace_string [];
 extern debug_reporting_function_pointer debug_reporter;
+
+/*
+ * Always call this to initialize the debugger subsystem
+ */
+extern void
+debugger_initialize (debug_reporting_function_pointer fn);
 
 /*
  * User can redefine the reporting function by setting a new function
@@ -120,9 +124,6 @@ extern debug_reporting_function_pointer debug_reporter;
  */
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
-
-extern void
-debugger_initialize (debug_reporting_function_pointer fn);
 
 #define INCLUDE_ALL_DEBUGGING_CODE
 

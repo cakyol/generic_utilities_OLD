@@ -3,6 +3,7 @@
 
 char *correct = "correct";
 char *incorrect = "*** INCORRECT ***";
+char *M = "MODULE";
 
 void report (const char *msg)
 {
@@ -17,13 +18,13 @@ module_debug_flag_t flag = 0;
 int recurse (void)
 {
     ENTER_FUNCTION();
-    ERROR(NULL, flag, "TeStInG %d", rcount);
-    ERROR(NULL, flag, "TeStInG 2 %d", rcount);
-    ERROR(NULL, flag, "TeStInG 3 %d", rcount);
+    ERROR(M, flag, "TeStInG %d", rcount);
+    ERROR(M, flag, "TeStInG 2 %d", rcount);
+    ERROR(M, flag, "TeStInG 3 %d", rcount);
     if (rcount++ < 30) recurse();
-    ERROR(NULL, flag, "exiting current function");
-    ERROR(NULL, flag, "exiting current function 2");
-    ERROR(NULL, flag, "exiting current function 3");
+    ERROR(M, flag, "exiting current function");
+    ERROR(M, flag, "exiting current function 2");
+    ERROR(M, flag, "exiting current function 3");
     EXIT_FUNCTION(0);
 }
 
@@ -33,41 +34,41 @@ int main (int argc, char *argv[])
 
     debugger_initialize(NULL);
 
-    debugger_set_reporting_function(NULL);
+    //debugger_set_reporting_function(NULL);
     //debugger_set_reporting_function(report);
 
     for (i = 0; i < 5; i++) {
 
         DISABLE_ALL_DEBUG_MESSAGES(flag);
 
-        DEBUG(NULL, flag, "%s", incorrect);
-        INFO(NULL, flag, "%s", incorrect);
-        WARNING(NULL, flag, "%s", incorrect);
-        ERROR(NULL, flag, "%s", correct);
+        DEBUG(M, flag, "%s", incorrect);
+        INFO(M, flag, "%s", incorrect);
+        WARNING(M, flag, "%s", incorrect);
+        ERROR(M, flag, "%s", correct);
         
         ENABLE_DEBUG_MESSAGES(flag);
-        DEBUG(NULL, flag, "%s", correct);
-        INFO(NULL, flag, "%s", correct);
-        WARNING(NULL, flag, "%s", correct);
-        ERROR(NULL, flag, "%s", correct);
+        DEBUG(M, flag, "%s", correct);
+        INFO(M, flag, "%s", correct);
+        WARNING(M, flag, "%s", correct);
+        ERROR(M, flag, "%s", correct);
 
         ENABLE_INFO_MESSAGES(flag);
-        DEBUG(NULL, flag, "%s", incorrect);
-        INFO(NULL, flag, "%s", correct);
-        WARNING(NULL, flag, "%s", correct);
-        ERROR(NULL, flag, "%s", correct);
+        DEBUG(M, flag, "%s", incorrect);
+        INFO(M, flag, "%s", correct);
+        WARNING(M, flag, "%s", correct);
+        ERROR(M, flag, "%s", correct);
 
         ENABLE_WARNING_MESSAGES(flag);
-        DEBUG(NULL, flag, "%s", incorrect);
-        INFO(NULL, flag, "%s", incorrect);
-        WARNING(NULL, flag, "%s", correct);
-        ERROR(NULL, flag, "%s", correct);
+        DEBUG(M, flag, "%s", incorrect);
+        INFO(M, flag, "%s", incorrect);
+        WARNING(M, flag, "%s", correct);
+        ERROR(M, flag, "%s", correct);
 
         DISABLE_ALL_DEBUG_MESSAGES(flag);
-        DEBUG(NULL, flag, "%s", incorrect);
-        INFO(NULL, flag, "%s", incorrect);
-        WARNING(NULL, flag, "%s", incorrect);
-        ERROR(NULL, flag, "%s", correct);
+        DEBUG(M, flag, "%s", incorrect);
+        INFO(M, flag, "%s", incorrect);
+        WARNING(M, flag, "%s", incorrect);
+        ERROR(M, flag, "%s", correct);
     }
 
     ENABLE_FUNCTION_TRACING();
