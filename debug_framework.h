@@ -85,6 +85,8 @@ extern "C" {
 
 #include "lock_object.h"
 
+extern lock_obj_t debugger_lock;
+
 /*
  * This is a debug flag which contains the level for which debug
  * messages for it can be processed.  Every module can have its 
@@ -105,6 +107,13 @@ typedef unsigned char module_debug_flag_t;
  */
 typedef void (*debug_reporting_function_pointer)(const char *msg);
 
+extern unsigned char function_trace_on;
+extern unsigned int function_trace_indent;
+extern const char *function_entered, *function_exited;
+extern lock_obj_t debugger_lock;
+extern char function_trace_string [];
+extern debug_reporting_function_pointer debug_reporter;
+
 /*
  * User can redefine the reporting function by setting a new function
  * using this call.
@@ -112,12 +121,8 @@ typedef void (*debug_reporting_function_pointer)(const char *msg);
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
 
-extern unsigned char function_trace_on;
-extern unsigned int function_trace_indent;
-extern const char *function_entered, *function_exited;
-extern lock_obj_t buffer_lock;
-extern char function_trace_string [];
-extern debug_reporting_function_pointer debug_reporter;
+extern void
+debugger_initialize (debug_reporting_function_pointer fn);
 
 #define INCLUDE_ALL_DEBUGGING_CODE
 
@@ -150,13 +155,13 @@ extern debug_reporting_function_pointer debug_reporter;
     #define ENTER_FUNCTION() \
         do { \
             if (function_trace_on) { \
-                grab_write_lock(&buffer_lock); \
+                grab_write_lock(&debugger_lock); \
                 sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
                     function_trace_indent, " ", function_entered, \
                         __FUNCTION__, __LINE__); \
                 function_trace_indent++; \
                 debug_reporter(function_trace_string); \
-                release_write_lock(&buffer_lock); \
+                release_write_lock(&debugger_lock); \
             } \
         } while (0)
 
@@ -164,13 +169,13 @@ extern debug_reporting_function_pointer debug_reporter;
     #define EXIT_FUNCTION(value) \
         do { \
             if (function_trace_on) { \
-                grab_write_lock(&buffer_lock); \
+                grab_write_lock(&debugger_lock); \
                 function_trace_indent--; \
                 sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
                     function_trace_indent, " ", function_exited, \
                         __FUNCTION__, __LINE__); \
                 debug_reporter(function_trace_string); \
-                release_write_lock(&buffer_lock); \
+                release_write_lock(&debugger_lock); \
             } \
             return (value); \
         } while (0)
@@ -178,24 +183,30 @@ extern debug_reporting_function_pointer debug_reporter;
     #define DEBUG(module_name, module_debug_flag, fmt, args...) \
         do { \
             if (module_debug_flag & DEBUG_LEVEL_MASK) { \
+                grab_write_lock(&debugger_lock); \
                 _process_debug_message_(module_name, debug_string, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+                release_write_lock(&debugger_lock); \
             } \
         } while (0)
     
     #define INFO(module_name, module_debug_flag, fmt, args...) \
         do { \
             if (module_debug_flag & INFORMATION_LEVEL_MASK) { \
+                grab_write_lock(&debugger_lock); \
                 _process_debug_message_(module_name, info_string, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+                release_write_lock(&debugger_lock); \
             } \
         } while (0)
     
     #define WARNING(module_name, module_debug_flag, fmt, args...) \
         do { \
             if (module_debug_flag & WARNING_LEVEL_MASK) { \
+                grab_write_lock(&debugger_lock); \
                 _process_debug_message_(module_name, warning_string, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+                release_write_lock(&debugger_lock); \
             } \
         } while (0)
     
@@ -221,15 +232,19 @@ extern debug_reporting_function_pointer debug_reporter;
 /* errors are ALWAYS reported */
 #define ERROR(module_name, module_debug_flag, fmt, args...) \
     do { \
+        grab_write_lock(&debugger_lock); \
         _process_debug_message_(module_name, error_string, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        release_write_lock(&debugger_lock); \
     } while (0)
 
 /* fatal errors are ALWAYS reported */
 #define FATAL_ERROR(module_name, fmt, args...) \
     do { \
+        grab_write_lock(&debugger_lock); \
         _process_debug_message_(module_name, fatal_error_string, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+        release_write_lock(&debugger_lock); \
         assert(0); \
     } while (0)
 

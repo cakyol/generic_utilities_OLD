@@ -31,6 +31,8 @@ int main (int argc, char *argv[])
 {
     int i;
 
+    debugger_initialize(NULL);
+
     debugger_set_reporting_function(NULL);
     //debugger_set_reporting_function(report);
 
