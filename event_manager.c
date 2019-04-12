@@ -49,7 +49,7 @@ typedef struct event_registration_record_s {
 /*
  * determines whether the two event notification records 
  * passed in as void* params are 'considered' to be equal.  
- * They are so if their function pointers AND the o9paque
+ * They are so if their function pointers AND the opaque
  * user parameters are the same.
  *
  * Returns 0 for equal, -ve or +ve value if considered less

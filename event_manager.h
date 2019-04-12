@@ -41,7 +41,7 @@
 ** Currently events are divided into two precise categories:
 **
 **  - object events are events which are generated when an object
-**    created or deleted.  
+**    is created or deleted.  
 **
 **  - attribute events are events which are generated when a new
 **    attribute id is added to an object or an existing attribute id
@@ -51,12 +51,10 @@
 **
 ** Note that users can register for either of these events based ONLY
 ** on the type of the object (not the instance).  Including filtering
-** also based on instance numbers would make the system too complex
+** also based on instance numbers would have made the system too complex
 ** and extremely granular.  Having said that, when an event is reported,
 ** the event record WILL contain the instance of the object that the
-** event applies to.  The limitation is that the user cannot REGISTER
-** for a specific instance.  In summary, users can NOT register with instance
-** numbers but WILL be notified of the instance when the event is reported.
+** event happened to.
 **
 ** There are two ways of registering for either type of events.
 ** One is to register in a way so that events are reported for
@@ -76,11 +74,10 @@
 ** consequences for duplicate registrations.  For example, if a user 
 ** registers for events for ALL objects, later user should NOT register
 ** for a specific object type for the same event, or vice versa.
-** This will cause the event manager to report the same event twice, 
+** Otherwise the event manager will report the same event multiple times, 
 ** once because of the fact that the registration was made for all 
 ** objects (which always matches for any object) and the second time,
 ** since the specific object event will also be notified as well.
-**
 ** User should first UN register from the first object type and
 ** register again with the desired condition.
 **
@@ -91,11 +88,8 @@
 ** currently, there are no automatic protections.
 **
 ** The only time the event manager will catch a duplication is when a user
-** registers for EXACTLY the same type of event for the same object.
-**
-** What is meant by the "same" registration means registering with
-** EXACTLY the same callback function AND the user supplied parameter FOR
-** the exact same object TYPE.
+** registers for the same EXACT event type with the same EXACT object type
+** and also with the same EXACT function callback parameter.
 **
 *******************************************************************************
 *******************************************************************************
