@@ -8,12 +8,12 @@
 
 #define QUEUE_SIZE                      10000
 #define QUEUE_EXPANSION_INCREMENT       8000
-#define ITER_COUNT                      (QUEUE_SIZE * 20)
+#define ITER_COUNT                      (QUEUE_SIZE * 50)
 
 int main (int argc, char *argv[])
 {
     queue_obj_t qobj;
-    int i, j, n_stored;
+    int i, j, n_stored, mismatched;
     long long int bytes;
     double mbytes;
     timer_obj_t timr;
@@ -44,7 +44,7 @@ int main (int argc, char *argv[])
     OBJECT_MEMORY_USAGE(&qobj, bytes, mbytes);
 
     /* now read back and verify */
-    i = 0;
+    mismatched = i = 0;
     printf("Now dequeuing & verifying\n");
     timer_start(&timr);
     while (0 == queue_obj_dequeue(&qobj, &pointer)) {
@@ -54,12 +54,13 @@ int main (int argc, char *argv[])
         } else {
             fprintf(stderr, "dequeue data mismatch: dqed %d, should be %d\n",
                 j, i);
+            mismatched++;
         }
         i++;
     }
     timer_end(&timr);
     timer_report(&timr, i, NULL);
-    assert((qobj.n == 0) && (i == n_stored));
+    assert((qobj.n == 0) && (i == n_stored) && (mismatched == 0));
     printf("\nqueue object is sane\n  capacity %d\n  expanded %d times\n"
             "  memory %lld bytes %f mbytes\n",
         qobj.maximum_size, qobj.expansion_count, bytes, mbytes);

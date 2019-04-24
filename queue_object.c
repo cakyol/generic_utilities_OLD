@@ -56,7 +56,7 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
     /* it is now safe to adjust all relevant counters etc */
     qobj->read_idx = 0;
     qobj->write_idx = qobj->n;
-    qobj->maximum_size += qobj->expansion_increment;
+    qobj->maximum_size = new_size;
 
     /* free up old queue array assign new one */
     MEM_MONITOR_FREE(qobj, qobj->elements);
