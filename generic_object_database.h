@@ -98,13 +98,13 @@ extern "C" {
 #include <unistd.h>
 #include <assert.h>
 
+#include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
-#include "pointer_manipulations.h"
 #include "table.h"
 #include "dynamic_array_object.h"
 #include "object_types.h"
-#include "event_types.h"
+#include "event_manager.h"
 
 /* 
  * This uses more memory for widespread attribute ids
@@ -121,67 +121,6 @@ typedef struct object_identifier_s object_identifier_t;
 typedef struct object_representation_s object_representation_t;
 typedef struct object_s object_t;
 typedef struct object_database_s object_database_t;
-typedef struct event_record_s event_record_t;
-typedef void (*event_handler_function)(event_record_t*);
-
-/******************************************************************************
- *
- * event management related structures
- *
- */
-
-/*
- * This structure is used to notify every possible event that could
- * possibly happen in the system.  ALL the events fall into the
- * events category above.
- *
- * The structure includes all the information needed to process
- * the event completely and it obviously cannot contain any pointers.
- *
- * The 'event' field determines which part of the rest of the structure
- * elements are needed (or ignored).
- *
- * One possible explanation is needed in the case of an attribute event.
- * If this was an attribute event which involves a variable size
- * attribute value, the length will be specified in 'attribute_value_length'
- * and the byte stream would be available from '&attribute_value_data'
- * onwards.  This makes the structure of variable size, based on
- * the parsed parameters, with a complex attribute directly attached to the
- * end of the structure.
- */
-struct event_record_s {
-
-    /*
-     * this must be first since during reads & writes, it can
-     * be determined at the very beginning
-     */
-    int total_length;
-
-    /* which database this event/command applies to */
-    int database_id;
-
-    /* what is the event/command */
-    int event;
-
-    /* object to which the event is directly relevant to */
-    int object_type;
-    int object_instance;
-
-    /*
-     * if the event involves another object, which is it.
-     * Not used if another object is not involved.  One case
-     * it is involved is object creation event.  This object
-     * represents the PARENT in this case.
-     */
-    int related_object_type;
-    int related_object_instance;
-
-    /* if the event involves an attribute, these are used */
-    int attribute_id;
-    int attribute_value_length;
-    long long int attribute_value_data;
-    byte extra_data [0];
-};
 
 /******************************************************************************
  *
@@ -236,10 +175,10 @@ struct attribute_value_s {
 
 struct attribute_instance_s {
 
-    object_t *object;           // which object does this attribute belong to
-    int attribute_id;           // which attribute is it
-    int n_attribute_values;     // how many values does it have
-    attribute_value_t *avps;    // linked list of the attribute values
+    object_t *object;           /* which object does this attribute belong to */
+    int attribute_id;           /* which attribute is it */
+    int n_attribute_values;     /* how many values does it have */
+    attribute_value_t *avps;    /* linked list of the attribute values */
 };
 
 /******************************************************************************
@@ -320,6 +259,9 @@ struct object_database_s {
     /* unique integer for this database */
     int database_id;
 
+    /* event manager for this database */
+    event_manager_t evm;
+
     /*
      * Objects are always uniquely indexed by 'object_type' & 
      * 'object_instance'.  There can be only ONE object of
@@ -333,9 +275,6 @@ struct object_database_s {
      * the database.
      */
     object_t root_object;
-
-    /* notify whoever is interested */
-    event_handler_function evhf;
 
     /*
      * There are two reasons for database changes.  Ones produced locally
@@ -358,7 +297,7 @@ struct object_database_s {
      */
     int processing_remote_event;
 
-    // for spurious event suppression
+    /* for spurious event suppression */
     int blocked_events;
 };
 
@@ -367,12 +306,40 @@ struct object_database_s {
 extern int
 database_initialize (object_database_t *obj_db,
         int make_it_thread_safe,
-        int db_id, event_handler_function evhf,
+        int db_id,
         mem_monitor_t *parent_mem_monitor);
 
-extern void
-database_register_evhf (object_database_t *obj_db,
-        event_handler_function evhf);
+static inline int
+database_register_for_object_events (object_database_t *obj_db,
+        int object_type,
+        two_parameter_function_pointer ecbf, void *user_param)
+{
+    return
+        register_for_object_events(&obj_db->evm, object_type, ecbf, user_param);
+}
+
+static inline void
+database_un_register_from_object_events (object_database_t *obj_db,
+        int object_type, two_parameter_function_pointer ecbf)
+{
+    un_register_from_object_events(&obj_db->evm, object_type, ecbf);
+}
+
+static inline int
+database_register_for_attribute_events (object_database_t *obj_db,
+        int object_type,
+        two_parameter_function_pointer ecbf, void *user_param)
+{
+    return
+        register_for_attribute_events(&obj_db->evm, object_type, ecbf, user_param);
+}
+
+static inline void
+database_un_register_from_attribute_events (object_database_t *obj_db,
+        int object_type, two_parameter_function_pointer ecbf)
+{
+    un_register_from_attribute_events(&obj_db->evm, object_type, ecbf);
+}
 
 extern int
 object_create (object_database_t *obj_db,
@@ -538,9 +505,9 @@ extern void
 database_destroy (object_database_t *obj_db);
 
 #ifdef __cplusplus
-} // extern C
+} /* extern C */
 #endif 
 
-#endif // __GENERIC_OBJECT_DATABASE_H__
+#endif /* __GENERIC_OBJECT_DATABASE_H__ */
 
 

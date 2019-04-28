@@ -5,18 +5,24 @@
 *******************************************************************************
 *******************************************************************************
 **
-** Author: Cihangir Metin Akyol, gee.akyol@gmail.com
-** Copyright: Cihangir Metin Akyol, March 2016, November 2017
+** Author: Cihangir Metin Akyol, gee.akyol@gmail.com, gee_akyol@yahoo.com
+** Copyright: Cihangir Metin Akyol, April 2014 -> ....
 **
-** This code is developed by and belongs to Cihangir Metin Akyol.  
-** It is NOT owned by any company or consortium.  It is the sole
-** property and work of one individual.
+** All this code has been personally developed by and belongs to 
+** Mr. Cihangir Metin Akyol.  It has been developed in his own 
+** personal time using his own personal resources.  Therefore,
+** it is NOT owned by any establishment, group, company or 
+** consortium.  It is the sole property and work of the named
+** individual.
 **
-** It can be used by ANYONE or ANY company for ANY purpose as long 
+** It CAN be used by ANYONE or ANY company for ANY purpose as long 
 ** as ownership and/or patent claims are NOT made to it by ANYONE
-** or any ANY ENTITY.
+** or ANY ENTITY.
 **
 ** It ALWAYS is and WILL remain the property of Cihangir Metin Akyol.
+**
+** For proper indentation viewing, no tabs are used.  This way, every
+** text editor should display the code properly.
 **
 *******************************************************************************
 *******************************************************************************
@@ -24,12 +30,27 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __FUNCTION_TYPES_H__
-#define __FUNCTION_TYPES_H__
+#ifndef __COMMON_H__
+#define __COMMON_H__
+
+/*
+ * This file is a collection of the most common types/definitions which
+ * is used by almost all the generic utilities.
+ */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+ * This supresses the compiler error messages for unused variables,
+ * if the error detections are fully turned on during compilations.
+ */
+#ifndef SUPPRESS_UNUSED_VARIABLE_WARNING
+#define SUPPRESS_UNUSED_VARIABLE_WARNING(x)	((void)(x))
+#endif
+
+typedef unsigned char byte;
 
 typedef int (*one_parameter_function_pointer)(void *arg1);
 
@@ -58,44 +79,37 @@ typedef two_parameter_function_pointer object_comparer;
 
 typedef seven_parameter_function_pointer traverse_function_pointer;
 
-#if 0
-
 /*
- * A generic function pointer used in traversing trees or tries etc.
- * If the return value is 0, iteration will continue.  Otherwise,
- * iteration will stop.  
- *
- * The first parameter is always the object pointer in the context
- * this function is called.  For example, if it is being called in
- * the context of an avl tree, it will be the avl tree object pointer.
- * If it is being called in the context of an index object, it
- * will be the index object pointer.
- *
- * The second parameter is the object node in question.  Just like
- * the first param above, it can be an avl tree node or an index node.
- *
- * The third parameter will always be the actual user data stored
- * in that utility node passed in.
- *
- * The rest of the parameters are user passed and fed into the function.
- *
- * Not all the params will necessarily be used but this is a very generic
- * definition which covers all possible needs.
- *
+ * Sets a pointer to an integer value.  This can be directly done when
+ * a pointer is the same size as an integer but is usually complained 
+ * about by most compilers otherwise.  This little trick solves that.
  */
-typedef int (*traverse_function_pointer)
-    (void *utility_object, void *utility_node, void *node_data, 
-     void *extra_parameter_0,
-     void *extra_parameter_1,
-     void *extra_parameter_2,
-     void *extra_parameter_3);
+static inline void*
+integer2pointer (long long int value)
+{
+    byte *ptr = 0;
+    ptr += value;
+    return ptr;
+}
 
-#endif // 0
+static inline long long int
+pointer2integer (void *ptr)
+{
+    byte *zero = 0;
+    return ((byte*) ptr) - zero;
+}
+
+#define pointer_from_integer(i)         integer2pointer((long long int) (i))
+#define integer_from_pointer(p)         pointer2integer((void*) (p))
+
+#define safe_pointer_set(ptr, value) \
+    if (ptr) *(ptr) = (value)
 
 #ifdef __cplusplus
-} // extern C
+} /* extern C */
 #endif 
 
-#endif // __FUNCTION_TYPES_H__
+#endif /* __COMMON_H__ */
+
 
 

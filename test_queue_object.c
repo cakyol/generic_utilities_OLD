@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "pointer_manipulations.h"
 #include "queue_object.h"
 #include "timer_object.h"
 

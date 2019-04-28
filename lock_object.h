@@ -66,6 +66,7 @@ extern "C" {
 #include <pthread.h>
 #include <assert.h>
 
+#include "common.h"
 #include "timer_object.h"
 
 typedef struct lock_obj_s {

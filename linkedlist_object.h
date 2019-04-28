@@ -52,7 +52,7 @@ extern "C" {
 
 #include <errno.h>
 
-#include "function_types.h"
+#include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 

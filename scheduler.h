@@ -37,7 +37,7 @@ extern "C" {
 #include <signal.h>
 #include <sys/time.h>
 
-#include "function_types.h"
+#include "common.h"
 #include "timer_object.h"
 #include "linkedlist_object.h"
 

@@ -83,6 +83,7 @@ extern "C" {
 #include <stdio.h>
 #include <assert.h>
 
+#include "common.h"
 #include "lock_object.h"
 
 /*

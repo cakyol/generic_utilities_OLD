@@ -4,7 +4,6 @@
 #include <unistd.h>
 
 #include "linkedlist_object.h"
-#include "pointer_manipulations.h"
 
 #define START_INT   1
 #define END_INT     4000

@@ -55,6 +55,7 @@ extern "C" {
 #include <stdlib.h>
 #include <strings.h>
 
+#include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 

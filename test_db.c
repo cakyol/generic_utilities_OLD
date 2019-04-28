@@ -19,46 +19,54 @@ char *attribute_value_string (event_record_t *evrp)
     return temp_buffer;
 }
 
-void notify_event (event_record_t *evrp)
+int notify_event (void *arg1, void *arg2)
 {
-    int event = evrp->event;
-    return;
+    event_record_t *evrp = (event_record_t*) arg1;
+    object_database_t *dbp = (object_database_t*) arg2;
+    int event = evrp->event_type;
+
+    SUPPRESS_UNUSED_VARIABLE_WARNING(evrp);
+    SUPPRESS_UNUSED_VARIABLE_WARNING(dbp);
+    SUPPRESS_UNUSED_VARIABLE_WARNING(event);
+
+    // return 0;
 
     if (event & OBJECT_CREATED) {
         printf("child (%d, %d) created for parent (%d, %d)\n",
             evrp->related_object_type, evrp->related_object_instance,
             evrp->object_type, evrp->object_instance);
-        return;
+        return 0;
     }
     if (event & ATTRIBUTE_INSTANCE_ADDED) {
         printf("attribute %d added to object (%d, %d)\n",
             evrp->attribute_id, evrp->object_type, evrp->object_instance);
-        return;
+        return 0;
     }
     if (event & ATTRIBUTE_VALUE_ADDED) {
         printf("attribute %d value <%s> added for object (%d, %d)\n",
             evrp->attribute_id, attribute_value_string(evrp),
             evrp->object_type, evrp->object_instance);
-        return;
+        return 0;
     }
     if (event & ATTRIBUTE_VALUE_DELETED) {
         printf("attribute %d value <%s> deleted from object (%d, %d)\n",
             evrp->attribute_id, attribute_value_string(evrp),
             evrp->object_type, evrp->object_instance);
-        return;
+        return 0;
     }
     if (event & ATTRIBUTE_INSTANCE_DELETED) {
         printf("attribute %d deleted from object (%d, %d)\n",
             evrp->attribute_id, evrp->object_type, evrp->object_instance);
-        return;
+        return 0;
     }
     if (event & OBJECT_DESTROYED) {
         printf("object (%d, %d) destroyed\n", 
             evrp->object_type, evrp->object_instance);
-        return;
+        return 0;
     }
 
     printf("UNKNOWN EVENT TYPE %d\n", event);
+    return -1;
 }
 
 void add_del_attributes (object_database_t *obj_db, int type, int instance)
@@ -88,11 +96,24 @@ int main (int argc, char *argv[])
     object_database_t db;
     int parent_type, parent_instance;
     int child_type, child_instance;
-    int count;
+    int rc, count;
 
     printf("size of one object is %ld bytes\n", sizeof(object_t));
 
-    database_initialize(&db, 1, 1, notify_event, NULL);
+    database_initialize(&db, 1, 1, NULL);
+
+    rc = database_register_for_object_events(&db, ALL_OBJECT_TYPES,
+                notify_event, &db);
+    if (rc) {
+        fprintf(stderr, "database_register_for_object_events failed: %d\n", rc);
+        return rc;
+    }
+    rc = database_register_for_attribute_events(&db, ALL_OBJECT_TYPES,
+                notify_event, &db);
+    if (rc) {
+        fprintf(stderr, "database_register_for_attribute_events failed: %d\n", rc);
+        return rc;
+    }
 
     printf("creating objects\n");
     count = 0;

@@ -68,10 +68,9 @@ extern "C" {
 
 #include <errno.h>
 
-#include "pointer_manipulations.h"
+#include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
-#include "function_types.h"
 
 #ifdef USE_CHUNK_MANAGER
 #include "chunk_manager.h"

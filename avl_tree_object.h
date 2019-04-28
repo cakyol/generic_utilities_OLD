@@ -34,10 +34,10 @@ extern "C" {
 #include <errno.h>
 #include <assert.h>
 
+#include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 #include "chunk_manager.h"
-#include "function_types.h"
 
 typedef struct avl_node_s avl_node_t;
 

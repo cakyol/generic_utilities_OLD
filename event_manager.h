@@ -104,6 +104,7 @@
 extern "C" {
 #endif
 
+#include "common.h"
 #include "lock_object.h"
 #include "linkedlist_object.h"
 #include "dynamic_array_object.h"
@@ -151,11 +152,16 @@ is_an_attribute_event (int event)
 
 /*
  * This structure is used to notify every possible event that could
- * possibly happen in the system.  ALL the events fall into the
- * events category above.
+ * possibly happen in the system.  T is passed around as a parameter
+ * when entities are interested in being notified of events.
+ * ALL the possible events fall into the events defined above.
+ *
+ * This is a variable size structure whose total length (in bytes) is
+ * always specified in its FIRST field so that the entity being
+ * notified will know how to read the entire record.
  *
  * The structure includes all the information needed to process
- * the event completely and it obviously should NOT contain any pointers
+ * the event completely and it should NOT contain any pointers
  * in case events are notified across different processes.
  *
  * The 'event_type' field determines which part of the rest of the structure
@@ -167,7 +173,8 @@ is_an_attribute_event (int event)
  * and the byte stream would be available from '&attribute_value_data'
  * onwards.  This makes the structure of variable size, based on
  * the parsed parameters, with a complex attribute directly attached to the
- * end of the structure.
+ * end of the structure.  This is why the structure is a variable sized
+ * structure.
  */
 typedef struct event_record_s {
 
@@ -215,6 +222,8 @@ typedef struct event_record_s {
     int attribute_id;
     int attribute_value_length;
     long long int attribute_value_data;
+
+    /* rest of data if it exists */
     unsigned char extra_data [0];
 
 } event_record_t;
@@ -232,15 +241,15 @@ typedef struct event_manager_s {
     int cannot_be_modified;
 
     /*
-     * list of registrants interested in object creation
-     * and deletion events for ALL types of objects.
+     * list of registrants interested in object events (object creation
+     * and deletion) for ANY type of object.
      */
     linkedlist_t all_types_object_registrants;
 
     /*
      * list of registrants interested in attribute
      * events (attribute id add/delete, attribute value
-     * add/delete) for ALL types of objects.
+     * add/delete) for ANY type of object.
      */
     linkedlist_t all_types_attribute_registrants;
     
@@ -277,16 +286,18 @@ already_registered (event_manager_t *emp,
 
 /*
  * This function registers the caller to be notified of object events
- * (object creation & deletion) for either one object or all objects.
- * If 'object_type' is ALL_OBJECT_TYPES, then object events for all
- * objects will be reported.  If it is a specific object, then object
- * events only for that object type will be reported.
+ * (object creation & deletion) for either a specific object TYPE (not
+ * also an instance, we cannot do that much granularity) or all object
+ * types. If 'object_type' is ALL_OBJECT_TYPES, then object events for
+ * every object type will be reported.  If it is a specific object, then
+ * object events only for that object type will be reported.
  *
  * When a caller registers for events for an object, he supplies
  * an event callback function and an opaque parameter.  When the
  * event occurs, the callback will be called with the FIRST parameter
- * being the event_record_t parameter and the SECOND parameter
- * being what has been registered here as 'user_param'.
+ * as the event_record_t parameter explaining the details of the
+ * event and the SECOND parameter as the user specified opaque 
+ * parameter which was specified at the time of registration.
  *
  * Note that since this is a registration only for object events,
  * the event record passed into the callback function will be 
@@ -330,7 +341,7 @@ un_register_from_attribute_events (event_manager_t *emp,
  * registered functions will be invoked one by one.
  */
 extern void
-notify_event (event_manager_t *emp, event_record_t *erp);
+announce_event (event_manager_t *emp, event_record_t *erp);
 
 extern void
 event_manager_destroy (event_manager_t *emp);

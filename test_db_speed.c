@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
     unsigned long long int bytes_used;
     double megabytes_used;
 
-    database_initialize(&db, 1, 1, NULL, NULL);
+    database_initialize(&db, 1, 1, NULL);
 
     /* create objects */
     count = 0;

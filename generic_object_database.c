@@ -56,7 +56,7 @@ static int use_avl_tree_for_attribute_ids = 1;
  */
 
 static int
-notify_event (object_database_t *obj_db,
+database_announce_event (object_database_t *obj_db,
     int event,
     object_t *obj, object_t *obj_related, 
     int attribute_id, attribute_value_t *related_attribute_value);
@@ -141,9 +141,9 @@ get_attribute_instance_pointer (object_t *obj, int attribute_id)
 
 /*
  * It is very important to understand this function.
- * It works to cut down redundant chat with remote
- * databases during a deletion event.  In a deletion event,
- * only the topmost delete needs to be transmitted.
+ * It works to cut down redundant event announcements
+ * during a deletion event.  In a deletion event,
+ * only the topmost delete needs to be announced.
  * sub event deletions need not be sent and must be suppressed
  * to cut unnecessary chatter between the databases.
  * The purpose of this function is to set the blocked event
@@ -445,7 +445,7 @@ destroy_all_attribute_values_except (attribute_instance_t *aitp,
     while (curr) {
         next = curr->next_attribute_value;
         if (keep != curr) {
-            notify_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
+            database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
                 NULL, aitp->attribute_id, curr);
             MEM_MONITOR_FREE(obj->obj_db, curr);
         }
@@ -487,7 +487,7 @@ attribute_add_simple_value_engine (attribute_instance_t *aitp,
     avtp = create_simple_attribute_value(obj->obj_db->mem_mon_p, value);
     if (avtp) {
         add_attribute_value_to_list(aitp, avtp);
-        notify_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
+        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
             NULL, aitp->attribute_id, avtp);
     }
 
@@ -530,7 +530,7 @@ attribute_delete_simple_value (attribute_instance_t *aitp,
     avtp = find_simple_attribute_value(aitp, value, &prev_avtp);
     if (avtp) {
         remove_attribute_value_from_list(aitp, avtp, prev_avtp);
-        notify_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
+        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
             NULL, aitp->attribute_id, avtp);
         MEM_MONITOR_FREE(obj->obj_db, avtp);
         return 0;
@@ -560,7 +560,7 @@ attribute_add_complex_value_engine (attribute_instance_t *aitp,
                 complex_value_data, complex_value_data_length);
     if (avtp) {
         add_attribute_value_to_list(aitp, avtp);
-        notify_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
+        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
             NULL, aitp->attribute_id, avtp);
     }
     return avtp;
@@ -605,7 +605,7 @@ attribute_delete_complex_value (attribute_instance_t *aitp,
                 complex_value_data, complex_value_data_length, &prev_avtp);
     if (avtp) {
         remove_attribute_value_from_list(aitp, avtp, prev_avtp);
-        notify_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
+        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
             NULL, aitp->attribute_id, avtp);
         MEM_MONITOR_FREE(obj->obj_db, avtp);
         return 0;
@@ -635,7 +635,7 @@ attribute_instance_destroy (attribute_instance_t *aitp)
 #endif
     assert(aitp == removed_data);
 
-    notify_event(obj->obj_db, ATTRIBUTE_INSTANCE_DELETED, 
+    database_announce_event(obj->obj_db, ATTRIBUTE_INSTANCE_DELETED, 
             obj, NULL, aitp->attribute_id, NULL);
 
     /* ok event is processed, now restore back */
@@ -656,13 +656,13 @@ object_indexes_init (mem_monitor_t *memp, object_t *obj)
     assert(0 == dynamic_array_init(&obj->attributes,
                     0, 4, memp));
 
-#else // !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
+#else /* !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES */
 
     assert(0 == table_init(&obj->attributes,
                     0, compare_attribute_ids, memp,
                     use_avl_tree_for_attribute_ids));
 
-#endif // !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
+#endif /* !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES */
 }
 
 static int
@@ -754,7 +754,7 @@ object_destroy_engine (object_t *obj, int leave_parent_consistent)
      */ 
     if (object_is_root(obj)) {
         restore_events(obj_db, events);
-        notify_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
+        database_announce_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
         return;
     }
 
@@ -772,7 +772,7 @@ object_destroy_engine (object_t *obj, int leave_parent_consistent)
 
     /* finally notify its destruction */
     restore_events(obj_db, events);
-    notify_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
+    database_announce_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
 
     /* and blow it away */
     MEM_MONITOR_FREE(obj_db, obj);
@@ -846,7 +846,7 @@ object_create_engine (object_database_t *obj_db,
      * parent resolving completes.
      */
     if (parent) {
-        notify_event(obj_db, OBJECT_CREATED, obj, parent, 0, NULL);
+        database_announce_event(obj_db, OBJECT_CREATED, obj, parent, 0, NULL);
     }
 
     /* done */
@@ -894,16 +894,16 @@ attribute_instance_add (object_t *obj, int attribute_id)
 
 #endif
 
-    // initialize rest of it
+    /* initialize rest of it */
     aitp->object = obj;
     aitp->n_attribute_values = 0;
     aitp->avps = NULL;
 
-    // notify
-    notify_event(obj->obj_db, ATTRIBUTE_INSTANCE_ADDED, 
+    /* notify */
+    database_announce_event(obj->obj_db, ATTRIBUTE_INSTANCE_ADDED, 
         obj, NULL, aitp->attribute_id, NULL);
 
-    // done
+    /* done */
     return aitp;
 }
 
@@ -1033,6 +1033,8 @@ __object_get_matching_descendants (object_t *parent,
     return index;
 }
 
+#if 0
+
 /******************************************************************************
  *
  * event management related functions
@@ -1154,49 +1156,7 @@ process_attribute_value_deleted_event (object_database_t *obj_db,
     return -1;
 }
 
-/********** TO DO TO DO **********/
-/* static */ object_database_t *
-database_find (int database_id)
-{
-    return NULL;
-}
-
-/* static */ int
-process_incoming_event (event_record_t *evrp)
-{
-    int rv = -1;
-    object_database_t *obj_db;
-
-    /* for all other events, the database object IS needed */
-    obj_db = database_find(evrp->database_id);
-    if (NULL == obj_db)
-        return -1;
-    obj_db->processing_remote_event = 1;
-
-    if (evrp->event & OBJECT_CREATED) {
-        rv = process_object_created_event(obj_db, evrp);
-
-    } else if (evrp->event & OBJECT_DESTROYED) {
-        rv = process_object_destroyed_event(obj_db, evrp);
-
-    } else if (evrp->event & ATTRIBUTE_INSTANCE_ADDED) {
-        rv = process_attribute_added_event(obj_db, evrp);
-
-    } else if (evrp->event & ATTRIBUTE_INSTANCE_DELETED) {
-        rv = process_attribute_deleted_event(obj_db, evrp);
-
-    } else if (evrp->event & ATTRIBUTE_VALUE_ADDED) {
-        rv = process_attribute_value_added_event(obj_db, evrp);
-
-    } else if (evrp->event & ATTRIBUTE_VALUE_DELETED) {
-        rv = process_attribute_value_deleted_event(obj_db, evrp);
-    }
-
-    // remote event processing has finished. so restore this back
-    obj_db->processing_remote_event = 0;
-
-    return rv;
-}
+#endif /* 0 */
 
 /*
  * maximum tolarable times a read or a write call can consecutively fail
@@ -1275,7 +1235,7 @@ read_event_record (int fd, event_record_t *evrp)
     int to_read = sizeof(event_record_t);
     int extra_length;
 
-    // read the basic event record information
+    /* read the basic event record information */
     if (read_exact_size(fd, evrp, to_read, 1) == 0) {
         extra_length = evrp->total_length - to_read;
         if (extra_length > 0) {
@@ -1296,53 +1256,54 @@ create_event_record (object_database_t *obj_db,
     event_record_t *evrp;
     int size;
 
-    // this is the 'normal' size
+    /* this is the 'normal' size */
     size = sizeof(event_record_t);
 
-    // if a complex attribute event, the size may be extended past
-    // the end of the structure to account for a complex attribute
-    //
+    /*
+     * if a complex attribute event, the size may be extended past
+     * the end of the structure to account for a complex attribute
+     */
     if (is_an_attribute_value_event(event) && related_attribute_value) {
         if (related_attribute_value->attribute_value_length > 0) {
             size += related_attribute_value->attribute_value_length;
 
-            // first 8 bytes of a complex attribute will fit here
+            /* first 8 bytes of a complex attribute will fit here */
             size -= sizeof(long long int);
         }
     }
 
-    // now we have the appropriate size, we can create the event record
+    /* now we have the appropriate size, we can create the event record */
     evrp = malloc(size);
     if (NULL == evrp) return NULL;
 
-    // set essentials
+    /* set essentials */
     evrp->total_length = size;
     evrp->database_id = obj_db->database_id;
-    evrp->event = event;
+    evrp->event_type = event;
     evrp->attribute_id = attribute_id;
 
-    // set main object if specified
+    /* set main object if specified */
     if (obj) {
         evrp->object_type = obj->object_type;
         evrp->object_instance = obj->object_instance;
     }
 
-    // set related object if specified
+    /* set related object if specified */
     if (obj_related) {
         evrp->related_object_type = obj_related->object_type;
         evrp->related_object_instance = obj_related->object_instance;
     }
 
-    // set attribute value if specified
+    /* set attribute value if specified */
     if (related_attribute_value) {
 
-        // copy basic attribute
+        /* copy basic attribute */
         evrp->attribute_value_length = 
             related_attribute_value->attribute_value_length;
         evrp->attribute_value_data = 
             related_attribute_value->attribute_value_data;
 
-        // overwrite if it was a complex attribute
+        /* overwrite if it was a complex attribute */
         if (evrp->attribute_value_length > 0) {
             memcpy((void*) &evrp->attribute_value_data,
                 (void*) &related_attribute_value->attribute_value_data,
@@ -1353,75 +1314,27 @@ create_event_record (object_database_t *obj_db,
     return evrp;
 }
 
-static void
-distribute_event_to_remote_databases (object_database_t *obj_db,
-        event_record_t *evrp)
-{
-    //
-    // This check is relevant ONLY to deletion/destruction events.
-    //
-    // This filter supresses redundant deletion/destruction
-    // events to be distributed out, hence reducing unnecessary
-    // chatter across databases.  For example, if an object
-    // is being deleted, there is no need to distribute the
-    // deletion of all its components like its attribute instances
-    // and values.  All that is needed is the final object
-    // deletion event to be sent.  The other deletion destruction
-    // 'sub-events' should be supressed.
-    //
-    // The remote database will process those properly anyway when
-    // it deletes its own object.  It does not need to be told about
-    // the deletion of all its sub components.
-    //
-    if (evrp->event & obj_db->blocked_events) {
-        return;
-    }
-
-    // distribute to other databases here
-    // TODO
-    // TODO
-    // TODO
-    // TODO
-}
-
 static int
-notify_event (object_database_t *obj_db,
+database_announce_event (object_database_t *obj_db,
     int event,
     object_t *obj, object_t *obj_related, 
     int attribute_id, attribute_value_t *related_attribute_value)
 {
-    event_record_t *evrp = NULL;
-
-#define _GENERATE_EVR \
-        if (NULL == evrp) { \
-            evrp = create_event_record(obj_db, event, \
-                        obj, obj_related, \
-                        attribute_id, related_attribute_value); \
-            if (NULL == evrp) return -1; \
-        }
-
     /*
-     * regardless of whether the event is remote or local, if the
-     * application has registered to be notified, it will be done here.
+     * we cannot use a local variable here since we do not know the 
+     * final size of what the event record should be.  So, we malloc it.
      */
-    if (obj_db->evhf) {
-        _GENERATE_EVR;
-        (obj_db->evhf)(evrp);
-    }
+    event_record_t *evrp;
 
-    /*
-     * here, we decide what more to do with the event.  If it was
-     * generated remotely, we are done since we have already processed it.
-     * If however it was locally generated, we have to broadcast it
-     * to all the other remote databases.
-     */
-    if (!obj_db->processing_remote_event) {
-        _GENERATE_EVR;
-        distribute_event_to_remote_databases(obj_db, evrp);
-    }
-    
+    evrp = create_event_record(obj_db, event, obj, obj_related,
+                attribute_id, related_attribute_value);
+    if (NULL == evrp) return ENOMEM;
+
+    /* tell event manager to distribute it */
+    announce_event(&obj_db->evm, evrp);
+
     /* we are done */
-    if (evrp) free(evrp);
+    free(evrp);
 
     return 0;
 }
@@ -1431,7 +1344,7 @@ notify_event (object_database_t *obj_db,
 PUBLIC int
 database_initialize (object_database_t *obj_db,
         int make_it_thread_safe,
-        int database_id, event_handler_function evhf,
+        int database_id,
         mem_monitor_t *parent_mem_monitor)
 {
     object_t *root_obj;
@@ -1441,7 +1354,7 @@ database_initialize (object_database_t *obj_db,
     MEM_MONITOR_SETUP(obj_db);
     LOCK_SETUP(obj_db);
 
-    // memset to 0 already does this but just making a point
+    /* memset to 0 already does this but just making a point */
     obj_db->processing_remote_event = 0;
     obj_db->blocked_events = 0;
 
@@ -1454,6 +1367,9 @@ database_initialize (object_database_t *obj_db,
     root_obj->object_type = ROOT_OBJECT_TYPE;
     root_obj->object_instance = ROOT_OBJECT_INSTANCE;
 
+    /* initialize the event manager for this database */
+    assert(0 == event_manager_init(&obj_db->evm, 0, obj_db->mem_mon_p));
+
     /* initialize object lookup indexes */
     assert(0 == table_init(&obj_db->object_index,
                     0, 
@@ -1462,24 +1378,14 @@ database_initialize (object_database_t *obj_db,
                     use_avl_tree_for_database_object_index));
 
     obj_db->database_id = database_id;
-    obj_db->evhf = evhf;
 
     /* initialize root object indexes */
     object_indexes_init(obj_db->mem_mon_p, root_obj);
 
     WRITE_UNLOCK(obj_db);
 
-    // done
+    /* done */
     return 0;
-}
-
-PUBLIC void
-database_register_evhf (object_database_t *obj_db,
-    event_handler_function evhf)
-{
-    WRITE_LOCK(obj_db);
-    obj_db->evhf = evhf;
-    WRITE_UNLOCK(obj_db);
 }
 
 PUBLIC int
@@ -1837,6 +1743,8 @@ database_destroy (object_database_t *obj_db)
 {
     WRITE_LOCK(obj_db);
 
+    event_manager_destroy(&obj_db->evm);
+
     /*
      * we cannot unlock since the lock
      * will also have been destroyed.
@@ -2172,7 +2080,7 @@ database_load (int database_id, object_database_t *obj_db)
     if (NULL == fp) return -1;
 
     //database_destroy(obj_db);
-    if (database_initialize(obj_db, 1, database_id, NULL, NULL) != 0) {
+    if (database_initialize(obj_db, 1, database_id, NULL) != 0) {
         return -1;
     }
 

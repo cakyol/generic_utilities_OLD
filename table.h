@@ -45,6 +45,7 @@
 extern "C" {
 #endif
 
+#include "common.h"
 #include "avl_tree_object.h"
 #include "index_object.h"
 

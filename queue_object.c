@@ -78,8 +78,8 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
         qobj->elements[qobj->write_idx++] = data;
         qobj->n++;
         if (qobj->write_idx >= qobj->maximum_size) {
-	    qobj->write_idx = 0;
-	}
+            qobj->write_idx = 0;
+        }
         return 0;
     }
 
@@ -101,9 +101,9 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
     if (qobj->n > 0) {
         *returned_data = qobj->elements[qobj->read_idx++];
         qobj->n--;
-	if (qobj->read_idx >= qobj->maximum_size) {
-	    qobj->read_idx = 0;
-	}
+        if (qobj->read_idx >= qobj->maximum_size) {
+            qobj->read_idx = 0;
+        }
         return 0;
     }
     *returned_data = NULL;

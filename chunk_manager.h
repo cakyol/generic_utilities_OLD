@@ -49,6 +49,7 @@
 extern "C" {
 #endif
 
+#include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 

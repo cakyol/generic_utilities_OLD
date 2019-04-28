@@ -24,6 +24,7 @@
 *******************************************************************************
 ******************************************************************************/
 
+#include <stdio.h>
 #include "event_manager.h"
 
 #ifdef __cplusplus
@@ -169,7 +170,7 @@ thread_unsafe_already_registered (event_manager_t *emp,
 
 static int
 thread_unsafe_generic_register_function (event_manager_t *emp,
-        int object_type, int event_type,
+        int event_type, int object_type,
         two_parameter_function_pointer ecbf, void *user_param,
         int register_it)
 {
@@ -250,13 +251,15 @@ execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
 {
     event_registration_record_t *errp;
 
-    FOR_ALL_LINKEDLIST_ELEMENTS(list, errp) {
-        errp->ecbf(erp, errp->opaque_user_parameter);
+    if (list) {
+        FOR_ALL_LINKEDLIST_ELEMENTS(list, errp) {
+            errp->ecbf(erp, errp->opaque_user_parameter);
+        }
     }
 }
 
 static void
-thread_unsafe_notify_event (event_manager_t *emp, event_record_t *erp)
+thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
 {
     linkedlist_t *list;
     dynamic_array_t *dummy;
@@ -273,18 +276,14 @@ thread_unsafe_notify_event (event_manager_t *emp, event_record_t *erp)
      * to receive events for ALL the object types.
      */
     list = get_correct_list(emp, ALL_OBJECT_TYPES, erp->event_type, 0, &dummy);
-    if (list) {
-        execute_all_callbacks(list, erp);
-    }
+    execute_all_callbacks(list, erp);
 
     /*
      * Next, notify the event to the registrants who are registered
      * to receive events ONLY from this specific type of object.
      */
     list = get_correct_list(emp, erp->object_type, erp->event_type, 0, &dummy);
-    if (list) {
-        execute_all_callbacks(list, erp);
-    }
+    execute_all_callbacks(list, erp);
 
     /* ok traversal complete, modifications to lists can now happen */
     emp->cannot_be_modified = 0;
@@ -370,17 +369,17 @@ register_for_object_events (event_manager_t *emp,
     int rv;
 
     WRITE_LOCK(emp);
-    rv = thread_unsafe_generic_register_function(emp, object_type,
-            OBJECT_EVENTS, ecbf, user_param, 1);
+    rv = thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
+            object_type, ecbf, user_param, 1);
     WRITE_UNLOCK(emp);
     return rv;
 }
 
 PUBLIC void
-notify_event (event_manager_t *emp, event_record_t *erp)
+announce_event (event_manager_t *emp, event_record_t *erp)
 {
     WRITE_LOCK(emp);
-    thread_unsafe_notify_event(emp, erp);
+    thread_unsafe_announce_event(emp, erp);
     WRITE_UNLOCK(emp);
 }
 
@@ -389,8 +388,8 @@ un_register_from_object_events (event_manager_t *emp,
         int object_type, two_parameter_function_pointer ecbf)
 {
     WRITE_LOCK(emp);
-    (void) thread_unsafe_generic_register_function(emp, object_type,
-            OBJECT_EVENTS, ecbf, NULL, 0);
+    (void) thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
+            object_type, ecbf, NULL, 0);
     WRITE_UNLOCK(emp);
 }
 
@@ -406,8 +405,8 @@ register_for_attribute_events (event_manager_t *emp,
     int rv;
 
     WRITE_LOCK(emp);
-    rv = thread_unsafe_generic_register_function(emp, object_type,
-            ATTRIBUTE_EVENTS, ecbf, user_param, 1);
+    rv = thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
+            object_type, ecbf, user_param, 1);
     WRITE_UNLOCK(emp);
     return rv;
 }
@@ -417,8 +416,8 @@ un_register_from_attribute_events (event_manager_t *emp,
         int object_type, two_parameter_function_pointer ecbf)
 {
     WRITE_LOCK(emp);
-    (void) thread_unsafe_generic_register_function(emp, object_type,
-            ATTRIBUTE_EVENTS, ecbf, NULL, 0);
+    (void) thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
+            object_type, ecbf, NULL, 0);
     WRITE_UNLOCK(emp);
 }
 
