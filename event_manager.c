@@ -35,183 +35,249 @@ extern "C" {
 
 /*
  * Every time an event is registered, these two items are stored
- * in the lists.  Registerer can specify an arbitrary user pointer
- * and a callback function to call when the event gets reported.
- * The user callback will be called with the event pointer and the
- * opaque parameter supplied at the time of registration.
+ * in the appropriate lists.  Registerer can specify an arbitrary
+ * user pointer and a callback function to call when the event gets
+ * reported. The user callback will be called with the event pointer
+ * and the opaque parameter supplied at the time of registration.
+ * The name 'f_and_arg' stands for 'function and argument'.
  */
-typedef struct event_registration_record_s {
+typedef struct f_and_arg_s {
 
-    two_parameter_function_pointer ecbf;
-    void *opaque_user_parameter;
+    event_handling_fptr_t fptr;
+    void *user_argument;
 
-} event_registration_record_t;
+} f_and_arg_t;
+
+static f_and_arg_t *
+create_f_and_arg (event_manager_t *emp,
+        event_handling_fptr_t fptr, void *user_argument)
+{
+    f_and_arg_t *new_one;
+
+    new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_t));
+    if (new_one) {
+        new_one->fptr = fptr;
+        new_one->user_argument = user_argument;
+    }
+    return new_one;
+}
+
+static int
+compare_f_and_args (void *p1, void *p2)
+{
+    int result;
+
+    result = ((f_and_arg_t*) p1)->fptr - ((f_and_arg_t*) p2)->fptr;
+    if (result) return result;
+    return
+        ((f_and_arg_t*) p1)->user_argument - ((f_and_arg_t*) p2)->user_argument;
+}
+
+static int
+identical_f_and_args (f_and_arg_t *fa1, f_and_arg_t *fa2)
+{
+    return
+        (fa1->fptr == fa2->fptr) &&
+        (fa1->user_argument = fa2->user_argument);
+}
+
+static void
+destroy_f_and_arg (void *user_data, void *user_arg)
+{
+    MEM_MONITOR_FREE((event_manager_t*) user_arg, (f_and_arg_t*) user_data);
+}
 
 /*
- * determines whether the two event notification records 
- * passed in as void* params are 'considered' to be equal.  
- * They are so if their function pointers AND the opaque
- * user parameters are the same.
- *
- * Returns 0 for equal, -ve or +ve value if considered less
- * than or greater than.
+ * This is a structure accessed by the object type which stores a list
+ * of the f_and_arg_s structures(function npointers and arguments).
+ * It is stored in an index object and searched using the object type.
  */
-static int
-compare_errs (void *errp1, void *errp2)
-{
-    int diff;
+typedef struct f_and_arg_container_s {
 
-    diff =
-        ((event_registration_record_t*) errp1)->ecbf -
-        ((event_registration_record_t*) errp2)->ecbf;
-    if (diff) return diff;
+    int object_type;
+    linkedlist_t list_of_f_and_args;
+
+} f_and_arg_container_t;
+
+static int
+compare_f_and_arg_containers (void *p1, void *p2)
+{
     return
-        ((event_registration_record_t*) errp1)->opaque_user_parameter -
-        ((event_registration_record_t*) errp2)->opaque_user_parameter;
+        ((f_and_arg_container_t*) p1)->object_type -
+        ((f_and_arg_container_t*) p2)->object_type;
+}
+
+static f_and_arg_container_t *
+create_f_and_arg_container (event_manager_t *emp, int object_type)
+{
+    f_and_arg_container_t *new_one;
+    int failed;
+
+    new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
+    if (new_one) {
+        new_one->object_type = object_type;
+        failed = linkedlist_init(&new_one->list_of_f_and_args, 0,
+                    compare_f_and_args, emp->mem_mon_p);
+        if (failed) {
+            MEM_MONITOR_FREE(emp, new_one);
+            new_one = NULL;
+        }
+    }
+    return new_one;
+}
+
+static void
+destroy_f_and_arg_container (event_manager_t *emp,
+    f_and_arg_container_t *farg_cont_p)
+{
+    linkedlist_destroy(&farg_cont_p->list_of_f_and_args,
+            destroy_f_and_arg, emp);
+    MEM_MONITOR_FREE(emp, farg_cont_p);
 }
 
 /*
  * given the object type & event type, this function finds the correct
- * and relevant registration list that needs to be operated on.
+ * and relevant registration list that needs to be operated on.  It
+ * also returns the container & the index object which that list was
+ * in.  It is useful to have those, especially when we are about to
+ * delete something.  Note that not all returned variables are available
+ * in every context.  For example, when object type is 'any object',
+ * both the container & index will be meaningless and hence will be
+ * set to NULL.
+ *
+ * Note that all the pointer parameters to be returned may be passed
+ * in as NULL if they are not needed.
  */
-static linkedlist_t *
+static int
 get_correct_list (event_manager_t *emp,
         int event_type, int object_type,
         int create_if_missing,
-        dynamic_array_t **dynamic_array_returned)
+        linkedlist_t **list_returned,
+        f_and_arg_container_t **container_returned,
+        index_obj_t **index_object_returned)
 {
-    int rv;
-    dynamic_array_t *dap;
-    linkedlist_t *list;
+    int failed;
+    index_obj_t *idxp;
+    f_and_arg_container_t searched, *found, *new_one;
 
-    *dynamic_array_returned = NULL;
+    safe_pointer_set(list_returned, NULL);
+    safe_pointer_set(container_returned, NULL);
+    safe_pointer_set(index_object_returned, NULL);
 
     /*
-     * return "all types of objects" appropriate list
+     * attribute events are usually more likely to occur statistically,
+     * so check those first to have a hit more quickly
      */
-    if (ALL_OBJECT_TYPES == object_type) {
-
-        if (is_an_object_event(event_type)) {
-            return
-                &emp->all_types_object_registrants;
-        } else if (is_an_attribute_event(event_type)) {
-            return
-                &emp->all_types_attribute_registrants;
+    if (is_an_attribute_event(event_type)) {
+        if (ALL_OBJECT_TYPES == object_type) {
+            safe_pointer_set(list_returned,
+                    &emp->attribute_event_registrants_for_all_objects);
+            return 0;
         }
-
-        /* invalid event type */
-        return NULL;
-    }
-
-    /*
-     * if here, caller is interested in the correct event list for a
-     * SPECIFIC object type, we need to get it from the dynamic arrays.
-     * We have to extract the list from the dynamic array indexed by the
-     * specified object type.  If such an entry does not exist AND is 
-     * requested to be created then we must create a new list and return 
-     * it so it is ready for future use.
-     */
-    if (is_an_object_event(event_type)) {
-        dap = &emp->specific_object_registrants;
-    } else if (is_an_attribute_event(event_type)) {
-        dap = &emp->specific_attribute_registrants;
+        idxp = &emp->attribute_event_registrants_for_one_object;
+    } else if (is_an_object_event(event_type)) {
+        if (ALL_OBJECT_TYPES == object_type) {
+            safe_pointer_set(list_returned,
+                    &emp->object_event_registrants_for_all_objects);
+            return 0;
+        }
+        idxp = &emp->object_event_registrants_for_one_object;
     } else {
-        /* invalid event type */
-        return NULL;
+        return EINVAL;
     }
 
-    *dynamic_array_returned = dap;
-
-    /* get the list of registrants interested in events for this object type */
-    rv = dynamic_array_get(dap, object_type, (void**) &list);
-
-    /* 
-     * if no such list exists, create and initialize it,
-     * if creation is needed.
-     */
-    if ((0 != rv) && create_if_missing) {
-
-        list = MEM_MONITOR_ALLOC(emp, sizeof(linkedlist_t));
-        if (NULL == list) return NULL;
-        rv = linkedlist_init(list, 0, compare_errs, emp->mem_mon_p);
-        if (0 != rv) {
-            MEM_MONITOR_FREE(emp, list);
-            return NULL;
-        }
-
-        /* ok list is created, so now store it in the dynamic array */
-        rv = dynamic_array_insert(dap, object_type, list);
-        if (0 != rv) {
-            MEM_MONITOR_FREE(emp, list);
-            return NULL;
-        }
+    /* Get the container, this is searched by the specific object type */
+    searched.object_type = object_type;
+    failed = index_obj_search(idxp, &searched, (void**) &found);
+    if (found) {
+        assert(!failed);
+        safe_pointer_set(list_returned, &found->list_of_f_and_args);
+        safe_pointer_set(container_returned, found);
+        safe_pointer_set(index_object_returned, idxp);
+        return 0;
     }
 
-    return list;
+    /* not found, create if requested */
+    if (create_if_missing) {
+        new_one = create_f_and_arg_container(emp, object_type);
+        if (NULL == new_one) return ENOMEM;
+        failed = index_obj_insert(idxp, new_one, (void**) &found);
+        if (failed) {
+            destroy_f_and_arg_container(emp, new_one);
+            return failed;
+        }
+        safe_pointer_set(list_returned, &new_one->list_of_f_and_args);
+        safe_pointer_set(container_returned, new_one);
+        safe_pointer_set(index_object_returned, idxp);
+        return 0;
+    }
+
+    return ENODATA;
 }
 
 static int
 thread_unsafe_already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    two_parameter_function_pointer ecbf, void *opaque_user_parameter)
+    event_handling_fptr_t fptr, void *user_argument)
 {
-    dynamic_array_t *dap;
-    event_registration_record_t errt;
-    void *errtp_found;
-    linkedlist_t *list = 
-        get_correct_list(emp, event_type, object_type, 0, &dap);
-
-    if (NULL == list) return 0;
-    errt.ecbf = ecbf;
-    errt.opaque_user_parameter = opaque_user_parameter;
-    return
-        0 == linkedlist_search(list, &errt, &errtp_found);
+    int failed;
+    f_and_arg_t faat;
+    linkedlist_t *list;
+        
+    failed = get_correct_list(emp, event_type, object_type, 0, &list, NULL, NULL);
+    if (failed) return 0;
+    assert(list);
+    faat.fptr = fptr;
+    faat.user_argument = user_argument;
+    return (0 == linkedlist_search(list, &faat, NULL));
 }
 
 static int
 thread_unsafe_generic_register_function (event_manager_t *emp,
         int event_type, int object_type,
-        two_parameter_function_pointer ecbf, void *user_param,
+        event_handling_fptr_t fptr, void *user_param,
         int register_it)
 {
-    int rv;
-    event_registration_record_t enr, *errp;
+    int failed;
+    f_and_arg_t fandarg, *fandargp;
     void *found;
-    dynamic_array_t *dap;
+    index_obj_t *idxp;
+    f_and_arg_container_t *contp;
     linkedlist_t *list;
 
     /* if we are traversing lists, block any potential changes */
     if (emp->cannot_be_modified) return EBUSY;
 
-    list = get_correct_list(emp, event_type, object_type, register_it, &dap);
+    failed = get_correct_list(emp, event_type, object_type, register_it,
+                &list, &contp, &idxp);
 
     /*
      * if we are registering, we must create a list in the appropriate
-     * dynamic array and store the info in that list if not already there.
+     * container and store the info in that list if not already there.
      */
     if (register_it) {
 
-        if (list) {
-            
-            /* create the event notification record & fill it */
-            errp = MEM_MONITOR_ALLOC(emp, sizeof(event_registration_record_t));
-            if (NULL == errp) return ENOMEM;
-            errp->ecbf = ecbf;
-            errp->opaque_user_parameter = user_param;
-
-            /* add it to the list.  If was already there, no need to store again */
-            rv = linkedlist_add_once(list, errp, &found);
-            if (found) {
-                MEM_MONITOR_FREE(emp, errp);
-                rv = 0;
-            }
-
-            /* return appropriate result */
-            return rv;
+        /* during registration, missing list is always a failure */
+        if (NULL == list) {
+            assert(failed);
+            return failed;
         }
 
-        /* this fails only if no memory was available */
-        return ENOMEM;
+        /* create new function & arg pair and store it in list */
+        fandargp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_t));
+        if (NULL == fandargp) return ENOMEM;
+        fandargp->fptr = fptr;
+        fandargp->user_argument = user_param;
+
+        /* uniquely add it to the list */
+        failed = linkedlist_add_once(list, fandargp, NULL);
+        if (failed) {
+            MEM_MONITOR_FREE(emp, fandargp);
+            return failed;
+        }
+
+        /* success */
+        return 0;
     }
 
     /*
@@ -222,19 +288,20 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
      * Not having one at all in the first place is as good as deleting
      * it.  If it was indeed IN the list, we delete it from the list.
      * After the deletion from the list, if there are no elements left
-     * in the list, we can also delete the list itself from the dynamic
-     * array.
+     * in the list, we can also delete the container itself from the
+     * index object.
      */
     if (list) {
 
         /* delete it from the list */
-        enr.ecbf = ecbf;
-        enr.opaque_user_parameter = user_param;
-        rv = linkedlist_delete(list, &enr, &found);
+        fandarg.fptr = fptr;
+        fandarg.user_argument = user_param;
+        linkedlist_delete(list, &fandarg, &found);
 
-        /* if nothing else remains in the list, delete the list itself */
-        if (dap && (list->n <= 0)) {
-            rv = dynamic_array_remove(dap, object_type, &found);
+        /* if nothing else remains in the list, delete the container itself */
+        if (idxp && (list->n <= 0)) {
+            rv = index_obj_remove(idxp, 
+            rv = dynamic_array_remove(idxp, object_type, &found);
             if (0 == rv) {
                 assert(found == list);
                 linkedlist_destroy(list);
@@ -249,11 +316,11 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 static void
 execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
 {
-    event_registration_record_t *errp;
+    f_and_arg_t *fandargp;
 
     if (list) {
-        FOR_ALL_LINKEDLIST_ELEMENTS(list, errp) {
-            errp->ecbf(erp, errp->opaque_user_parameter);
+        FOR_ALL_LINKEDLIST_ELEMENTS(list, fandargp) {
+            fandargp->ehfp(erp, fandargp->user_argument);
         }
     }
 }
@@ -262,7 +329,7 @@ static void
 thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
 {
     linkedlist_t *list;
-    dynamic_array_t *dummy;
+    index_obj_t *dummy;
 
     /*
      * starting to traverse links, block any changes which may occur
@@ -304,33 +371,33 @@ event_manager_init (event_manager_t *emp,
     /* until initialisation is finished, dont allow registrations */
     emp->cannot_be_modified = 1;
 
-    rv = linkedlist_init(&emp->all_types_object_registrants, 
+    rv = linkedlist_init(&emp->object_event_registrants_for_all_objects, 
             0, compare_errs, emp->mem_mon_p);
     if (rv) {
         return rv;
     }
 
-    rv = linkedlist_init(&emp->all_types_attribute_registrants,
+    rv = linkedlist_init(&emp->attribute_event_registrants_for_all_objects,
             0, compare_errs, emp->mem_mon_p);
     if (rv) {
-        linkedlist_destroy(&emp->all_types_object_registrants);
+        linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
         return rv;
     }
 
-    rv = dynamic_array_init(&emp->specific_object_registrants,
+    rv = dynamic_array_init(&emp->object_event_registrants_for_one_object,
             0, 3, emp->mem_mon_p);
     if (rv) {
-        linkedlist_destroy(&emp->all_types_object_registrants);
-        linkedlist_destroy(&emp->all_types_attribute_registrants);
+        linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
+        linkedlist_destroy(&emp->attribute_event_registrants_for_all_objects);
         return rv;
     }
 
-    rv = dynamic_array_init(&emp->specific_attribute_registrants,
+    rv = dynamic_array_init(&emp->attribute_event_registrants_for_one_object,
             0, 3, emp->mem_mon_p);
     if (rv) {
-        linkedlist_destroy(&emp->all_types_object_registrants);
-        linkedlist_destroy(&emp->all_types_attribute_registrants);
-        dynamic_array_destroy(&emp->specific_object_registrants);
+        linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
+        linkedlist_destroy(&emp->attribute_event_registrants_for_all_objects);
+        dynamic_array_destroy(&emp->object_event_registrants_for_one_object);
         return rv;
     }
 
@@ -344,13 +411,13 @@ event_manager_init (event_manager_t *emp,
 PUBLIC int
 already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    two_parameter_function_pointer ecbf, void *opaque_user_parameter)
+    event_handling_fptr_t ehfp, void *user_argument)
 {
     int rv;
 
     READ_LOCK(emp);
     rv = thread_unsafe_already_registered(emp, event_type, object_type,
-            ecbf, opaque_user_parameter);
+            ehfp, user_argument);
     READ_UNLOCK(emp);
     return rv;
 }
@@ -364,13 +431,13 @@ already_registered (event_manager_t *emp,
 PUBLIC int
 register_for_object_events (event_manager_t *emp,
         int object_type,
-        two_parameter_function_pointer ecbf, void *user_param)
+        event_handling_fptr_t ehfp, void *user_param)
 {
     int rv;
 
     WRITE_LOCK(emp);
     rv = thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
-            object_type, ecbf, user_param, 1);
+            object_type, ehfp, user_param, 1);
     WRITE_UNLOCK(emp);
     return rv;
 }
@@ -385,11 +452,11 @@ announce_event (event_manager_t *emp, event_record_t *erp)
 
 PUBLIC void
 un_register_from_object_events (event_manager_t *emp,
-        int object_type, two_parameter_function_pointer ecbf)
+        int object_type, event_handling_fptr_t ehfp)
 {
     WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
-            object_type, ecbf, NULL, 0);
+            object_type, ehfp, NULL, 0);
     WRITE_UNLOCK(emp);
 }
 
@@ -400,24 +467,24 @@ un_register_from_object_events (event_manager_t *emp,
 PUBLIC int
 register_for_attribute_events (event_manager_t *emp,
         int object_type,
-        two_parameter_function_pointer ecbf, void *user_param)
+        event_handling_fptr_t ehfp, void *user_param)
 {
     int rv;
 
     WRITE_LOCK(emp);
     rv = thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
-            object_type, ecbf, user_param, 1);
+            object_type, ehfp, user_param, 1);
     WRITE_UNLOCK(emp);
     return rv;
 }
 
 PUBLIC void
 un_register_from_attribute_events (event_manager_t *emp,
-        int object_type, two_parameter_function_pointer ecbf)
+        int object_type, event_handling_fptr_t ehfp)
 {
     WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
-            object_type, ecbf, NULL, 0);
+            object_type, ehfp, NULL, 0);
     WRITE_UNLOCK(emp);
 }
 

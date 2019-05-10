@@ -57,19 +57,31 @@ linkedlist_new_node (linkedlist_t *listp, void *user_data)
  *
  * data is always unconditionally added to the head of
  * the list, no duplicate checking is done.
+ *
+ * NOTE THAT THE USE OF THIS FUNCTION WILL COMPLETELY
+ * DESTROY THE OBJECT ORDERING IN THE LIST WHICH WILL
+ * CAUSE ALL SUBSEQUENT INSERT, SEARCH AND DELETE
+ * OPERATIONS TO GO BERSERK.
  */
 int
-thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
+thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data,
+        linkedlist_node_t **node_added)
 {
     linkedlist_node_t *node;
 
     node = linkedlist_new_node(listp, user_data);
-    if (NULL == node) return ENOMEM;
+    if (NULL == node) {
+        safe_pointer_set(node_added, NULL);
+        return ENOMEM;
+    }
 
     /* insert to head */
     if (listp->head) node->next = listp->head;
     listp->head = node;
     listp->n++;
+
+    /* return node to user */
+    safe_pointer_set(node_added, node);
 
     /* done */
     return 0;
@@ -77,7 +89,7 @@ thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
 
 /*
  * add the new node/data based on ordering defined by 
- * the user specified comparison function
+ * the user specified comparison function.
  */
 static int
 thread_unsafe_linkedlist_add (linkedlist_t *listp, void *user_data,
@@ -88,8 +100,10 @@ thread_unsafe_linkedlist_add (linkedlist_t *listp, void *user_data,
     linkedlist_node_t *node;
     
     node = linkedlist_new_node(listp, user_data);
-    if (NULL == node) return ENOMEM;
-
+    if (NULL == node) {
+        safe_pointer_set(node_added, NULL);
+        return ENOMEM;
+    }
     cur = listp->head;
     prev = NULL;
     while (not_endof_linkedlist(cur)) {
@@ -107,7 +121,8 @@ thread_unsafe_linkedlist_add (linkedlist_t *listp, void *user_data,
         listp->head = node;
     }
     listp->n++;
-    *node_added = node;
+    safe_pointer_set(node_added, node);
+
     return 0;
 }
 
@@ -120,16 +135,17 @@ thread_unsafe_linkedlist_search (linkedlist_t *listp, void *searched_data,
     int result;
     linkedlist_node_t *cur, *prev;
 
+    prev = NULL;
     cur = listp->head;
-    *node_before = prev = NULL;
     while (not_endof_linkedlist(cur)) {
 
         result = listp->cmpf(cur->user_data, searched_data);
 
         /* an exact match */
         if (0 == result) {
-            *data_found = cur->user_data;
-            *node_found = cur;
+            safe_pointer_set(data_found, cur->user_data);
+            safe_pointer_set(node_found, cur);
+            safe_pointer_set(node_before, prev);
             return 0;
         }
 
@@ -143,39 +159,36 @@ thread_unsafe_linkedlist_search (linkedlist_t *listp, void *searched_data,
     }
 
     /* not found */
-    *node_before = prev;
-    *data_found = NULL;
-    *node_found = NULL;
+    safe_pointer_set(data_found, NULL);
+    safe_pointer_set(node_found, NULL);
+    safe_pointer_set(node_before, prev);
     return ENODATA;
 }
 
 /*
- * This will succeed if no malloc errors occur but the
- * 'data_found' and 'node_found' may or may not be NULL,
- * depending on whether the data to be added was already
- * in the list or not.
+ * This function will ensure that only one of the desired
+ * entry gets inserted into the list.  0 will be returned
+ * if successfull.  EEXIST will be returned if the exact same
+ * entry is already in the list.  ENOMEM will be returned
+ * if a new node cannot be allocated due to memory exhaustion.
  */
 static int
 thread_unsafe_linkedlist_add_once (linkedlist_t *listp, void *user_data, 
-        void **data_found,
-        linkedlist_node_t **node_found)
+        void **data_found, linkedlist_node_t **node_found)
 {
-    int rv;
-    linkedlist_node_t *node_added = NULL;
-    linkedlist_node_t *prev;
+    int failed;
+    linkedlist_node_t *node_added, *prev;
 
-    rv = thread_unsafe_linkedlist_search
-            (listp, user_data, data_found, node_found, &prev);
+    failed =
+        thread_unsafe_linkedlist_search(listp, user_data,
+                data_found, node_found, &prev);
 
     /* found, already in list */
-    if (0 == rv) return 0;
+    if (0 == failed) return EEXIST;
     
-    /* create and populate the new node */
-    node_added = (linkedlist_node_t*)
-                    MEM_MONITOR_ALLOC(listp, sizeof(linkedlist_node_t));
+    /* create the new node */
+    node_added = linkedlist_new_node(listp, user_data);
     if (NULL == node_added) return ENOMEM;
-    node_added->list = listp;
-    node_added->user_data = user_data;
 
     /* insert new node into its proper position */
     if (prev) {
@@ -228,19 +241,19 @@ thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
 }
 
 static int
-thread_unsafe_linkedlist_delete (linkedlist_t *listp, void *data_to_be_deleted, 
-        void **data_deleted, linkedlist_node_t **node_deleted)
+thread_unsafe_linkedlist_delete (linkedlist_t *listp,
+        void *data_to_be_deleted, void **data_deleted)
 {
-    int rv;
-    linkedlist_node_t *prev;
+    int failed;
+    linkedlist_node_t *nd;
 
-    rv = thread_unsafe_linkedlist_search
-            (listp, data_to_be_deleted, data_deleted, node_deleted, &prev);
-    if ((0 == rv) && node_deleted) {
+    failed = thread_unsafe_linkedlist_search
+                (listp, data_to_be_deleted, data_deleted, &nd, NULL);
+    if ((0 == failed) && nd) {
         return
-            thread_unsafe_linkedlist_node_delete(listp, *node_deleted);
+            thread_unsafe_linkedlist_node_delete(listp, nd);
     }
-    return ENODATA;
+    return failed;
 }
 
 /**************************** Initialize *************************************/
@@ -251,9 +264,10 @@ linkedlist_init (linkedlist_t *listp,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv = ENOMEM;
+    int failed = ENOMEM;
     linkedlist_node_t *last_node;
 
+    /* MUST have a compare function since list is ordered */
     if (NULL == cmpf) return EINVAL;
 
     MEM_MONITOR_SETUP(listp);
@@ -268,10 +282,10 @@ linkedlist_init (linkedlist_t *listp,
         listp->head = last_node;
         listp->n = 0;
         listp->cmpf = cmpf;
-        rv = 0;
+        failed = 0;
     }
     WRITE_UNLOCK(listp);
-    return rv;
+    return failed;
 }
 
 /**************************** Insert/add *************************************/
@@ -279,38 +293,25 @@ linkedlist_init (linkedlist_t *listp,
 PUBLIC int
 linkedlist_add (linkedlist_t *listp, void *user_data)
 {
-    int rv;
-    linkedlist_node_t *node_added;
+    int failed;
 
     WRITE_LOCK(listp);
-    rv = thread_unsafe_linkedlist_add(listp, user_data, &node_added);
+    failed = thread_unsafe_linkedlist_add(listp, user_data, NULL);
     WRITE_UNLOCK(listp);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 linkedlist_add_once (linkedlist_t *listp, void *user_data, 
         void **data_found)
 {
-    int rv;
-    linkedlist_node_t *node_found;
+    int failed;
 
     WRITE_LOCK(listp);
-    rv = thread_unsafe_linkedlist_add_once
-            (listp, user_data, data_found, &node_found);
+    failed =
+        thread_unsafe_linkedlist_add_once(listp, user_data, data_found, NULL);
     WRITE_UNLOCK(listp);
-    return rv;
-}
-
-PUBLIC int
-linkedlist_add_to_head (linkedlist_t *listp, void *user_data)
-{
-    int rv;
-
-    WRITE_LOCK(listp);
-    rv = thread_unsafe_linkedlist_add_to_head(listp, user_data);
-    WRITE_UNLOCK(listp);
-    return rv;
+    return failed;
 }
 
 /**************************** Search *****************************************/
@@ -319,14 +320,13 @@ PUBLIC int
 linkedlist_search (linkedlist_t *listp, void *searched_data,
         void **data_found)
 {
-    int rv;
-    linkedlist_node_t *node_found, *prev;
+    int failed;
 
     READ_LOCK(listp);
-    rv = thread_unsafe_linkedlist_search
-            (listp, searched_data, data_found, &node_found, &prev);
+    failed = thread_unsafe_linkedlist_search
+                (listp, searched_data, data_found, NULL, NULL);
     READ_UNLOCK(listp);
-    return rv;
+    return failed;
 }
 
 /**************************** Remove/delete **********************************/ 
@@ -335,36 +335,40 @@ PUBLIC int
 linkedlist_delete (linkedlist_t *listp, void *data_to_be_deleted,
         void **data_deleted)
 {
-    int rv;
-    linkedlist_node_t *node_deleted;
+    int failed;
 
     WRITE_LOCK(listp);
-    rv = thread_unsafe_linkedlist_delete(listp, data_to_be_deleted,
-                data_deleted, &node_deleted);
+    failed = thread_unsafe_linkedlist_delete(listp, data_to_be_deleted,
+                data_deleted);
     WRITE_UNLOCK(listp);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 linkedlist_delete_node (linkedlist_t *listp,
         linkedlist_node_t *node_to_be_deleted)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(listp);
-    rv = thread_unsafe_linkedlist_node_delete(listp, node_to_be_deleted);
+    failed = thread_unsafe_linkedlist_node_delete(listp, node_to_be_deleted);
     WRITE_UNLOCK(listp);
-    return rv;
+    return failed;
 }
 
 /**************************** Destroy ****************************************/ 
 
 PUBLIC void
-linkedlist_destroy (linkedlist_t *listp)
+linkedlist_destroy (linkedlist_t *listp,
+        list_delete_callback_t dcbf, void *dcbf_arg)
 {
+    void *user_data;
+
     WRITE_LOCK(listp);
     while (not_endof_linkedlist(listp->head)) {
+        user_data = listp->head->user_data;
         thread_unsafe_linkedlist_node_delete(listp, listp->head);
+        if (dcbf) dcbf(user_data, dcbf_arg);
     }
 
     /* free up the end of list marker */

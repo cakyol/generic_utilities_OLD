@@ -31,17 +31,12 @@ LIB_OBJS =	debug_framework.o \
 		dynamic_array_object.o \
 		radix_tree_object.o \
 		scheduler.o \
-		generic_object_database.o \
-		test_data_generator.o \
 		event_manager.o \
+		generic_object_database.o \
+		### test_data_generator.o \
 		### utils_common.o \
 
-%.o:		%.c %.h \
-		pointer_manipulations.h \
-		function_types.h \
-		mem_monitor_object.h \
-		object_types.h \
-		event_types.h 
+%.o:		%.c %.h 
 		$(CC) -c $(CFLAGS) $<
 
 utils_lib.a:	$(LIB_OBJS)

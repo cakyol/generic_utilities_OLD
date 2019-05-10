@@ -62,7 +62,7 @@ typedef struct linkedlist_node_s linkedlist_node_t;
 /*
  * Users should be aware that the list is terminated with an
  * ACTUAL node whose next pointer AND the data pointer is NULL.
- * An 'end of list' marker node is needed to implement fast
+ * An 'end of list' marker node is needed to implement very fast
  * deletion from the list.
  *
  * Therefore, when iterating thru a list, take into account
@@ -93,7 +93,10 @@ struct linkedlist_s {
     /* start of list */
     linkedlist_node_t *head;
 
-    /* comparison function used *ONLY* for equality */
+    /*
+     * comparison function used for ordering the list.
+     * If not specified, list will be totally random.
+     */
     object_comparer cmpf;
 
     /* number of elements in the list */
@@ -103,7 +106,7 @@ struct linkedlist_s {
 
 /*
  * We maintain an "end node" always in the list.  This is represented
- * by setting its 'next' AND data pointers to the value of NULL.
+ * by setting its 'next' AND data pointers both to the value of NULL.
  *
  * The reason we need an "end node" representation is so that we
  * can delete a node VERY quickly.  What we do to delete a node
@@ -147,7 +150,7 @@ linkedlist_init (linkedlist_t *listp,
  * in the list or not.  So, multiple copies WILL be added
  * if not controlled.  Addition is is done at a point in
  * the list determined by the ordering specified in the
- * comparison function.
+ * comparison function. 
  */
 extern int
 linkedlist_add (linkedlist_t *listp, void *user_data);
@@ -160,24 +163,14 @@ linkedlist_add (linkedlist_t *listp, void *user_data);
  * 'data_found' will be set to NULL.  This mechanism
  * always gives the user the knowledge of whether the
  * data being inserted was in the list in the first place.
- * An error (non zero) is returned only when memory
- * allocation fails.  It is NOT considered an error if
- * the data already exists in the list.
+ * If 'data_found' is not needed, NULL can be passed in.
+ * The return value will be 0 if the addition succeeded.
+ * Errors will be returned for any other condition,
+ * including if the data was already in the list (EEXIST).
  */
 extern int
 linkedlist_add_once (linkedlist_t *listp, void *user_data, 
         void **data_found);
-
-/*
- * Just blindly adds to the head of the list regardless
- * of any ordering.  This can be used in lists where the
- * ordering may not matter.  But once the list is added
- * to this way, it will no longer be ordered and searches
- * will fail unless user specifically writes his own search
- * function.
- */
-extern int
-linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
 
 /*
  * searches the first occurence of the matching data.
@@ -186,7 +179,8 @@ linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
  * Function return value will be 0 if found and 'data_found'
  * will be set to the found data.  If not found,
  * non 0 will be returned and 'data_found' will be set 
- * to NULL.
+ * to NULL.  If 'data_found' is not needed, it can be
+ * passed in as NULL.
  */
 extern int
 linkedlist_search (linkedlist_t *listp, void *searched_data, 
@@ -197,31 +191,39 @@ linkedlist_search (linkedlist_t *listp, void *searched_data,
  * by 'to_be_deleted'.  If data was in the list, it will be
  * removed, 0 will be returned and 'data_deleted' will be set to
  * what was found in the list.  Otherwise, non 0 will be returned
- * and 'data_deleted' will be set to NULL.
+ * and 'data_deleted' will be set to NULL.  If 'data_deleted' is not
+ * needed, it can be passed in as NULL.
  */
 extern int 
 linkedlist_delete (linkedlist_t *listp, void *to_be_deleted,
         void **data_deleted);
 
 /*
- * Frees up the actual linked list node in the list.  0 will be
- * returned if succeeded.  It will fail if 'node_to_be_deleted'
- * does not belong to the list or it happens to be the list
- * end marker node.
+ * This is a function prototype which will be used when destroying
+ * a list object.  As each node is destroyed, the user data pointer
+ * in it will be passed to this function, in case the caller also wants
+ * to destroy the stored user data.  It will be called for every
+ * data stored in the list, one at a time.  At the time of calling,
+ * note that the user data will ALREADY have been taken off the list.
+ * This function should NOT alter the list in any way.
  */
-extern int
-linkedlist_delete_node (linkedlist_t *listp, 
-        linkedlist_node_t *node_to_be_deleted);
+typedef void (*list_delete_callback_t)(void *user_data, void *user_param);
 
 /*
  * frees up all the nodes of the list and cleans it out.
  * The list must be re-initialized properly if it needs to be
  * re-used.  Note that only the list elements are removed.
- * The actual user data pointers stored in those nodes are
- * not touched in any way.
+ * For every user data stored in the list, the delete
+ * callback function will be called with the list and the
+ * data itself as the parameters.  This gives the caller to
+ * also have the capability to clear out his objects one at a
+ * time if needed.  'dcbf' can be NULL, in which case only the
+ * list will be destroyed and the user values will not be
+ * touched.
  */
 extern void
-linkedlist_destroy (linkedlist_t *listp);
+linkedlist_destroy (linkedlist_t *listp,
+        list_delete_callback_t dcbf, void *dcbf_arg);
 
 /*
  * Some convenient macros to iterate thru the list one node at a time.

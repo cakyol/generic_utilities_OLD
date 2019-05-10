@@ -38,7 +38,7 @@
 ** object manager although generic uses are not excluded if its
 ** limitations and idiosyncrasies are taken into account.
 **
-** Currently events are divided into two precise categories:
+** Currently events are divided into two PRECISE categories:
 **
 **  - object events are events which are generated when an object
 **    is created or deleted.  
@@ -47,26 +47,27 @@
 **    attribute id is added to an object or an existing attribute id
 **    is deleted from an object or when a value changes in the attribute.
 **
-** Users can register to be notified of both of these types of events.
+** Users can register to be notified of both of these types of events
+** for a desired object TYPE.
 **
 ** Note that users can register for either of these events based ONLY
 ** on the type of the object (not the instance).  Including filtering
 ** also based on instance numbers would have made the system too complex
 ** and extremely granular.  Having said that, when an event is reported,
 ** the event record WILL contain the instance of the object that the
-** event happened to.
+** event applies to.
 **
 ** There are two ways of registering for either type of events.
 ** One is to register in a way so that events are reported for
-** ALL object types.  The other is such that events involving ONLY
-** one type of object is of interest.
+** ANY object type.  The other is such that events involving ONLY
+** ONE specified type of object is of interest.
 **
 ** So, a user can register/un-register to receive events for all the following 
 ** combinations:
 **
-**  - object events for ALL object types
+**  - object events for ANY object type
 **  - object events for SPECIFIC object types
-**  - attribute events for ALL object types
+**  - attribute events for ANY object type
 **  - attribute events for SPECIFIC object types
 **
 ** A user can register as many times, with as many object types and as many
@@ -75,21 +76,16 @@
 ** registers for events for ALL objects, later user should NOT register
 ** for a specific object type for the same event, or vice versa.
 ** Otherwise the event manager will report the same event multiple times, 
-** once because of the fact that the registration was made for all 
-** objects (which always matches for any object) and the second time,
-** since the specific object event will also be notified as well.
-** User should first UN register from the first object type and
-** register again with the desired condition.
-**
-** It is up to the user to ensure that such logical errors are not made when
-** registering for events.
-**
-** In later releases, the software MAY attempt to detect duplication errors but
-** currently, there are no automatic protections.
-**
-** The only time the event manager will catch a duplication is when a user
-** registers for the same EXACT event type with the same EXACT object type
-** and also with the same EXACT function callback parameter.
+** or as many times as the match occurs.  Event manager does NOT check
+** redundant registrations.  It is up to the user to ensure that such
+** logical errors are not made when registering for events.  There is
+** however a function is provided as a tool to check if a prior registration
+** has already been made by a user.  This can be used by the user to
+** detect his/her OWN mistakes and/or multiple registrations.  This function
+** will detect if an EXACT function with the same EXACT user argument
+** for EXACTLY the same event type and object type has been already
+** registered.  This is also the ONLY duplicate condition that the event
+** manager itself will detect.
 **
 *******************************************************************************
 *******************************************************************************
@@ -107,7 +103,7 @@ extern "C" {
 #include "common.h"
 #include "lock_object.h"
 #include "linkedlist_object.h"
-#include "dynamic_array_object.h"
+#include "index_object.h"
 #include "object_types.h"
 
 /*
@@ -228,6 +224,13 @@ typedef struct event_record_s {
 
 } event_record_t;
 
+/*
+ * This is the function which gets registered by users which handles
+ * the event.  The event manager passes in the event which caused it
+ * to be called first, followed by the transparent user pointer.
+ */
+typedef void (*event_handling_fptr_t)(event_record_t *evrp, void *user_argument);
+
 typedef struct event_manager_s {
 
     LOCK_VARIABLES;
@@ -244,28 +247,28 @@ typedef struct event_manager_s {
      * list of registrants interested in object events (object creation
      * and deletion) for ANY type of object.
      */
-    linkedlist_t all_types_object_registrants;
+    linkedlist_t object_event_registrants_for_all_objects;
 
     /*
      * list of registrants interested in attribute
      * events (attribute id add/delete, attribute value
      * add/delete) for ANY type of object.
      */
-    linkedlist_t all_types_attribute_registrants;
+    linkedlist_t attribute_event_registrants_for_all_objects;
     
     /*
      * list of registrants interested in object
      * events for ONE specific type of object.
-     * Array index is the object_type.
+     * index is the object_type.
      */
-    dynamic_array_t specific_object_registrants;
+    index_obj_t object_event_registrants_for_one_object;
     
     /*
      * list of registrants interested in attribute
      * events for ONE specific type of object.
-     * Array index is the object_type.
+     * index is the object_type.
      */
-    dynamic_array_t specific_attribute_registrants;
+    index_obj_t attribute_event_registrants_for_one_object;
 
 } event_manager_t;
 
@@ -282,7 +285,7 @@ event_manager_init (event_manager_t *emp,
 extern int
 already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    two_parameter_function_pointer ecbf, void *opaque_user_parameter);
+    event_handling_fptr_t evhfptr, void *user_argument);
 
 /*
  * This function registers the caller to be notified of object events
@@ -306,7 +309,7 @@ already_registered (event_manager_t *emp,
 extern int
 register_for_object_events (event_manager_t *emp,
     int object_type, 
-    two_parameter_function_pointer ecbf, void *user_param);
+    event_handling_fptr_t evhfptr, void *user_argument);
 
 /*
  * unregisters from object events for the specified object type.
@@ -314,7 +317,7 @@ register_for_object_events (event_manager_t *emp,
  */
 extern void
 un_register_from_object_events (event_manager_t *emp,
-    int object_type, two_parameter_function_pointer ecbf);
+    int object_type, event_handling_fptr_t evhfptr);
 
 /*
  * Same concept as above but this time registration is only for attribute
@@ -326,14 +329,14 @@ un_register_from_object_events (event_manager_t *emp,
 extern int
 register_for_attribute_events (event_manager_t *emp,
     int object_type, 
-    two_parameter_function_pointer ecbf, void *user_param);
+    event_handling_fptr_t evhfptr, void *user_argument);
 
 /*
  * reverse of the above
  */
 extern void
 un_register_from_attribute_events (event_manager_t *emp,
-    int object_type, two_parameter_function_pointer ecbf);
+    int object_type, event_handling_fptr_t evhfptr);
 
 /*
  * The user calls this when he wants to report the occurence of an event.
