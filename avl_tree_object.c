@@ -25,6 +25,7 @@
 ******************************************************************************/
 
 #include "avl_tree_object.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -184,6 +185,14 @@ new_avl_node (avl_tree_t *tree, void *user_data)
 }
 
 /*
+ * Recursive functions are no good in real world situations.
+ * The objects are sooo large we run out of stack space
+ * trying to do any recursive actions.  Everything has
+ * to be iterative.
+ */
+#if 0
+
+/*
  * used to recursively destroy (free up) all nodes below 'node'
  */
 static void 
@@ -227,6 +236,8 @@ avl_node_destroy_nodes (avl_tree_t *tree,
     avl_node_destroy_nodes(tree, left, 0);
     avl_node_destroy_nodes(tree, right, 0);
 }
+
+#endif /* 0 */
 
 static int 
 thread_unsafe_avl_tree_insert (avl_tree_t *tree,
@@ -598,6 +609,33 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     return 0;
 }
 
+static int
+thread_unsafe_iterative_destroy (avl_tree_t *tree,
+        data_delete_callback_t ddcbf, void *user_param)
+{
+    avl_node_t *r, *n;
+    int delete_count;
+
+    r = tree->root_node;
+    delete_count = 0;
+    while (r) {
+        if (r->left) {
+            n = r->left;
+            r->left = NULL;
+        } else if (r->right != NULL) {
+            n = r->right;
+            r->right = NULL;
+        } else {
+            n = r->parent;
+            if (ddcbf) ddcbf(r->user_data, user_param);
+            free_avl_node(tree, r);
+            delete_count++;
+        }
+        r = n;
+    }
+    return delete_count;
+}
+
 /**************************** Initialize *************************************/
 
 PUBLIC int
@@ -745,17 +783,17 @@ avl_tree_traverse (avl_tree_t *tree,
 /**************************** Destroy ****************************************/
 
 PUBLIC void
-avl_tree_destroy (avl_tree_t *tree)
+avl_tree_destroy (avl_tree_t *tree,
+        data_delete_callback_t ddcbf, void *user_arg)
 {
-    WRITE_LOCK(tree);
-    avl_node_destroy_nodes(tree, tree->root_node, 0);
-    assert(tree->n == 0);
-    tree->root_node = NULL;
-    
-#if 0
-    tree->first_node = tree->last_node = NULL;
-#endif
+    int old_count, deleted;
 
+    WRITE_LOCK(tree);
+    old_count = tree->n;
+    deleted = thread_unsafe_iterative_destroy(tree, ddcbf, user_arg);
+    assert(tree->n == 0);
+    assert(old_count == deleted);
+    tree->root_node = NULL;
     tree->cmpf = NULL;
     WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);

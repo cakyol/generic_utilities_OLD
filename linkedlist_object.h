@@ -199,17 +199,6 @@ linkedlist_delete (linkedlist_t *listp, void *to_be_deleted,
         void **data_deleted);
 
 /*
- * This is a function prototype which will be used when destroying
- * a list object.  As each node is destroyed, the user data pointer
- * in it will be passed to this function, in case the caller also wants
- * to destroy the stored user data.  It will be called for every
- * data stored in the list, one at a time.  At the time of calling,
- * note that the user data will ALREADY have been taken off the list.
- * This function should NOT alter the list in any way.
- */
-typedef void (*list_delete_callback_t)(void *user_data, void *user_param);
-
-/*
  * frees up all the nodes of the list and cleans it out.
  * The list must be re-initialized properly if it needs to be
  * re-used.  Note that only the list elements are removed.
@@ -223,7 +212,7 @@ typedef void (*list_delete_callback_t)(void *user_data, void *user_param);
  */
 extern void
 linkedlist_destroy (linkedlist_t *listp,
-        list_delete_callback_t dcbf, void *dcbf_arg);
+        data_delete_callback_t ddcbf, void *ddcbf_arg);
 
 /*
  * Some convenient macros to iterate thru the list one node at a time.

@@ -19,6 +19,11 @@ int int_compare (void *p1, void *p2)
     return *i1 - *i2;
 }
 
+static void
+user_data_destroy_function (void *user_data, void *user_arg)
+{
+}
+
 void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 {
     int i, lo, hi, d, fail_search;
@@ -142,6 +147,9 @@ return;
 
 #endif // 0
 
+    avl_tree_destroy(avlt, user_data_destroy_function, NULL);
+    return;
+
     /* now delete one entry at a time and search it (should not be there) */
     printf("now deleting and searching\n");
     fine = not_fine = fail_search = 0;
@@ -169,7 +177,7 @@ return;
         "%llu bytes (%f Mbytes)\n",
         avlt->n, bytes_used, megabytes_used);
 
-    avl_tree_destroy(avlt);
+    avl_tree_destroy(avlt, user_data_destroy_function, NULL);
 }
 
 int main (argc, argv)

@@ -360,7 +360,7 @@ linkedlist_delete_node (linkedlist_t *listp,
 
 PUBLIC void
 linkedlist_destroy (linkedlist_t *listp,
-        list_delete_callback_t dcbf, void *dcbf_arg)
+        data_delete_callback_t ddcbf, void *ddcbf_arg)
 {
     volatile void *user_data;
 
@@ -368,7 +368,7 @@ linkedlist_destroy (linkedlist_t *listp,
     while (not_endof_linkedlist(listp->head)) {
         user_data = listp->head->user_data;
         thread_unsafe_linkedlist_node_delete(listp, listp->head);
-        if (dcbf) dcbf((void*) user_data, dcbf_arg);
+        if (ddcbf) ddcbf((void*) user_data, ddcbf_arg);
     }
 
     /* free up the end of list marker */

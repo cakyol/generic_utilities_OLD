@@ -80,6 +80,25 @@ typedef two_parameter_function_pointer object_comparer;
 typedef seven_parameter_function_pointer traverse_function_pointer;
 
 /*
+ * This is a function prototype which will be called when a destroy
+ * object functiuon is working.  It can be any object being destroyed.
+ * It can be an avl tree, index object, list object etc.  The idea
+ * is, as the object itself is being destroyed (its nodes being returned
+ * to storage), this is called with the acxtual 'user_data' stored on 
+ * that node, in case user wants to also destroy/free their own
+ * data itself.  It will be called one node at a time as the destruction
+ * happens.  When this is called, the user MUST be aware that their data
+ * has already been REMOVED from whatever object it was a part of, and
+ * pretty much 'dangling' by itself.  Typically user will want to 
+ * free up his/her object but this may not always be the case.
+ * The FIRST parameter passed in is the user data itself and the 
+ * second is whatever the user supplied at the time of the destruction
+ * call.  It goes without saying that the user function should NOT 
+ * manipulate the container object in any way.
+ */
+typedef void (*data_delete_callback_t)(void *user_data, void *user_param);
+
+/*
  * Sets a pointer to an integer value.  This can be directly done when
  * a pointer is the same size as an integer but is usually complained 
  * about by most compilers otherwise.  This little trick solves that.

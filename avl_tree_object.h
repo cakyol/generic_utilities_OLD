@@ -113,7 +113,8 @@ avl_tree_traverse (avl_tree_t *tree,
 /**************************** Destroy ****************************************/
 
 extern void 
-avl_tree_destroy (avl_tree_t *tree);
+avl_tree_destroy (avl_tree_t *tree,
+        data_delete_callback_t dcbf, void *user_arg);
 
 #ifdef __cplusplus
 } // extern C
