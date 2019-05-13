@@ -5,11 +5,11 @@
 
 #include "linkedlist_object.h"
 
-#define START_INT   1
-#define END_INT     300
-#define SIZE        (END_INT + 1)
+#define START_INT   328
+#define END_INT     4367
+#define SPAN            (END_INT - START_INT + 1)
 
-byte hashmap [SIZE] = { 0 };
+byte hashmap [END_INT + 5] = { 0 };
 
 static void
 flush (void)
@@ -28,14 +28,24 @@ static int delete_count = 0;
 
 void destroy_fn (void *user_data, void *arg)
 {
-    delete_count++;
+    int value = pointer2integer(user_data);
+
+    if ((value >= START_INT) && (value <= END_INT)) {
+        hashmap[value] = 0;
+        delete_count++;
+        //printf("destroy for %d is called, delete_count %d\n",
+                //value, delete_count);
+    } else {
+        fprintf(stderr, "destroy_fn received out of range value: %d\n", value);
+    }
 }
 
 int main (int argc, char *argv[])
 {
     int failed, failures;
     int result;
-    int i, j, count;
+    int i;
+    // int j, count;
     linkedlist_t sll;
     linkedlist_node_t *node;
     void *value;
@@ -71,6 +81,11 @@ int main (int argc, char *argv[])
     if (failures) {
         fprintf(stderr, "%d failures during repetitive inserts\n", failures);
     }
+    for (i = START_INT; i <= END_INT ; i++) {
+        if (hashmap[i] == 0) {
+            fprintf(stderr, "hashmap %d did NOT get set\n", i);
+        }
+    }
     flush();
 
     printf("checking that the list is ordered .. ");
@@ -90,9 +105,10 @@ int main (int argc, char *argv[])
     fflush(stdout);
 
     /* now delete one at a time and make sure everything is consistent */
-    printf("now deleting and verifying one at a time\n");
+    printf("now verifying deletions from the list\n");
     flush();
 
+#if 0
     count = sll.n;
     int *s, *d;
     for (i = END_INT; i >= START_INT; i--) {
@@ -122,10 +138,16 @@ int main (int argc, char *argv[])
     }
     assert(sll.n == 0);
     printf("all data verified, list is sane\n");
+#endif /* 0 */
 
     delete_count = 0;
     linkedlist_destroy(&sll, destroy_fn, NULL);
-    printf("delete_count %d (should be 0)\n", delete_count);
+    for (i = START_INT; i <= END_INT; i++) {
+        if (hashmap[i]) {
+            fprintf(stderr, "hashmap %d did NOT get cleared\n", i);
+        }
+    }
+    printf("delete_count %d (should be %d)\n", delete_count, SPAN);
 
     return 0;
 }

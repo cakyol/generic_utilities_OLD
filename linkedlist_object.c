@@ -362,13 +362,13 @@ PUBLIC void
 linkedlist_destroy (linkedlist_t *listp,
         list_delete_callback_t dcbf, void *dcbf_arg)
 {
-    void *user_data;
+    volatile void *user_data;
 
     WRITE_LOCK(listp);
     while (not_endof_linkedlist(listp->head)) {
         user_data = listp->head->user_data;
         thread_unsafe_linkedlist_node_delete(listp, listp->head);
-        if (dcbf) dcbf(user_data, dcbf_arg);
+        if (dcbf) dcbf((void*) user_data, dcbf_arg);
     }
 
     /* free up the end of list marker */
