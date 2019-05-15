@@ -222,13 +222,6 @@ done:
     return rv;
 }
 
-PUBLIC void
-bitlist_destroy (bitlist_t *bl)
-{
-    if (bl->the_bits) free(bl->the_bits);
-    bl->the_bits = NULL;
-}
-
 PUBLIC int
 bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 {
@@ -282,6 +275,13 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
     rv = thread_unsafe_bitlist_first_clear_bit(bl, returned_bit_number);
     READ_UNLOCK(bl);
     return rv;
+}
+
+PUBLIC void
+bitlist_destroy (bitlist_t *bl)
+{
+    if (bl->the_bits) MEM_MONITOR_FREE(bl, bl->the_bits);
+    bl->the_bits = NULL;
 }
 
 #ifdef __cplusplus

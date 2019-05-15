@@ -129,8 +129,14 @@ index_obj_trim (index_obj_t *idx);
 
 /**************************** Destroy ****************************************/
 
+/*
+ * This function destroys the index object & frees all the storage it holds.
+ * In addition, if the index is not empty, it will call the user supplied
+ * 'dh_fptr' function consecutively on every stored element.
+ */
 extern void
-index_obj_destroy (index_obj_t *idx);
+index_obj_destroy (index_obj_t *idx,
+        destruction_handler_t dh_fptr, void *extra_arg);
 
 #ifdef __cplusplus
 } // extern C

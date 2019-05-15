@@ -339,12 +339,26 @@ index_obj_traverse (index_obj_t *idx,
 
 /**************************** Destroy ****************************************/
 
+/*
+ * This function first iterates thru all its elements and calls
+ * the user specified data destruction callback function for each
+ * non NULL entry in the index.  It then completely frees up the
+ * storage associated with the index.
+ */
 PUBLIC void
-index_obj_destroy (index_obj_t *idx)
+index_obj_destroy (index_obj_t *idx,
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
+    int i;
+
+    WRITE_LOCK(idx);
     if (idx->elements) {
-        free(idx->elements);
+        if (dh_fptr) {
+            for (i = 0; i < idx->n; i++) dh_fptr(idx->elements[i], extra_arg);
+        }
+        MEM_MONITOR_FREE(idx, idx->elements);
     }
+    WRITE_UNLOCK(idx);
     LOCK_OBJ_DESTROY(idx);
     memset(idx, 0, sizeof(index_obj_t));
 }

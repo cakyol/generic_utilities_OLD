@@ -43,21 +43,21 @@ extern "C" {
  */
 typedef struct f_and_arg_s {
 
-    event_handling_fptr_t fptr;
-    void *user_argument;
+    event_handler_t fptr;
+    void *extra_arg;
 
 } f_and_arg_t;
 
 static f_and_arg_t *
 create_f_and_arg (event_manager_t *emp,
-        event_handling_fptr_t fptr, void *user_argument)
+        event_handler_t fptr, void *extra_arg)
 {
     f_and_arg_t *new_one;
 
     new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_t));
     if (new_one) {
         new_one->fptr = fptr;
-        new_one->user_argument = user_argument;
+        new_one->extra_arg = extra_arg;
     }
     return new_one;
 }
@@ -70,7 +70,7 @@ compare_f_and_args (void *p1, void *p2)
     result = ((f_and_arg_t*) p1)->fptr - ((f_and_arg_t*) p2)->fptr;
     if (result) return result;
     return
-        ((f_and_arg_t*) p1)->user_argument - ((f_and_arg_t*) p2)->user_argument;
+        ((f_and_arg_t*) p1)->extra_arg - ((f_and_arg_t*) p2)->extra_arg;
 }
 
 static int
@@ -78,13 +78,13 @@ identical_f_and_args (f_and_arg_t *fa1, f_and_arg_t *fa2)
 {
     return
         (fa1->fptr == fa2->fptr) &&
-        (fa1->user_argument = fa2->user_argument);
+        (fa1->extra_arg = fa2->extra_arg);
 }
 
 static void
-destroy_f_and_arg (void *user_data, void *user_arg)
+destroy_f_and_arg (void *user_data, void *extra_arg)
 {
-    MEM_MONITOR_FREE((event_manager_t*) user_arg, (f_and_arg_t*) user_data);
+    MEM_MONITOR_FREE((event_manager_t*) extra_arg, (f_and_arg_t*) user_data);
 }
 
 /*
@@ -218,7 +218,7 @@ get_correct_list (event_manager_t *emp,
 static int
 thread_unsafe_already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    event_handling_fptr_t fptr, void *user_argument)
+    event_handler_t fptr, void *extra_arg)
 {
     int failed;
     f_and_arg_t faat;
@@ -228,14 +228,14 @@ thread_unsafe_already_registered (event_manager_t *emp,
     if (failed) return 0;
     assert(list);
     faat.fptr = fptr;
-    faat.user_argument = user_argument;
+    faat.extra_arg = extra_arg;
     return (0 == linkedlist_search(list, &faat, NULL));
 }
 
 static int
 thread_unsafe_generic_register_function (event_manager_t *emp,
         int event_type, int object_type,
-        event_handling_fptr_t fptr, void *user_param,
+        event_handler_t fptr, void *extra_arg,
         int register_it)
 {
     int failed;
@@ -267,7 +267,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         fandargp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_t));
         if (NULL == fandargp) return ENOMEM;
         fandargp->fptr = fptr;
-        fandargp->user_argument = user_param;
+        fandargp->extra_arg = extra_arg;
 
         /* uniquely add it to the list */
         failed = linkedlist_add_once(list, fandargp, NULL);
@@ -295,7 +295,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 
         /* delete it from the list */
         fandarg.fptr = fptr;
-        fandarg.user_argument = user_param;
+        fandarg.extra_arg = extra_arg;
         linkedlist_delete(list, &fandarg, &found);
 
         /* if nothing else remains in the list, delete the container itself */
@@ -320,7 +320,7 @@ execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
 
     if (list) {
         FOR_ALL_LINKEDLIST_ELEMENTS(list, fandargp) {
-            fandargp->ehfp(erp, fandargp->user_argument);
+            fandargp->ehfp(erp, fandargp->extra_arg);
         }
     }
 }
@@ -411,13 +411,13 @@ event_manager_init (event_manager_t *emp,
 PUBLIC int
 already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    event_handling_fptr_t ehfp, void *user_argument)
+    event_handler_t ehfp, void *extra_arg)
 {
     int rv;
 
     READ_LOCK(emp);
     rv = thread_unsafe_already_registered(emp, event_type, object_type,
-            ehfp, user_argument);
+            ehfp, extra_arg);
     READ_UNLOCK(emp);
     return rv;
 }
@@ -431,13 +431,13 @@ already_registered (event_manager_t *emp,
 PUBLIC int
 register_for_object_events (event_manager_t *emp,
         int object_type,
-        event_handling_fptr_t ehfp, void *user_param)
+        event_handler_t ehfp, void *extra_arg)
 {
     int rv;
 
     WRITE_LOCK(emp);
     rv = thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
-            object_type, ehfp, user_param, 1);
+            object_type, ehfp, extra_arg, 1);
     WRITE_UNLOCK(emp);
     return rv;
 }
@@ -452,7 +452,7 @@ announce_event (event_manager_t *emp, event_record_t *erp)
 
 PUBLIC void
 un_register_from_object_events (event_manager_t *emp,
-        int object_type, event_handling_fptr_t ehfp)
+        int object_type, event_handler_t ehfp)
 {
     WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
@@ -467,20 +467,20 @@ un_register_from_object_events (event_manager_t *emp,
 PUBLIC int
 register_for_attribute_events (event_manager_t *emp,
         int object_type,
-        event_handling_fptr_t ehfp, void *user_param)
+        event_handler_t ehfp, void *extra_arg)
 {
     int rv;
 
     WRITE_LOCK(emp);
     rv = thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
-            object_type, ehfp, user_param, 1);
+            object_type, ehfp, extra_arg, 1);
     WRITE_UNLOCK(emp);
     return rv;
 }
 
 PUBLIC void
 un_register_from_attribute_events (event_manager_t *emp,
-        int object_type, event_handling_fptr_t ehfp)
+        int object_type, event_handler_t ehfp)
 {
     WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,

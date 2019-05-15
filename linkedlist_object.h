@@ -212,7 +212,7 @@ linkedlist_delete (linkedlist_t *listp, void *to_be_deleted,
  */
 extern void
 linkedlist_destroy (linkedlist_t *listp,
-        data_delete_callback_t ddcbf, void *ddcbf_arg);
+        destruction_handler_t dh_fptr, void *extra_arg);
 
 /*
  * Some convenient macros to iterate thru the list one node at a time.

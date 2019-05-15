@@ -117,12 +117,13 @@ lock_obj_destroy (lock_obj_t *lck);
 
 #define LOCK_SETUP(obj) \
     do { \
+        int __failed__; \
         obj->lock = 0; \
         if (make_it_thread_safe) { \
             obj->lock = MEM_MONITOR_ALLOC(obj, sizeof(lock_obj_t)); \
             if (0 == obj->lock) return ENOMEM; \
-            int __rv__ = lock_obj_init(obj->lock); \
-            if (__rv__) return __rv__; \
+            __failed__ = lock_obj_init(obj->lock); \
+            if (__failed__) return __failed__; \
             grab_write_lock(obj->lock); \
         } \
     } while (0)

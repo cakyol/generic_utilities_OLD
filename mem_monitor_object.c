@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 /*
- * An extra 8 bytes is allocated at the front to store the length.
+ * An extra 8 bytes is allocated at the front to store the size.
  * Make sure this is 8 bytes aligned or it crashes in 64 bit systems.
  */
 void *
@@ -33,7 +33,7 @@ mem_monitor_allocate (mem_monitor_t *memp, int size)
         (unsigned long long int*) malloc(total_size);
 
     if (block) {
-        memset(block, 0, total_size);
+        //memset(block, 0, total_size);
         *block = total_size;
         memp->bytes_used += total_size;
         memp->allocations++;

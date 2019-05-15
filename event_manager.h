@@ -78,14 +78,11 @@
 ** Otherwise the event manager will report the same event multiple times, 
 ** or as many times as the match occurs.  Event manager does NOT check
 ** redundant registrations.  It is up to the user to ensure that such
-** logical errors are not made when registering for events.  There is
-** however a function is provided as a tool to check if a prior registration
-** has already been made by a user.  This can be used by the user to
-** detect his/her OWN mistakes and/or multiple registrations.  This function
-** will detect if an EXACT function with the same EXACT user argument
-** for EXACTLY the same event type and object type has been already
-** registered.  This is also the ONLY duplicate condition that the event
-** manager itself will detect.
+** logical errors are not made when registering for events.  Having said
+** that, the event manager catches a duplicate registration when both the
+** callback function AND the parameter is IDENTICAL to one which has been
+** registered for the same type of object.  There is also a tool function
+** which the user can use to find a duplicate registration.
 **
 *******************************************************************************
 *******************************************************************************
@@ -148,7 +145,7 @@ is_an_attribute_event (int event)
 
 /*
  * This structure is used to notify every possible event that could
- * possibly happen in the system.  T is passed around as a parameter
+ * possibly happen in the system.  It is passed around as a parameter
  * when entities are interested in being notified of events.
  * ALL the possible events fall into the events defined above.
  *
@@ -229,7 +226,7 @@ typedef struct event_record_s {
  * the event.  The event manager passes in the event which caused it
  * to be called first, followed by the transparent user pointer.
  */
-typedef void (*event_handling_fptr_t)(event_record_t *evrp, void *user_argument);
+typedef void (*event_handler_t)(event_record_t *evrp, void *extra_argument);
 
 typedef struct event_manager_s {
 
@@ -285,7 +282,7 @@ event_manager_init (event_manager_t *emp,
 extern int
 already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    event_handling_fptr_t evhfptr, void *user_argument);
+    event_handler_t evhfptr, void *extra_argument);
 
 /*
  * This function registers the caller to be notified of object events
@@ -309,7 +306,7 @@ already_registered (event_manager_t *emp,
 extern int
 register_for_object_events (event_manager_t *emp,
     int object_type, 
-    event_handling_fptr_t evhfptr, void *user_argument);
+    event_handler_t evhfptr, void *extra_argument);
 
 /*
  * unregisters from object events for the specified object type.
@@ -317,7 +314,7 @@ register_for_object_events (event_manager_t *emp,
  */
 extern void
 un_register_from_object_events (event_manager_t *emp,
-    int object_type, event_handling_fptr_t evhfptr);
+    int object_type, event_handler_t evhfptr);
 
 /*
  * Same concept as above but this time registration is only for attribute
@@ -329,14 +326,14 @@ un_register_from_object_events (event_manager_t *emp,
 extern int
 register_for_attribute_events (event_manager_t *emp,
     int object_type, 
-    event_handling_fptr_t evhfptr, void *user_argument);
+    event_handler_t evhfptr, void *extra_argument);
 
 /*
  * reverse of the above
  */
 extern void
 un_register_from_attribute_events (event_manager_t *emp,
-    int object_type, event_handling_fptr_t evhfptr);
+    int object_type, event_handler_t evhfptr);
 
 /*
  * The user calls this when he wants to report the occurence of an event.

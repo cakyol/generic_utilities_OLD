@@ -312,10 +312,10 @@ database_initialize (object_database_t *obj_db,
 static inline int
 database_register_for_object_events (object_database_t *obj_db,
         int object_type,
-        two_parameter_function_pointer ecbf, void *user_param)
+        two_parameter_function_pointer ecbf, void *extra_arg)
 {
     return
-        register_for_object_events(&obj_db->evm, object_type, ecbf, user_param);
+        register_for_object_events(&obj_db->evm, object_type, ecbf, extra_arg);
 }
 
 static inline void
@@ -328,10 +328,10 @@ database_un_register_from_object_events (object_database_t *obj_db,
 static inline int
 database_register_for_attribute_events (object_database_t *obj_db,
         int object_type,
-        two_parameter_function_pointer ecbf, void *user_param)
+        two_parameter_function_pointer ecbf, void *extra_arg)
 {
     return
-        register_for_attribute_events(&obj_db->evm, object_type, ecbf, user_param);
+        register_for_attribute_events(&obj_db->evm, object_type, ecbf, extra_arg);
 }
 
 static inline void

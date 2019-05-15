@@ -142,9 +142,6 @@ avl_lookup_engine (avl_tree_t *tree,
     avl_node_t *node = tree->root_node;
     int res = 0;
 
-    /* being traversed, cannot access */
-    if (tree->cannot_be_modified) return NULL;
-
     *pparent = NULL;
     *unbalanced = node;
     *is_left = 0;
@@ -166,14 +163,14 @@ avl_lookup_engine (avl_tree_t *tree,
 static inline void
 free_avl_node (avl_tree_t *tree, avl_node_t *node)
 {
-    CHUNK_FREE(tree, node);
+    MEM_MONITOR_FREE(tree, node);
     tree->n--;
 }
 
 static inline avl_node_t *
 new_avl_node (avl_tree_t *tree, void *user_data)
 {
-    avl_node_t *node = CHUNK_ALLOC(tree, sizeof(avl_node_t));
+    avl_node_t *node = MEM_MONITOR_ALLOC(tree, sizeof(avl_node_t));
 
     if (node) {
         node->parent = node->left = node->right = NULL;
@@ -250,7 +247,11 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     /* assume the entry is not present initially */
     *data_already_present = NULL;
 
-    /* traversing the tree, access not allowed */
+    /*
+     * some kind of traversal is already happening on the tree,
+     * so any kind of access which may change the tree is
+     * not allowed
+     */
     if (tree->cannot_be_modified) return EBUSY;
 
     found = avl_lookup_engine(tree, data_to_be_inserted,
@@ -564,14 +565,6 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     /* already being traversed */
     if (tree->cannot_be_modified) return EBUSY;
 
-    /*
-     * traversal started.  Until it COMPLETELY finishes, we cannot
-     * allow any access to the tree any more.  Since we dont know
-     * what the user provided traversal function will do to the tree,
-     * we have to block access to it.
-     */
-    tree->cannot_be_modified = 1;
-
     /* if the starting root is NULL, start from top of tree */
     if (NULL == root) {
         root = tree->root_node;
@@ -603,15 +596,12 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         }
     }
 
-    /* ok, traversal finished */
-    tree->cannot_be_modified = 0;
-
     return 0;
 }
 
 static int
 thread_unsafe_iterative_destroy (avl_tree_t *tree,
-        data_delete_callback_t ddcbf, void *user_param)
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
     avl_node_t *r, *n;
     int delete_count;
@@ -627,7 +617,7 @@ thread_unsafe_iterative_destroy (avl_tree_t *tree,
             r->right = NULL;
         } else {
             n = r->parent;
-            if (ddcbf) ddcbf(r->user_data, user_param);
+            if (dh_fptr) dh_fptr(r->user_data, extra_arg);
             free_avl_node(tree, r);
             delete_count++;
         }
@@ -642,13 +632,11 @@ PUBLIC int
 avl_tree_init (avl_tree_t *tree,
         int make_it_thread_safe,
         object_comparer cmpf,
-        mem_monitor_t *parent_mem_monitor,
-        chunk_manager_parameters_t *cmpp)
+        mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;
     MEM_MONITOR_SETUP(tree);
     LOCK_SETUP(tree);
-    CHUNK_MANAGER_SETUP(tree, sizeof(avl_node_t), cmpp);
 
     tree->cmpf = cmpf;
     tree->n = 0;
@@ -730,9 +718,11 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
     avl_node_t *root, *current;
 
     READ_LOCK(tree);
+    tree->cannot_be_modified = 1;
     storage_area = malloc((tree->n + 1) * sizeof(void*));
     if (NULL == storage_area) {
         *returned_count = 0;
+        tree->cannot_be_modified = 0;
         READ_UNLOCK(tree);
         return NULL;
     }
@@ -759,6 +749,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
         }
     }
     *returned_count = index;
+    tree->cannot_be_modified = 0;
     READ_UNLOCK(tree);
 
     return storage_area;
@@ -774,8 +765,10 @@ avl_tree_traverse (avl_tree_t *tree,
     int rv;
 
     READ_LOCK(tree);
+    tree->cannot_be_modified = 1;
     rv = thread_unsafe_morris_traverse(tree, tree->root_node,
                 tfn, p0, p1, p2, p3);
+    tree->cannot_be_modified = 0;
     READ_UNLOCK(tree);
     return rv;
 }
@@ -784,17 +777,19 @@ avl_tree_traverse (avl_tree_t *tree,
 
 PUBLIC void
 avl_tree_destroy (avl_tree_t *tree,
-        data_delete_callback_t ddcbf, void *user_arg)
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
     int old_count, deleted;
 
     WRITE_LOCK(tree);
+    tree->cannot_be_modified = 1;
     old_count = tree->n;
-    deleted = thread_unsafe_iterative_destroy(tree, ddcbf, user_arg);
+    deleted = thread_unsafe_iterative_destroy(tree, dh_fptr, extra_arg);
     assert(tree->n == 0);
     assert(old_count == deleted);
     tree->root_node = NULL;
     tree->cmpf = NULL;
+    tree->cannot_be_modified = 0;
     WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
 }

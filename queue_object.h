@@ -77,7 +77,8 @@ queue_obj_dequeue (queue_obj_t *qobj,
         void **returned_data);
 
 extern void
-queue_obj_destroy (queue_obj_t *qobj);
+queue_obj_destroy (queue_obj_t *qobj,
+        destruction_handler_t dh_fptr, void *extra_arg);
 
 #ifdef __cplusplus
 } // extern C

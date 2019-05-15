@@ -52,26 +52,33 @@ extern "C" {
 
 typedef unsigned char byte;
 
-typedef int (*one_parameter_function_pointer)(void *arg1);
+typedef int
+(*one_parameter_function_pointer)(void *arg1);
 
-typedef int (*two_parameter_function_pointer)(void *arg1, void *arg2);
+typedef int
+(*two_parameter_function_pointer)(void *arg1, void *arg2);
 
-typedef int (*three_parameter_function_pointer)(void *arg1, void *arg2, void *arg3);
+typedef int
+(*three_parameter_function_pointer)
+    (void *arg1, void *arg2, void *arg3);
 
-typedef int (*four_parameter_function_pointer)
-                (void *arg1, void *arg2, void *arg3, void *arg4);
+typedef int
+(*four_parameter_function_pointer)
+    (void *arg1, void *arg2, void *arg3, void *arg4);
 
-typedef int (*five_parameter_function_pointer)
-                (void *arg1, void *arg2, void *arg3, void *arg4, void *arg5);
+typedef int
+(*five_parameter_function_pointer)
+    (void *arg1, void *arg2, void *arg3, void *arg4,
+        void *arg5);
 
-typedef int (*six_parameter_function_pointer)
-                (void *arg1, void *arg2, void *arg3,
-                 void *arg4, void *arg5, void *arg6);
+typedef int
+(*six_parameter_function_pointer)
+    (void *arg1, void *arg2, void *arg3, void *arg4,
+        void *arg5, void *arg6);
 
 typedef int (*seven_parameter_function_pointer)
-                (void *arg1, void *arg2, void *arg3,
-                 void *arg4, void *arg5, void *arg6,
-                 void *arg7);
+    (void *arg1, void *arg2, void *arg3, void *arg4,
+        void *arg5, void *arg6, void *arg7);
 
 typedef one_parameter_function_pointer simple_function_pointer;
 
@@ -81,22 +88,22 @@ typedef seven_parameter_function_pointer traverse_function_pointer;
 
 /*
  * This is a function prototype which will be called when a destroy
- * object functiuon is working.  It can be any object being destroyed.
+ * object function is running.  It can be any object being destroyed.
  * It can be an avl tree, index object, list object etc.  The idea
  * is, as the object itself is being destroyed (its nodes being returned
- * to storage), this is called with the acxtual 'user_data' stored on 
+ * to storage), this is called with the actual 'user_data' stored on 
  * that node, in case user wants to also destroy/free their own
  * data itself.  It will be called one node at a time as the destruction
  * happens.  When this is called, the user MUST be aware that their data
  * has already been REMOVED from whatever object it was a part of, and
  * pretty much 'dangling' by itself.  Typically user will want to 
  * free up his/her object but this may not always be the case.
- * The FIRST parameter passed in is the user data itself and the 
- * second is whatever the user supplied at the time of the destruction
- * call.  It goes without saying that the user function should NOT 
- * manipulate the container object in any way.
+ * The FIRST parameter passed into this function is the user data itself
+ * and the second parameter is whatever the user supplied at the time of
+ * the destruction call.  It goes without saying that the user function
+ * should NOT manipulate the container object in any way.
  */
-typedef void (*data_delete_callback_t)(void *user_data, void *user_param);
+typedef void (*destruction_handler_t)(void *user_data, void *extra_arg);
 
 /*
  * Sets a pointer to an integer value.  This can be directly done when
@@ -121,8 +128,7 @@ pointer2integer (void *ptr)
 #define pointer_from_integer(i)         integer2pointer((long long int) (i))
 #define integer_from_pointer(p)         pointer2integer((void*) (p))
 
-#define safe_pointer_set(ptr, value) \
-    if (ptr) *(ptr) = (value)
+#define safe_pointer_set(ptr, value)    if (ptr) *(ptr) = (value)
 
 #ifdef __cplusplus
 } /* extern C */

@@ -20,7 +20,7 @@ int int_compare (void *p1, void *p2)
 }
 
 static void
-user_data_destroy_function (void *user_data, void *user_arg)
+user_data_destroy_function (void *user_data, void *extra_arg)
 {
 }
 
@@ -34,7 +34,6 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     unsigned long long int bytes_used;
     double megabytes_used;
     void *fwdata, *searched, *found, *removed;
-    chunk_manager_parameters_t chparams;
 
     printf("size of ONE avl node is: %lu bytes\n",
             sizeof(avl_node_t));
@@ -61,10 +60,7 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
         printf("max value recorded so far is %d\n", max_value_reached);
     }
 
-    chparams.initial_number_of_chunks = max_value_reached + 10;
-    chparams.grow_size = 1024;
-
-    avl_tree_init(avlt, 1, int_compare, NULL, &chparams);
+    avl_tree_init(avlt, 1, int_compare, NULL);
 
     /* enter all array data into avl tree */
     printf("now entering all %s number data into the avl tree\n", oddness);

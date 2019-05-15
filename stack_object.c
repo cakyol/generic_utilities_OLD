@@ -132,11 +132,26 @@ stack_obj_pop (stack_obj_t *stk,
 }
 
 PUBLIC void
-stack_obj_destroy (stack_obj_t *stk)
+stack_obj_destroy (stack_obj_t *stk,
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
+    void *user_data;
+
+    WRITE_LOCK(stk);
+
+    /* call user function for all user data still in the stack */
+    if (dh_fptr) {
+        while (0 == thread_unsafe_stack_obj_pop(stk, &user_data)) {
+            dh_fptr(user_data, extra_arg);
+        }
+    }
+
+    /* delete the object itself */
     if (stk->elements) {
         MEM_MONITOR_FREE(stk, stk->elements);
     }
+
+    WRITE_UNLOCK(stk);
     LOCK_OBJ_DESTROY(stk);
     memset(stk, 0, sizeof(stack_obj_t));
 }

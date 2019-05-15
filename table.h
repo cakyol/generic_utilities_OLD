@@ -92,7 +92,8 @@ extern unsigned long long int
 table_memory_usage (table_t *tablep, double *mega_bytes);
 
 extern void 
-table_destroy (table_t *tablep);
+table_destroy (table_t *tablep,
+        destruction_handler_t dh_fptr, void *extra_arg);
 
 #ifdef __cplusplus
 } // extern C

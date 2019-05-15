@@ -43,7 +43,7 @@ table_init (table_t *tablep,
     if (use_avl_tree) {
         return
             avl_tree_init(&tablep->u.avl, 
-                make_it_thread_safe, cmpf, parent_mem_monitor, NULL);
+                make_it_thread_safe, cmpf, parent_mem_monitor);
     }
     return
         index_obj_init(&tablep->u.idx, 
@@ -135,12 +135,13 @@ table_memory_usage (table_t *tablep, double *mega_bytes)
 }
 
 PUBLIC void
-table_destroy (table_t *tablep)
+table_destroy (table_t *tablep,
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
     if (tablep->use_avl_tree) {
-        avl_tree_destroy(&tablep->u.avl);
+        avl_tree_destroy(&tablep->u.avl, dh_fptr, extra_arg);
     } else {
-        index_obj_destroy(&tablep->u.idx);
+        index_obj_destroy(&tablep->u.idx, dh_fptr, extra_arg);
     }
 }
 

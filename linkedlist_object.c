@@ -222,7 +222,7 @@ int
 thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
         linkedlist_node_t *node_tobe_deleted)
 {
-    void *to_free;
+    linkedlist_node_t *to_free;
 
     /* should not delete end node, NEVER */
     if (endof_linkedlist(node_tobe_deleted))
@@ -233,7 +233,7 @@ thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
         return EINVAL;
 
     to_free = node_tobe_deleted->next;
-    *node_tobe_deleted = *(node_tobe_deleted->next);
+    *node_tobe_deleted = *to_free;
     MEM_MONITOR_FREE(listp, to_free);
     listp->n--;
 
@@ -360,25 +360,33 @@ linkedlist_delete_node (linkedlist_t *listp,
 
 PUBLIC void
 linkedlist_destroy (linkedlist_t *listp,
-        data_delete_callback_t ddcbf, void *ddcbf_arg)
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
     volatile void *user_data;
 
     WRITE_LOCK(listp);
     while (not_endof_linkedlist(listp->head)) {
+
+        /* stash the user data stored in the node */
         user_data = listp->head->user_data;
+
+        /* destroy the node */
         thread_unsafe_linkedlist_node_delete(listp, listp->head);
-        if (ddcbf) ddcbf((void*) user_data, ddcbf_arg);
+
+        /*
+         * call user function with the data, in case user
+         * wants to do anything with it (most likely destroy)
+         */
+        if (dh_fptr) dh_fptr((void*) user_data, extra_arg);
     }
 
     /* free up the end of list marker */
     MEM_MONITOR_FREE(listp, listp->head);
     listp->head = NULL;
 
-    /* check sanity */
     assert(0 == listp->n);
-
     WRITE_UNLOCK(listp);
+    LOCK_OBJ_DESTROY(listp);
 }
 
 #ifdef __cplusplus

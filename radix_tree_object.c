@@ -330,7 +330,7 @@ radix_tree_remove (radix_tree_t *ntp,
  */
 PUBLIC void
 radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
-        void *user_param_1, void *user_param_2)
+        void *extra_arg_1, void *extra_arg_2)
 {
     radix_tree_node_t *node, *prev;
     byte *key;
@@ -371,7 +371,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
             key_len = integer2pointer(index/2);
             if (node->user_data && (0 == rv)) {
                 rv = tfn(ntp, node, node->user_data, key, key_len,
-                    user_param_1, user_param_2);
+                    extra_arg_1, extra_arg_2);
             }
             node->current = 0;  // Reset counter for next traversal.
             node = node->parent;

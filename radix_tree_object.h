@@ -128,7 +128,7 @@ radix_tree_remove (radix_tree_t *ntp,
 
 extern void
 radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
-        void *user_param_1, void *user_param_2);
+        void *extra_arg_1, void *extra_arg_2);
 
 extern void 
 radix_tree_destroy (radix_tree_t *ntp);

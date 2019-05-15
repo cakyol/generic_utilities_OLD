@@ -68,7 +68,8 @@ stack_obj_pop (stack_obj_t *stk,
         void **returned_data);
 
 extern void
-stack_obj_destroy (stack_obj_t *stk);
+stack_obj_destroy (stack_obj_t *stk,
+        destruction_handler_t dh_fptr, void *extra_arg);
 
 #ifdef __cplusplus
 } // extern C

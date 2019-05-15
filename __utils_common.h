@@ -269,10 +269,10 @@ typedef int (*object_comparer) (datum_t p0, datum_t p1);
 #define TYPE_TRAVERSE_FUNCTION
 typedef error_t (*traverse_function_pointer)
     (void *utility_object, void *utility_node, datum_t node_data, 
-     datum_t extra_parameter_0,
-     datum_t extra_parameter_1,
-     datum_t extra_parameter_2,
-     datum_t extra_parameter_3);
+     datum_t extra_argeter_0,
+     datum_t extra_argeter_1,
+     datum_t extra_argeter_2,
+     datum_t extra_argeter_3);
 #endif // TYPE_TRAVERSE_FUNCTION
 
 /*

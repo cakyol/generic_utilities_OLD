@@ -168,11 +168,26 @@ queue_obj_dequeue (queue_obj_t *qobj,
 }
 
 PUBLIC void
-queue_obj_destroy (queue_obj_t *qobj)
+queue_obj_destroy (queue_obj_t *qobj,
+        destruction_handler_t dh_fptr, void *extra_arg)
 {
+    void *user_data;
+
+    WRITE_LOCK(qobj);
+
+    /* call user function for all user data still in the queue */
+    if (dh_fptr) {
+        while (0 == thread_unsafe_queue_obj_dequeue(qobj, &user_data)) {
+            dh_fptr(user_data, extra_arg);
+        }
+    }
+
+    /* delete the object itself */
     if (qobj->elements) {
         MEM_MONITOR_FREE(qobj, qobj->elements);
     }
+
+    WRITE_UNLOCK(qobj);
     LOCK_OBJ_DESTROY(qobj);
     memset(qobj, 0, sizeof(queue_obj_t));
 }

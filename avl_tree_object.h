@@ -53,7 +53,6 @@ typedef struct avl_tree_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
-    CHUNK_MANAGER_VARIABLES;
 
     avl_node_t *root_node;
     object_comparer cmpf;
@@ -74,8 +73,7 @@ extern int
 avl_tree_init (avl_tree_t *tree,
         int make_it_thread_safe,
         object_comparer cmpf,
-        mem_monitor_t *parent_mem_monitor,
-        chunk_manager_parameters_t *cmpp);
+        mem_monitor_t *parent_mem_monitor);
 
 /**************************** Insert *****************************************/
 
@@ -114,7 +112,7 @@ avl_tree_traverse (avl_tree_t *tree,
 
 extern void 
 avl_tree_destroy (avl_tree_t *tree,
-        data_delete_callback_t dcbf, void *user_arg);
+        destruction_handler_t dcbf, void *extra_arg);
 
 #ifdef __cplusplus
 } // extern C
