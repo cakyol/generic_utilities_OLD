@@ -91,7 +91,7 @@ void *validate_array_thread (void *arg)
 
 int main (int argc, char *argv[])
 {
-    int rv;
+    int failed;
     pthread_t tid;
     int i;
     int *intp;
@@ -100,9 +100,9 @@ int main (int argc, char *argv[])
     printf("\nsize of mutex object is %ld lock object is %ld bytes\n",
         sizeof(pthread_mutex_t), sizeof(lock_obj_t));
 
-    rv = lock_obj_init(&lock);
-    if (rv) {
-        printf("lock_obj_init failed: <%s>\n", strerror(rv));
+    failed = lock_obj_init(&lock);
+    if (failed) {
+        printf("lock_obj_init failed: <%s>\n", strerror(failed));
         return -1;
     }
 
@@ -144,11 +144,11 @@ int main (int argc, char *argv[])
             break;
         }
         if (i & 1) {
-            rv = pthread_create(&tid, NULL, validate_array_thread, intp);
+            failed = pthread_create(&tid, NULL, validate_array_thread, intp);
         } else {
-            rv = pthread_create(&tid, NULL, thread_function, intp);
+            failed = pthread_create(&tid, NULL, thread_function, intp);
         }
-        if (rv) break;
+        if (failed) break;
         max_threads++;
     }
 

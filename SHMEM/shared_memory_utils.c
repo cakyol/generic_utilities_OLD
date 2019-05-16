@@ -498,17 +498,17 @@ bool shm_stack_empty (shm_stack_t *stack)
 bool shm_stack_push (shm_stack_t *stack, int value,
     bool lock_it)
 {
-    bool rv;
+    bool failed;
 
     cond_mutex_lock(lock_it, &stack->lock);
     if (stack->n >= stack->maxsize) {
-	rv = FALSE;
+	failed = FALSE;
     } else {
 	stack->data[stack->n++] = value;
-	rv = TRUE;
+	failed = TRUE;
     }
     cond_mutex_unlock(lock_it, &stack->lock);
-    return rv;
+    return failed;
 }
 
 /*
@@ -518,17 +518,17 @@ bool shm_stack_push (shm_stack_t *stack, int value,
 bool shm_stack_pop (shm_stack_t *stack, int *value,
     bool lock_it)
 {
-    bool rv;
+    bool failed;
 
     cond_mutex_lock(lock_it, &stack->lock);
     if (stack->n <= 0) {
-	rv = FALSE;
+	failed = FALSE;
     } else {
 	*value = stack->data[--stack->n];
-	rv = TRUE;
+	failed = TRUE;
     }
     cond_mutex_unlock(lock_it, &stack->lock);
-    return rv;
+    return failed;
 }
 
 /*********************************************************************

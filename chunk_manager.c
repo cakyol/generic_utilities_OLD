@@ -95,7 +95,7 @@ chunk_manager_init (chunk_manager_t *cmgr,
         int chunk_size, int initial_number_of_chunks, int expansion_size,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv;
+    int failed;
 
     /* check some sanity */
     if (chunk_size <= 0) return EINVAL;
@@ -118,20 +118,20 @@ chunk_manager_init (chunk_manager_t *cmgr,
     cmgr->expansion_size = expansion_size;
     cmgr->grow_count = -1;
     cmgr->trim_count = 0;
-    rv = chunk_manager_expand(cmgr, initial_number_of_chunks);
+    failed = chunk_manager_expand(cmgr, initial_number_of_chunks);
     WRITE_UNLOCK(cmgr);
-    return rv;
+    return failed;
 }
 
 PUBLIC void *
 chunk_manager_alloc (chunk_manager_t *cmgr)
 {
-    void *rv;
+    void *failed;
 
     WRITE_LOCK(cmgr);
-    rv = thread_unsafe_chunk_manager_alloc(cmgr);
+    failed = thread_unsafe_chunk_manager_alloc(cmgr);
     WRITE_UNLOCK(cmgr);
-    return rv;
+    return failed;
 }
 
 PUBLIC void

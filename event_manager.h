@@ -226,7 +226,7 @@ typedef struct event_record_s {
  * the event.  The event manager passes in the event which caused it
  * to be called first, followed by the transparent user pointer.
  */
-typedef void (*event_handler_t)(event_record_t *evrp, void *extra_argument);
+typedef void (*event_handler_t)(event_record_t *evrp, void *extra_arg);
 
 typedef struct event_manager_s {
 
@@ -282,7 +282,7 @@ event_manager_init (event_manager_t *emp,
 extern int
 already_registered (event_manager_t *emp,
     int event_type, int object_type,
-    event_handler_t evhfptr, void *extra_argument);
+    event_handler_t evhfptr, void *extra_arg);
 
 /*
  * This function registers the caller to be notified of object events
@@ -306,7 +306,7 @@ already_registered (event_manager_t *emp,
 extern int
 register_for_object_events (event_manager_t *emp,
     int object_type, 
-    event_handler_t evhfptr, void *extra_argument);
+    event_handler_t evhfptr, void *extra_arg);
 
 /*
  * unregisters from object events for the specified object type.
@@ -326,7 +326,7 @@ un_register_from_object_events (event_manager_t *emp,
 extern int
 register_for_attribute_events (event_manager_t *emp,
     int object_type, 
-    event_handler_t evhfptr, void *extra_argument);
+    event_handler_t evhfptr, void *extra_arg);
 
 /*
  * reverse of the above

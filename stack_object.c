@@ -85,7 +85,7 @@ stack_obj_init (stack_obj_t *stk,
         int expansion_size,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv = 0;
+    int failed = 0;
 
     if (maximum_size <= 0) {
         return EINVAL;
@@ -101,34 +101,34 @@ stack_obj_init (stack_obj_t *stk,
     stk->n = 0;
     stk->elements = MEM_MONITOR_ALLOC(stk, maximum_size * sizeof(void*));
     if (NULL == stk->elements) {
-        rv = ENOMEM;
+        failed = ENOMEM;
     }
     WRITE_UNLOCK(stk);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 stack_obj_push (stack_obj_t *stk,
         void *data)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(stk);
-    rv = thread_unsafe_stack_obj_push(stk, data);
+    failed = thread_unsafe_stack_obj_push(stk, data);
     WRITE_UNLOCK(stk);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 stack_obj_pop (stack_obj_t *stk,
         void **returned_data)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(stk);
-    rv = thread_unsafe_stack_obj_pop(stk, returned_data);
+    failed = thread_unsafe_stack_obj_pop(stk, returned_data);
     WRITE_UNLOCK(stk);
-    return rv;
+    return failed;
 }
 
 PUBLIC void

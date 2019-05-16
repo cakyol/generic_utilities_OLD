@@ -205,7 +205,7 @@ extern void turn_logging_off (void);
 **
 **  - Only one active writer at a time.
 **
-**  - Read requests cannot starve out a writer.
+**  - Read requests cannot stafailede out a writer.
 **
 **  - Re-enterable by the same writer thread.
 **

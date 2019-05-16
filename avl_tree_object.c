@@ -559,7 +559,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
-    int rv = 0;
+    int failed = 0;
     avl_node_t *current;
 
     /* already being traversed */
@@ -572,8 +572,8 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 
     while (root) {
         if (root->left == NULL) {
-            if (0 == rv) {
-                rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
+            if (0 == failed) {
+                failed = tfn(tree, root, root->user_data, p0, p1, p2, p3);
             }
             root = root->right;
         } else {
@@ -587,8 +587,8 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
                 root = root->right;
             } else {
                 /* call user function only if no error occured so far */
-                if (0 == rv) {
-                    rv = tfn(tree, root, root->user_data, p0, p1, p2, p3);
+                if (0 == failed) {
+                    failed = tfn(tree, root, root->user_data, p0, p1, p2, p3);
                 }
                 current->right = root;
                 root = root->left;
@@ -655,13 +655,13 @@ avl_tree_insert (avl_tree_t *tree,
         void *data_to_be_inserted,
         void **data_already_present)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(tree);
-    rv = thread_unsafe_avl_tree_insert(tree,
+    failed = thread_unsafe_avl_tree_insert(tree,
             data_to_be_inserted, data_already_present);
     WRITE_UNLOCK(tree);
-    return rv;
+    return failed;
 }
 
 /**************************** Search *****************************************/
@@ -671,7 +671,7 @@ avl_tree_search (avl_tree_t *tree,
         void *data_to_be_searched,
         void **data_found)
 {
-    int rv;
+    int failed;
     avl_node_t *parent, *unbalanced, *node;
     int is_left;
 
@@ -680,13 +680,13 @@ avl_tree_search (avl_tree_t *tree,
                 &parent, &unbalanced, &is_left);
     if (node) {
         *data_found = node->user_data;
-        rv = 0;
+        failed = 0;
     } else {
         *data_found = NULL;
-        rv = ENODATA;
+        failed = ENODATA;
     }
     READ_UNLOCK(tree);
-    return rv;
+    return failed;
 }
 
 /**************************** Remove *****************************************/
@@ -696,13 +696,13 @@ avl_tree_remove (avl_tree_t *tree,
         void *data_to_be_removed,
         void **data_actually_removed)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(tree);
-    rv = thread_unsafe_avl_tree_remove(tree,
+    failed = thread_unsafe_avl_tree_remove(tree,
                 data_to_be_removed, data_actually_removed);
     WRITE_UNLOCK(tree);
-    return rv;
+    return failed;
 }
 
 /**************************** Get all entries ********************************/
@@ -762,15 +762,15 @@ avl_tree_traverse (avl_tree_t *tree,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(tree);
     tree->cannot_be_modified = 1;
-    rv = thread_unsafe_morris_traverse(tree, tree->root_node,
+    failed = thread_unsafe_morris_traverse(tree, tree->root_node,
                 tfn, p0, p1, p2, p3);
     tree->cannot_be_modified = 0;
     READ_UNLOCK(tree);
-    return rv;
+    return failed;
 }
 
 /**************************** Destroy ****************************************/

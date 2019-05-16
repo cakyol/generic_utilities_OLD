@@ -177,11 +177,11 @@ typedef tinybool bool;
 #endif // BITS_PER_BYTE
 
 static inline boolean
-no_space (int rv)
+no_space (int failed)
 {
     return 
-        (ENOSPC == rv) || 
-        (ENOMEM == rv);
+        (ENOSPC == failed) || 
+        (ENOMEM == failed);
 }
 
 #define SAFE_POINTER_SET(ptr, data)         if ((ptr)) *(ptr) = (data)

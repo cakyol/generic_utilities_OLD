@@ -203,23 +203,23 @@ dl_list_init (dl_list_t *list,
 int
 dl_list_prepend_object (dl_list_t *list, void *object)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(list);
-    rv = thread_unsafe_dl_list_prepend_object(list, object);
+    failed = thread_unsafe_dl_list_prepend_object(list, object);
     WRITE_UNLOCK(list);
-    return rv;
+    return failed;
 }
 
 int
 dl_list_append_object (dl_list_t *list, void *object)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(list);
-    rv = thread_unsafe_dl_list_append_object(list, object);
+    failed = thread_unsafe_dl_list_append_object(list, object);
     WRITE_UNLOCK(list);
-    return rv;
+    return failed;
 }
 
 int
@@ -252,16 +252,16 @@ dl_list_iterate (dl_list_t *list, object_comparer iterator,
 int
 dl_list_delete_object (dl_list_t *list, void *object)
 {
-    int rv = ENODATA;
+    int failed = ENODATA;
     dl_list_element_t *elem;
 
     WRITE_LOCK(list);
     if (thread_unsafe_dl_list_find_element(list, object, &elem) == 0) {
         thread_unsafe_dl_list_delete_element(list, elem);
-        rv = 0;
+        failed = 0;
     }
     WRITE_UNLOCK(list);
-    return rv;
+    return failed;
 }
 
 void

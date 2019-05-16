@@ -235,12 +235,12 @@ dynamic_array_insert (dynamic_array_t *datp,
         int index,
         void *data)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(datp);
-    rv = thread_unsafe_dynamic_array_insert(datp, index, data);
+    failed = thread_unsafe_dynamic_array_insert(datp, index, data);
     WRITE_UNLOCK(datp);
-    return rv;
+    return failed;
 }
 
 /*
@@ -270,12 +270,12 @@ dynamic_array_get (dynamic_array_t *datp,
         int index,
         void **returned)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(datp);
-    rv = thread_unsafe_dynamic_array_get(datp, index, returned);
+    failed = thread_unsafe_dynamic_array_get(datp, index, returned);
     READ_UNLOCK(datp);
-    return rv;
+    return failed;
 }
 
 /*
@@ -309,12 +309,12 @@ dynamic_array_remove (dynamic_array_t *datp,
         int index,
         void **removed)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(datp);
-    rv = thread_unsafe_dynamic_array_remove(datp, index, removed);
+    failed = thread_unsafe_dynamic_array_remove(datp, index, removed);
     WRITE_UNLOCK(datp);
-    return rv;
+    return failed;
 }
 
 PUBLIC void **

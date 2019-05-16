@@ -43,7 +43,7 @@
 **      - Only one active writer at a time.
 **      - write locks are *NOT* recursive, deadlock *WILL* occur if recursive
 **        write locking is attempted.
-**      - read locks will not starve out a write lock.
+**      - read locks will not stafailede out a write lock.
 **
 *******************************************************************************
 *******************************************************************************

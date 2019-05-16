@@ -63,7 +63,7 @@ create_f_and_arg (event_manager_t *emp,
 }
 
 static int
-compare_f_and_args (void *p1, void *p2)
+compare_f_and_arg (void *p1, void *p2)
 {
     int result;
 
@@ -74,7 +74,7 @@ compare_f_and_args (void *p1, void *p2)
 }
 
 static int
-identical_f_and_args (f_and_arg_t *fa1, f_and_arg_t *fa2)
+identical_f_and_arg (f_and_arg_t *fa1, f_and_arg_t *fa2)
 {
     return
         (fa1->fptr == fa2->fptr) &&
@@ -84,7 +84,9 @@ identical_f_and_args (f_and_arg_t *fa1, f_and_arg_t *fa2)
 static void
 destroy_f_and_arg (void *user_data, void *extra_arg)
 {
-    MEM_MONITOR_FREE((event_manager_t*) extra_arg, (f_and_arg_t*) user_data);
+    event_manager_t *emp = (event_manager_t*) extra_arg;
+
+    MEM_MONITOR_FREE(emp, user_data);
 }
 
 /*
@@ -95,12 +97,12 @@ destroy_f_and_arg (void *user_data, void *extra_arg)
 typedef struct f_and_arg_container_s {
 
     int object_type;
-    linkedlist_t list_of_f_and_args;
+    linkedlist_t list_of_f_and_arg;
 
 } f_and_arg_container_t;
 
 static int
-compare_f_and_arg_containers (void *p1, void *p2)
+compare_f_and_arg_container (void *p1, void *p2)
 {
     return
         ((f_and_arg_container_t*) p1)->object_type -
@@ -116,8 +118,8 @@ create_f_and_arg_container (event_manager_t *emp, int object_type)
     new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
     if (new_one) {
         new_one->object_type = object_type;
-        failed = linkedlist_init(&new_one->list_of_f_and_args, 0,
-                    compare_f_and_args, emp->mem_mon_p);
+        failed = linkedlist_init(&new_one->list_of_f_and_arg, 0,
+                    compare_f_and_arg, emp->mem_mon_p);
         if (failed) {
             MEM_MONITOR_FREE(emp, new_one);
             new_one = NULL;
@@ -130,7 +132,7 @@ static void
 destroy_f_and_arg_container (event_manager_t *emp,
     f_and_arg_container_t *farg_cont_p)
 {
-    linkedlist_destroy(&farg_cont_p->list_of_f_and_args,
+    linkedlist_destroy(&farg_cont_p->list_of_f_and_arg,
             destroy_f_and_arg, emp);
     MEM_MONITOR_FREE(emp, farg_cont_p);
 }
@@ -191,7 +193,7 @@ get_correct_list (event_manager_t *emp,
     failed = index_obj_search(idxp, &searched, (void**) &found);
     if (found) {
         assert(!failed);
-        safe_pointer_set(list_returned, &found->list_of_f_and_args);
+        safe_pointer_set(list_returned, &found->list_of_f_and_arg);
         safe_pointer_set(container_returned, found);
         safe_pointer_set(index_object_returned, idxp);
         return 0;
@@ -206,7 +208,7 @@ get_correct_list (event_manager_t *emp,
             destroy_f_and_arg_container(emp, new_one);
             return failed;
         }
-        safe_pointer_set(list_returned, &new_one->list_of_f_and_args);
+        safe_pointer_set(list_returned, &new_one->list_of_f_and_arg);
         safe_pointer_set(container_returned, new_one);
         safe_pointer_set(index_object_returned, idxp);
         return 0;
@@ -300,9 +302,9 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 
         /* if nothing else remains in the list, delete the container itself */
         if (idxp && (list->n <= 0)) {
-            rv = index_obj_remove(idxp, 
-            rv = dynamic_array_remove(idxp, object_type, &found);
-            if (0 == rv) {
+            failed = index_obj_remove(idxp, 
+            failed = dynamic_array_remove(idxp, object_type, &found);
+            if (0 == failed) {
                 assert(found == list);
                 linkedlist_destroy(list);
                 MEM_MONITOR_FREE(emp, list);
@@ -363,7 +365,7 @@ event_manager_init (event_manager_t *emp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv;
+    int failed;
 
     MEM_MONITOR_SETUP(emp);
     LOCK_SETUP(emp);
@@ -371,41 +373,41 @@ event_manager_init (event_manager_t *emp,
     /* until initialisation is finished, dont allow registrations */
     emp->cannot_be_modified = 1;
 
-    rv = linkedlist_init(&emp->object_event_registrants_for_all_objects, 
+    failed = linkedlist_init(&emp->object_event_registrants_for_all_objects, 
             0, compare_errs, emp->mem_mon_p);
-    if (rv) {
-        return rv;
+    if (failed) {
+        return failed;
     }
 
-    rv = linkedlist_init(&emp->attribute_event_registrants_for_all_objects,
+    failed = linkedlist_init(&emp->attribute_event_registrants_for_all_objects,
             0, compare_errs, emp->mem_mon_p);
-    if (rv) {
+    if (failed) {
         linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
-        return rv;
+        return failed;
     }
 
-    rv = dynamic_array_init(&emp->object_event_registrants_for_one_object,
+    failed = dynamic_array_init(&emp->object_event_registrants_for_one_object,
             0, 3, emp->mem_mon_p);
-    if (rv) {
+    if (failed) {
         linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
         linkedlist_destroy(&emp->attribute_event_registrants_for_all_objects);
-        return rv;
+        return failed;
     }
 
-    rv = dynamic_array_init(&emp->attribute_event_registrants_for_one_object,
+    failed = dynamic_array_init(&emp->attribute_event_registrants_for_one_object,
             0, 3, emp->mem_mon_p);
-    if (rv) {
+    if (failed) {
         linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
         linkedlist_destroy(&emp->attribute_event_registrants_for_all_objects);
         dynamic_array_destroy(&emp->object_event_registrants_for_one_object);
-        return rv;
+        return failed;
     }
 
     /* ok we are cleared to use the object now */
     emp->cannot_be_modified = 0;
 
     WRITE_UNLOCK(emp);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -413,13 +415,13 @@ already_registered (event_manager_t *emp,
     int event_type, int object_type,
     event_handler_t ehfp, void *extra_arg)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(emp);
-    rv = thread_unsafe_already_registered(emp, event_type, object_type,
+    failed = thread_unsafe_already_registered(emp, event_type, object_type,
             ehfp, extra_arg);
     READ_UNLOCK(emp);
-    return rv;
+    return failed;
 }
 
 /*
@@ -433,13 +435,13 @@ register_for_object_events (event_manager_t *emp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(emp);
-    rv = thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
+    failed = thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
             object_type, ehfp, extra_arg, 1);
     WRITE_UNLOCK(emp);
-    return rv;
+    return failed;
 }
 
 PUBLIC void
@@ -469,13 +471,13 @@ register_for_attribute_events (event_manager_t *emp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(emp);
-    rv = thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
+    failed = thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
             object_type, ehfp, extra_arg, 1);
     WRITE_UNLOCK(emp);
-    return rv;
+    return failed;
 }
 
 PUBLIC void

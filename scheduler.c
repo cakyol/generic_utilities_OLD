@@ -186,7 +186,7 @@ reschedule_next_alarm (nano_seconds_t lateness)
 static void
 __alarm_signal_handler (int signo)
 {
-    int rv;
+    int failed;
     linkedlist_node_t *d;
     task_t *tp, *first_task = NULL;
     timer_obj_t execution_time;
@@ -239,7 +239,7 @@ __alarm_signal_handler (int signo)
              * if we attempt to lock it again using one of the
              * public functions, we will get a write deadlock.
              */
-            rv = thread_unsafe_linkedlist_add_to_head(executable_tasks, tp);
+            failed = thread_unsafe_linkedlist_add_to_head(executable_tasks, tp);
         } else {
             break;
         }
@@ -293,16 +293,16 @@ static int dummy_comparer (void *vt1, void *vt2)
 int
 task_scheduler_init (void)
 {
-    int rv;
+    int failed;
 
     /* install the alarm signal handler */
     if (SIG_ERR == signal(SIGALRM, __alarm_signal_handler))
         return errno;
 
-    rv = linkedlist_init(executable_tasks, 1, dummy_comparer, NULL);
-    if (rv) return rv;
-    rv = linkedlist_init(scheduled_tasks, 1, compare_tasks, NULL);
-    return rv;
+    failed = linkedlist_init(executable_tasks, 1, dummy_comparer, NULL);
+    if (failed) return failed;
+    failed = linkedlist_init(scheduled_tasks, 1, compare_tasks, NULL);
+    return failed;
 }
 
 /*
@@ -320,7 +320,7 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
 {
     task_t *tp = (task_t*) malloc(sizeof(task_t));
     linkedlist_node_t *first;
-    int rv, head_changed;
+    int failed, head_changed;
 
     *scheduled_task = NULL;
     if (NULL == tp) return ENOMEM;
@@ -331,37 +331,37 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
     READ_LOCK(scheduled_tasks);
     first = scheduled_tasks->head;
     READ_UNLOCK(scheduled_tasks);
-    rv = linkedlist_add(scheduled_tasks, tp);
+    failed = linkedlist_add(scheduled_tasks, tp);
     READ_LOCK(scheduled_tasks);
     head_changed = first != scheduled_tasks->head;
     READ_UNLOCK(scheduled_tasks);
-    if (0 == rv) {
+    if (0 == failed) {
         *scheduled_task = tp;
         if (head_changed) reschedule_next_alarm(0);
     } else {
         free(tp);
     }
-    return rv;
+    return failed;
 }
 
 int
 task_cancel (task_t *tp)
 {
     task_t *t;
-    int rv = ENODATA, head_changed = 0;
+    int failed = ENODATA, head_changed = 0;
 
     WRITE_LOCK(scheduled_tasks);
     FOR_ALL_LINKEDLIST_ELEMENTS(scheduled_tasks, t) {
         if (t == tp) {
             if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
             thread_unsafe_linkedlist_node_delete(scheduled_tasks, __n__);
-            rv = 0;
+            failed = 0;
             break;
         }
     }
     WRITE_UNLOCK(scheduled_tasks);
     if (head_changed) reschedule_next_alarm(0);
-    return rv;
+    return failed;
 }
 
 #ifdef __cplusplus

@@ -11,11 +11,11 @@ compare_test_data (void *vt1, void *vt2)
     return
         memcmp(vt1, vt2, KEY_SIZE);
 #else
-    int i, rv;
+    int i, failed;
 
     for (i = 0; i < KEY_SIZE; i++) {
-        rv = ((test_data_t*) vt1)->key[i] - ((test_data_t*) vt2)->key[i];
-        if (rv) return rv;
+        failed = ((test_data_t*) vt1)->key[i] - ((test_data_t*) vt2)->key[i];
+        if (failed) return failed;
     }
     return 0;
 #endif

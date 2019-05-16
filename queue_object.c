@@ -71,7 +71,7 @@ static int
 thread_unsafe_queue_obj_queue (queue_obj_t *qobj, 
         void *data)
 {
-    int rv;
+    int failed;
 
     /* do we have space */
     if (qobj->n < qobj->maximum_size) {
@@ -84,14 +84,14 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
     }
 
     /* no space, can we expand */
-    rv = thread_unsafe_queue_expand(qobj);
-    if (0 == rv) {
+    failed = thread_unsafe_queue_expand(qobj);
+    if (0 == failed) {
         return
             thread_unsafe_queue_obj_queue(qobj, data);
     }
 
     /* no way */
-    return rv;
+    return failed;
 }
 
 static int
@@ -118,7 +118,7 @@ queue_obj_init (queue_obj_t *qobj,
         int maximum_size, int expansion_increment,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv = 0;
+    int failed = 0;
 
     if (maximum_size < 1) {
         return EINVAL;
@@ -137,34 +137,34 @@ queue_obj_init (queue_obj_t *qobj,
     qobj->elements = (void**) MEM_MONITOR_ALLOC(qobj,
             (maximum_size * sizeof(void*)));
     if (NULL == qobj->elements) {
-        rv = ENOMEM;
+        failed = ENOMEM;
     }
     WRITE_UNLOCK(qobj);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 queue_obj_queue (queue_obj_t *qobj,
         void *data)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(qobj);
-    rv = thread_unsafe_queue_obj_queue(qobj, data);
+    failed = thread_unsafe_queue_obj_queue(qobj, data);
     WRITE_UNLOCK(qobj);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 queue_obj_dequeue (queue_obj_t *qobj,
         void **returned_data)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(qobj);
-    rv = thread_unsafe_queue_obj_dequeue(qobj, returned_data);
+    failed = thread_unsafe_queue_obj_dequeue(qobj, returned_data);
     WRITE_UNLOCK(qobj);
-    return rv;
+    return failed;
 }
 
 PUBLIC void

@@ -50,7 +50,7 @@ void *contention_thread (void *arg)
 
 int main (int argc, char *argv[])
 {
-    int rv;
+    int failed;
     pthread_t tid;
     int i;
     int *intp;
@@ -65,8 +65,8 @@ int main (int argc, char *argv[])
         intp = (int*) malloc(sizeof(int));
         if (NULL == intp) break;
         *intp = i;
-        rv = pthread_create(&tid, NULL, contention_thread, intp);
-        if (rv) break;
+        failed = pthread_create(&tid, NULL, contention_thread, intp);
+        if (failed) break;
         max_threads++;
     }
     printf("created %d of them, now letting them loose on the lock\n",

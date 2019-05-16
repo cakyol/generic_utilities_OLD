@@ -218,7 +218,7 @@ index_obj_init (index_obj_t *idx,
         int expansion_size,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv = 0;
+    int failed = 0;
 
     if ((maximum_size <= 1) || (expansion_size < 0)) {
         return EINVAL;
@@ -234,10 +234,10 @@ index_obj_init (index_obj_t *idx,
     idx->n = 0;
     idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
-        rv = EINVAL;
+        failed = EINVAL;
     }
     WRITE_UNLOCK(idx);
-    return rv;
+    return failed;
 }
 
 /**************************** Insert *****************************************/
@@ -247,13 +247,13 @@ index_obj_insert (index_obj_t *idx,
         void *data_to_be_inserted,
         void **data_already_present)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(idx);
-    rv = thread_unsafe_index_obj_insert(idx, 
+    failed = thread_unsafe_index_obj_insert(idx, 
             data_to_be_inserted, data_already_present);
     WRITE_UNLOCK(idx);
-    return rv;
+    return failed;
 }
 
 /**************************** Search *****************************************/
@@ -263,13 +263,13 @@ index_obj_search (index_obj_t *idx,
         void *data_to_be_inserted,
         void **data_found)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(idx);
-    rv = thread_unsafe_index_obj_search(idx, 
+    failed = thread_unsafe_index_obj_search(idx, 
             data_to_be_inserted, data_found);
     READ_UNLOCK(idx);
-    return rv;
+    return failed;
 }
 
 /**************************** Remove *****************************************/
@@ -279,13 +279,13 @@ index_obj_remove (index_obj_t *idx,
         void *data_to_be_removed,
         void **data_actually_removed)
 {
-    int rv;
+    int failed;
     
     WRITE_LOCK(idx);
-    rv = thread_unsafe_index_obj_remove(idx,
+    failed = thread_unsafe_index_obj_remove(idx,
                 data_to_be_removed, data_actually_removed);
     WRITE_UNLOCK(idx);
-    return rv;
+    return failed;
 }
 
 /**************************** Get all entries ********************************/
@@ -317,7 +317,7 @@ index_obj_traverse (index_obj_t *idx,
         void *p0, void *p1, void *p2, void *p3)
 {
     int i;
-    int rv = 0;
+    int failed = 0;
 
     if (idx->cannot_be_modified) return EBUSY;
     idx->cannot_be_modified = 1;
@@ -326,7 +326,7 @@ index_obj_traverse (index_obj_t *idx,
     for (i = 0; i < idx->n; i++) {
         if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
             p0, p1, p2, p3) != 0) {
-                rv = EFAULT;
+                failed = EFAULT;
                 break;
         }
     }
@@ -334,7 +334,7 @@ index_obj_traverse (index_obj_t *idx,
 
     idx->cannot_be_modified = 0;
 
-    return rv;
+    return failed;
 }
 
 /**************************** Destroy ****************************************/

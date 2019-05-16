@@ -42,7 +42,7 @@ extern "C" {
  * continually being inserted into and deleted from), then this value
  * can be set to '0'.  However if it is very dynamic, then set this
  * to '1' if to get the best speed performance (but maximum memory
- * consumption).  Also, if memory conservation is the MOST important
+ * consumption).  Also, if memory consefailedation is the MOST important
  * consideration, then always set the avl usage variables to 0.
  */
 static int use_avl_tree_for_database_object_index = 1;
@@ -1393,48 +1393,48 @@ object_create (object_database_t *obj_db,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = object_create_engine(obj_db, 1,
                 parent_object_type, parent_object_instance,
                 child_object_type, child_object_instance);
-    rv = (obj ? 0 : EFAULT);
+    failed = (obj ? 0 : EFAULT);
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 object_exists (object_database_t *obj_db,
         int object_type, int object_instance)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(obj_db);
-    rv = (NULL != get_object_pointer(obj_db, object_type, object_instance));
+    failed = (NULL != get_object_pointer(obj_db, object_type, object_instance));
     READ_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 object_attribute_add (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id)
 {
-    int rv;
+    int failed;
     object_t *obj;
     attribute_instance_t *aitp;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
         aitp = attribute_instance_add(obj, attribute_id);
-        rv = (aitp ? 0 : ENOMEM);
+        failed = (aitp ? 0 : ENOMEM);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1442,19 +1442,19 @@ object_attribute_add_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_add_simple_value(obj,
+        failed = __object_attribute_add_simple_value(obj,
                     attribute_id, simple_value);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1462,19 +1462,19 @@ object_attribute_set_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_set_simple_value(obj,
+        failed = __object_attribute_set_simple_value(obj,
                     attribute_id, simple_value);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1482,19 +1482,19 @@ object_attribute_delete_simple_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_delete_simple_value(obj,
+        failed = __object_attribute_delete_simple_value(obj,
                     attribute_id, simple_value);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1502,19 +1502,19 @@ object_attribute_add_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_add_complex_value(obj, attribute_id,
+        failed = __object_attribute_add_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1522,19 +1522,19 @@ object_attribute_set_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_set_complex_value(obj, attribute_id,
+        failed = __object_attribute_set_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1542,19 +1542,19 @@ object_attribute_delete_complex_value (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_delete_complex_value(obj, attribute_id,
+        failed = __object_attribute_delete_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -1623,37 +1623,37 @@ PUBLIC int
 object_attribute_destroy (object_database_t *obj_db,
         int object_type, int object_instance, int attribute_id)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = __object_attribute_instance_destroy(obj, attribute_id);
+        failed = __object_attribute_instance_destroy(obj, attribute_id);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 object_destroy (object_database_t *obj_db,
         int object_type, int object_instance)
 {
-    int rv;
+    int failed;
     object_t *obj;
 
     WRITE_LOCK(obj_db);
     obj = get_object_pointer(obj_db, object_type, object_instance);
     if (NULL == obj) {
-        rv = ENODATA;
+        failed = ENODATA;
     } else {
-        rv = 0;
+        failed = 0;
         object_destroy_engine(obj, 1);
     }
     WRITE_UNLOCK(obj_db);
-    return rv;
+    return failed;
 }
 
 PUBLIC object_representation_t *
@@ -2069,7 +2069,7 @@ database_load (int database_id, object_database_t *obj_db)
 {
     char database_name [TYPICAL_NAME_SIZE];
     FILE *fp;
-    int rv, count;
+    int failed, count;
     object_t *obj, *parent;
     attribute_instance_t *aitp;
     attribute_value_t *avtp;
@@ -2087,7 +2087,7 @@ database_load (int database_id, object_database_t *obj_db)
     obj = parent = NULL;
     aitp = NULL;
     avtp = NULL;
-    rv = 0;
+    failed = 0;
 
     while ((count = fscanf(fp, "%s", string)) != EOF) {
 
@@ -2096,22 +2096,22 @@ database_load (int database_id, object_database_t *obj_db)
 
         if (strcmp(string, object_acronym) == 0) {
             if (load_object(obj_db, fp, &obj) != 0) {
-                rv = -1;
+                failed = -1;
                 break;
             }
         } else if (strcmp(string, attribute_id_acronym) == 0) {
             if (load_attribute_id(obj_db, fp, obj, &aitp) != 0) {
-                rv = -1;
+                failed = -1;
                 break;
             }
         } else if (strcmp(string, simple_attribute_value_acronym) == 0) {
             if (load_simple_attribute_value(obj_db, fp, aitp) != 0) {
-                rv = -1;
+                failed = -1;
                 break;
             }
         } else if (strcmp(string, complex_attribute_value_acronym) == 0) {
             if (load_complex_attribute_value(obj_db, fp, aitp) != 0) {
-                rv = -1;
+                failed = -1;
                 break;
             }
         }
@@ -2122,12 +2122,12 @@ database_load (int database_id, object_database_t *obj_db)
      * now perform a second pass over the database 
      * to resolve all un-resolved parent pointers
      */
-    if (0 == rv) {
+    if (0 == failed) {
         return
             database_resolve_all_parents(obj_db);
     }
 
-    return rv;
+    return failed;
 }
 
 #ifdef __cplusplus

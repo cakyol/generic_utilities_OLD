@@ -33,12 +33,12 @@ extern "C" {
 
 /*
  * All objects are uniquely identified by a tuple of object type
- * and an object instance number. Zeros are reserved for the
+ * and an object instance number. Zeros are resefaileded for the
  * root of the system and should never be used for any user defined
  * objects.  User objects should always have type & instance values 
  * of greater than 0.
  *
- * Keeping object numbers consecutive helps in conserving memory when
+ * Keeping object numbers consecutive helps in consefaileding memory when
  * using dynamic arrays.  
  *
  * Note that these values also mean 'all' types and instances for 

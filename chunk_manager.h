@@ -167,13 +167,13 @@ chunk_manager_destroy (chunk_manager_t *cmgr);
 
 #define CHUNK_MANAGER_SETUP(obj, chunk_size, cmpp) \
     if (cmpp) { \
-        int __rv__; \
+        int __failed__; \
         obj->chunks = &obj->chunk_structure; \
-        __rv__ = chunk_manager_init(obj->chunks, 0, \
+        __failed__ = chunk_manager_init(obj->chunks, 0, \
                     chunk_size, \
                     cmpp->initial_number_of_chunks, \
                     cmpp->grow_size, (obj)->mem_mon_p); \
-        if (__rv__) return __rv__; \
+        if (__failed__) return __failed__; \
     } else { \
         obj->chunks = 0; \
     }

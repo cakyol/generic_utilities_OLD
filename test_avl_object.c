@@ -27,7 +27,7 @@ user_data_destroy_function (void *user_data, void *extra_arg)
 void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 {
     int i, lo, hi, d, fail_search;
-    int rv;
+    int failed;
     int fine, not_fine;
     char *oddness = use_odd_numbers ? "odd" : "even";
     char *reverse = use_odd_numbers ? "even" : "odd";
@@ -67,8 +67,8 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
         fwdata = &data[i];
-        rv = avl_tree_insert(avlt, fwdata, &found);
-        if (rv != 0) {
+        failed = avl_tree_insert(avlt, fwdata, &found);
+        if (failed != 0) {
             printf("populate_data: avl_tree_insert error: %d failed\n", i);
         }
     }
@@ -83,8 +83,8 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     timer_start(&timr);
     for (i = max_value_reached; i < (max_value_reached + EXTRA); i++) {
         searched = &i;
-        rv = avl_tree_search(avlt, searched, &found);
-        if ((rv == 0) || found) {
+        failed = avl_tree_search(avlt, searched, &found);
+        if ((failed == 0) || found) {
             not_fine++;
         } else {
             fine++;
@@ -100,9 +100,9 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
         searched = &data[i];
-        rv = avl_tree_search(avlt, searched, &found);
+        failed = avl_tree_search(avlt, searched, &found);
 
-        if ((rv != 0) || (data[i] != *((int*) found))) {
+        if ((failed != 0) || (data[i] != *((int*) found))) {
             not_fine++;
         } else {
             fine++;
@@ -119,8 +119,8 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
         searched = &d;
-        rv = avl_tree_search(avlt, searched, &found);
-        if ((rv == 0) || found) {
+        failed = avl_tree_search(avlt, searched, &found);
+        if ((failed == 0) || found) {
             not_fine++;
         } else {
             fine++;
@@ -152,14 +152,14 @@ return;
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
         searched =  &data[i];
-        rv = avl_tree_remove(avlt, searched, &removed);
-        if ((rv != 0) || (data[i] != *((int*) removed))) {
+        failed = avl_tree_remove(avlt, searched, &removed);
+        if ((failed != 0) || (data[i] != *((int*) removed))) {
             not_fine++;
         } else {
             fine++;
         }
-        rv = avl_tree_search(avlt, searched, &found);
-        if ((rv == 0) || found) {
+        failed = avl_tree_search(avlt, searched, &found);
+        if ((failed == 0) || found) {
             fail_search++;
         }
     }

@@ -9,7 +9,7 @@ finite_set_t fs;
 
 void do_test (void)
 {
-    boolean brv;
+    boolean bfailed;
     int i, data, ref;
     int iter;
     struct timeval start, end, elapsed;
@@ -36,8 +36,8 @@ void do_test (void)
     for (iter = 0; iter < ITER_MAX; iter++) {
         data = 0;
         for (i = 0; i < MAX_SZ; i++) {
-            brv = finite_set_insert(&fs, data, NULL, &ref);
-            if (brv || (ref != (iter+1))) {
+            bfailed = finite_set_insert(&fs, data, NULL, &ref);
+            if (bfailed || (ref != (iter+1))) {
                 fprintf(stderr, 
                     "finite_set_insert failed in do_test; iteration %d\n", i);
             }
@@ -58,8 +58,8 @@ void do_test (void)
     for (iter = 0; iter < ITER_MAX; iter++) {
         data = 0;
         for (i = 0; i < MAX_SZ; i++) {
-            brv = finite_set_search(&fs, data, &ud, &ref);
-            if (brv || (ref != ITER_MAX)) {
+            bfailed = finite_set_search(&fs, data, &ud, &ref);
+            if (bfailed || (ref != ITER_MAX)) {
                 fprintf(stderr, 
                     "finite_set_search failed in do_test; iteration %d\n", i);
             }
@@ -81,8 +81,8 @@ void do_test (void)
     for (iter = 0; iter < ITER_MAX; iter++) {
         data = 0;
         for (i = 0; i < MAX_SZ; i++) {
-            brv = finite_set_remove(&fs, data, 1, &ud, &removed, &remaining);
-            if (brv || (removed != 1) || (remaining != (ITER_MAX - iter - 1))) {
+            bfailed = finite_set_remove(&fs, data, 1, &ud, &removed, &remaining);
+            if (bfailed || (removed != 1) || (remaining != (ITER_MAX - iter - 1))) {
                 fprintf(stderr, 
                     "finite_set_remove failed in do_test; iteration %d\n", i);
             }

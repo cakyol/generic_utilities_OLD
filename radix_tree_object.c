@@ -258,19 +258,19 @@ radix_tree_init (radix_tree_t *ntp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
-    int rv = 0;
+    int failed = 0;
 
     MEM_MONITOR_SETUP(ntp);
     LOCK_SETUP(ntp);
     ntp->node_count = 0;
     radix_tree_node_init(&ntp->radix_tree_root, 0);
 #ifdef USE_CHUNK_MANAGER
-    rv = chunk_manager_init(&ntp->nodes, 0, sizeof(radix_tree_node_t),
+    failed = chunk_manager_init(&ntp->nodes, 0, sizeof(radix_tree_node_t),
             1024, 1024, ntp->mem_mon_p);
 #endif
     WRITE_UNLOCK(ntp);
 
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -278,13 +278,13 @@ radix_tree_insert (radix_tree_t *ntp,
         void *key, int key_length,
         void *data_to_be_inserted, void **data_found)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(ntp);
-    rv = thread_unsafe_radix_tree_insert(ntp, key, key_length,
+    failed = thread_unsafe_radix_tree_insert(ntp, key, key_length,
                 data_to_be_inserted, data_found);
     WRITE_UNLOCK(ntp);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -292,12 +292,12 @@ radix_tree_search (radix_tree_t *ntp,
         void *key, int key_length,
         void **data_found)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(ntp);
-    rv = thread_unsafe_radix_tree_search(ntp, key, key_length, data_found);
+    failed = thread_unsafe_radix_tree_search(ntp, key, key_length, data_found);
     READ_UNLOCK(ntp);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
@@ -305,12 +305,12 @@ radix_tree_remove (radix_tree_t *ntp,
         void *key, int key_length,
         void **removed_data)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(ntp);
-    rv = thread_unsafe_radix_tree_remove(ntp, key, key_length, removed_data);
+    failed = thread_unsafe_radix_tree_remove(ntp, key, key_length, removed_data);
     WRITE_UNLOCK(ntp);
-    return rv;
+    return failed;
 }
 
 /*
@@ -336,7 +336,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
     byte *key;
     void *key_len;
     int index = 0;
-    int rv = 0;
+    int failed = 0;
 
     /* already being traversed */
     if (ntp->cannot_be_modified) return;
@@ -369,8 +369,8 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
         } else {
             // Do your thing with the node here as long as no error occured so far
             key_len = integer2pointer(index/2);
-            if (node->user_data && (0 == rv)) {
-                rv = tfn(ntp, node, node->user_data, key, key_len,
+            if (node->user_data && (0 == failed)) {
+                failed = tfn(ntp, node, node->user_data, key, key_len,
                     extra_arg_1, extra_arg_2);
             }
             node->current = 0;  // Reset counter for next traversal.

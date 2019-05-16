@@ -194,7 +194,7 @@ bitlist_init (bitlist_t *bl,
     /* allow some extra at the end so we can run thru using complete ints */
     int size_in_ints = 
         ((highest_valid_bit - lowest_valid_bit + 1) / BITS_PER_INT) + 2;
-    int i, rv = 0;
+    int i, failed = 0;
     unsigned int data;
 
     MEM_MONITOR_SETUP(bl);
@@ -203,7 +203,7 @@ bitlist_init (bitlist_t *bl,
     bl->the_bits = 
         (unsigned int*) MEM_MONITOR_ALLOC(bl, (size_in_ints * BYTES_PER_INT));
     if (0 == bl->the_bits) {
-        rv = ENOMEM;
+        failed = ENOMEM;
         goto done;
     }
     bl->size_in_ints = size_in_ints;
@@ -219,62 +219,62 @@ bitlist_init (bitlist_t *bl,
     for (i = 0; i < size_in_ints; i++) bl->the_bits[i] = data;
 done:
     WRITE_UNLOCK(bl);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(bl);
-    rv = thread_unsafe_bitlist_get(bl, bit_number, returned_bit);
+    failed = thread_unsafe_bitlist_get(bl, bit_number, returned_bit);
     READ_UNLOCK(bl);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 bitlist_set (bitlist_t *bl, int bit_number)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(bl);
-    rv = thread_unsafe_bitlist_set(bl, bit_number);
+    failed = thread_unsafe_bitlist_set(bl, bit_number);
     WRITE_UNLOCK(bl);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 bitlist_clear (bitlist_t *bl, int bit_number)
 {
-    int rv;
+    int failed;
 
     WRITE_LOCK(bl);
-    rv = thread_unsafe_bitlist_clear(bl, bit_number);
+    failed = thread_unsafe_bitlist_clear(bl, bit_number);
     WRITE_UNLOCK(bl);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(bl);
-    rv = thread_unsafe_bitlist_first_set_bit(bl, returned_bit_number);
+    failed = thread_unsafe_bitlist_first_set_bit(bl, returned_bit_number);
     READ_UNLOCK(bl);
-    return rv;
+    return failed;
 }
 
 PUBLIC int
 bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
 {
-    int rv;
+    int failed;
 
     READ_LOCK(bl);
-    rv = thread_unsafe_bitlist_first_clear_bit(bl, returned_bit_number);
+    failed = thread_unsafe_bitlist_first_clear_bit(bl, returned_bit_number);
     READ_UNLOCK(bl);
-    return rv;
+    return failed;
 }
 
 PUBLIC void

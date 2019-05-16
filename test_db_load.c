@@ -5,15 +5,15 @@ object_database_t db;
 
 int main (int argc, char *argv[])
 {
-    int rv;
+    int failed;
     long long int bsize;
     double dsize;
 
     printf("loading database .. ");
     fflush(stdout);
     fflush(stdout);
-    rv = database_load(1, &db);
-    if (0 == rv) {
+    failed = database_load(1, &db);
+    if (0 == failed) {
         printf("done, database has %d objects\n",
             table_member_count(&db.object_index));
     } else {
@@ -21,7 +21,7 @@ int main (int argc, char *argv[])
     }
     OBJECT_MEMORY_USAGE(&db, bsize, dsize);
     printf("db size id %lld bytes, %f megabytes\n", bsize, dsize);
-    return rv;
+    return failed;
 }
 
 

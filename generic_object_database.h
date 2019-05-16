@@ -52,7 +52,7 @@
 **      An object is identified distinctly by its type & instance and hence
 **      there can be only ONE instance of an object of the same type in one
 **      database.  All object types & instances MUST be > 0.  Values <= 0 are
-**      reserved and should not be used.
+**      resefaileded and should not be used.
 **
 **      Conversely, an attribute is also distinctly identified by an integer
 **      of value > 0.  Do not use attribute ids of <= 0.

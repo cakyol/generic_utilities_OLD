@@ -360,7 +360,7 @@ write_exact_size (int fd, void *buffer, int size, boolean can_block)
 PUBLIC error_t
 filecopy (char *in_file, char *out_file)
 {
-    error_t rv = ok;
+    error_t failed = ok;
     int in_fd = open(in_file, O_RDONLY);
     int out_fd = open(out_file, (O_WRONLY | O_CREAT));
     char *buf = malloc(8192);
@@ -369,7 +369,7 @@ filecopy (char *in_file, char *out_file)
     // basic sanity checks
     //
     if ((in_fd < 0) || (out_fd < 0) || (NULL == buf)) {
-        rv = error;
+        failed = error;
         goto filecopy_finished;
     }
 
@@ -389,14 +389,14 @@ filecopy (char *in_file, char *out_file)
         //
         if (result < 0) {
             if ((errno == EINTR) || (errno == EAGAIN)) continue;
-            rv = error;
+            failed = error;
             goto filecopy_finished;
         }
 
         // an unrecoverable write error occured
         //
         if (write_exact_size(out_fd, &buf[0], result, false) != ok) {
-            rv = error;
+            failed = error;
             goto filecopy_finished;
         }
     }
@@ -408,7 +408,7 @@ filecopy_finished:
     close(in_fd);
     close(out_fd);
 
-    return rv;
+    return failed;
 }
 
 #ifdef __cplusplus

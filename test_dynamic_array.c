@@ -13,15 +13,15 @@ int main (int argc, char *argv[])
 {
     dynamic_array_t dyn;
     int i, j, *data;
-    int errors, rv;
+    int errors, failed;
 
     dynamic_array_init(&dyn, 0, 8, NULL);
     printf("initialized dynamic array\n");
     fflush(stdout);
 
     for (i = VALID_START, j = 0; i <= VALID_END; i++, j++)  {
-        rv = dynamic_array_insert(&dyn, i, &array[j]);
-        if (rv != 0) {
+        failed = dynamic_array_insert(&dyn, i, &array[j]);
+        if (failed != 0) {
             printf("dynamic_array_insert failed at index %d\n", i);
             fflush(stdout);
         }
@@ -31,15 +31,15 @@ int main (int argc, char *argv[])
 
     errors = j = 0;
     for (i = VALID_START - EXCESS; i <= (VALID_END + EXCESS); i++) {
-        rv = dynamic_array_get(&dyn, i, (void**) &data);
+        failed = dynamic_array_get(&dyn, i, (void**) &data);
         if ((i >= VALID_START) && (i <= VALID_END)) {
-            if (rv || (data != &array[j])) {
+            if (failed || (data != &array[j])) {
                 printf("invalid entry at index %d\n", i);
                 errors++;
             }
             j++;
         } else {
-            if (rv == 0) {
+            if (failed == 0) {
                 printf("invalid entry unexpected at index %d\n", i);
                 errors++;
             }
