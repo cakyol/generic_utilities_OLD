@@ -351,7 +351,7 @@ task_cancel (task_t *tp)
     int failed = ENODATA, head_changed = 0;
 
     WRITE_LOCK(scheduled_tasks);
-    FOR_ALL_LINKEDLIST_ELEMENTS(scheduled_tasks, t) {
+    FOR_ALL_ORDEREDLIST_ELEMENTS(scheduled_tasks, t) {
         if (t == tp) {
             if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
             thread_unsafe_ordered_list_node_delete(scheduled_tasks, __n__);

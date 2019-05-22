@@ -329,7 +329,7 @@ execute_all_callbacks (ordered_list_t *list, event_record_t *erp)
     f_and_arg_t *fandargp;
 
     if (list) {
-        FOR_ALL_LINKEDLIST_ELEMENTS(list, fandargp) {
+        FOR_ALL_ORDEREDLIST_ELEMENTS(list, fandargp) {
             fandargp->ehfp(erp, fandargp->extra_arg);
         }
     }

@@ -218,7 +218,7 @@ ordered_list_destroy (ordered_list_t *listp,
  * Some convenient macros to iterate thru the list one node at a time.
  */
 
-#define FOR_ALL_LINKEDLIST_ELEMENTS(listp, objp) \
+#define FOR_ALL_ORDEREDLIST_ELEMENTS(listp, objp) \
         for (ordered_list_node_t *__n__ = (listp)->head; \
              not_endof_ordered_list(__n__) && \
              (objp = (__typeof__(objp))(__n__->user_data)); \
@@ -229,7 +229,7 @@ ordered_list_destroy (ordered_list_t *listp,
  * head element is EXPECTED to be removed by the iteration body.
  * If that is not done, infinite loops WILL result.
  */
-#define WHILE_LINKEDLIST_NOT_EMPTY(listp, objp) \
+#define WHILE_ORDEREDLIST_NOT_EMPTY(listp, objp) \
         for (ordered_list_node_t *__n__ = (listp)->head; \
              not_endof_ordered_list(__n__) && \
              (objp = (__typeof__(objp))(__n__->user_data)); \
