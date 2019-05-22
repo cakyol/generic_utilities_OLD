@@ -35,11 +35,11 @@ extern "C" {
 #include <stdio.h>
 
 extern int
-thread_unsafe_linkedlist_add_to_head (linkedlist_t *listp, void *user_data);
+thread_unsafe_ordered_list_add_to_head (ordered_list_t *listp, void *user_data);
 
 extern int
-thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
-    linkedlist_node_t *node_tobe_deleted);
+thread_unsafe_ordered_list_node_delete (ordered_list_t *listp,
+    ordered_list_node_t *node_tobe_deleted);
 
 /*
  * It is very important to understand why there are two lists separated
@@ -58,10 +58,10 @@ thread_unsafe_linkedlist_node_delete (linkedlist_t *listp,
  * scheduled_tasks list MUST be open to write into when we are executing
  * from the executable_tasks_list.
  */
-static linkedlist_t scheduled_tasks_list;
-static linkedlist_t *scheduled_tasks = &scheduled_tasks_list;
-static linkedlist_t executable_tasks_list;
-static linkedlist_t *executable_tasks = &executable_tasks_list;
+static ordered_list_t scheduled_tasks_list;
+static ordered_list_t *scheduled_tasks = &scheduled_tasks_list;
+static ordered_list_t executable_tasks_list;
+static ordered_list_t *executable_tasks = &executable_tasks_list;
 
 static itimerval_t zero_itim = { { 0, 0 }, { 0, 0 } };
 
@@ -187,7 +187,7 @@ static void
 __alarm_signal_handler (int signo)
 {
     int failed;
-    linkedlist_node_t *d;
+    ordered_list_node_t *d;
     task_t *tp, *first_task = NULL;
     timer_obj_t execution_time;
 
@@ -239,7 +239,7 @@ __alarm_signal_handler (int signo)
              * if we attempt to lock it again using one of the
              * public functions, we will get a write deadlock.
              */
-            failed = thread_unsafe_linkedlist_add_to_head(executable_tasks, tp);
+            failed = thread_unsafe_ordered_list_add_to_head(executable_tasks, tp);
         } else {
             break;
         }
@@ -299,9 +299,9 @@ task_scheduler_init (void)
     if (SIG_ERR == signal(SIGALRM, __alarm_signal_handler))
         return errno;
 
-    failed = linkedlist_init(executable_tasks, 1, dummy_comparer, NULL);
+    failed = ordered_list_init(executable_tasks, 1, dummy_comparer, NULL);
     if (failed) return failed;
-    failed = linkedlist_init(scheduled_tasks, 1, compare_tasks, NULL);
+    failed = ordered_list_init(scheduled_tasks, 1, compare_tasks, NULL);
     return failed;
 }
 
@@ -319,7 +319,7 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
         task_t **scheduled_task)
 {
     task_t *tp = (task_t*) malloc(sizeof(task_t));
-    linkedlist_node_t *first;
+    ordered_list_node_t *first;
     int failed, head_changed;
 
     *scheduled_task = NULL;
@@ -331,7 +331,7 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
     READ_LOCK(scheduled_tasks);
     first = scheduled_tasks->head;
     READ_UNLOCK(scheduled_tasks);
-    failed = linkedlist_add(scheduled_tasks, tp);
+    failed = ordered_list_add(scheduled_tasks, tp);
     READ_LOCK(scheduled_tasks);
     head_changed = first != scheduled_tasks->head;
     READ_UNLOCK(scheduled_tasks);
@@ -354,7 +354,7 @@ task_cancel (task_t *tp)
     FOR_ALL_LINKEDLIST_ELEMENTS(scheduled_tasks, t) {
         if (t == tp) {
             if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
-            thread_unsafe_linkedlist_node_delete(scheduled_tasks, __n__);
+            thread_unsafe_ordered_list_node_delete(scheduled_tasks, __n__);
             failed = 0;
             break;
         }

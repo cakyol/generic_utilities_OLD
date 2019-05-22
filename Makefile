@@ -22,7 +22,7 @@ LIB_OBJS =	debug_framework.o \
 		bitlist_object.o \
 		stack_object.o \
 		queue_object.o \
-		linkedlist_object.o \
+		ordered_list.o \
 		dl_list_object.o \
 		chunk_manager.o \
 		index_object.o \
@@ -63,9 +63,9 @@ test_stack_object:	test_stack_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_stack_object.c \
 				-o test_stack_object $(LIBNAME) $(STATIC_LIBS)
 
-test_linkedlist:	test_linkedlist.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_linkedlist.c \
-				-o test_linkedlist $(LIBNAME) $(STATIC_LIBS)
+test_ordered_list:	test_ordered_list.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_ordered_list.c \
+				-o test_ordered_list $(LIBNAME) $(STATIC_LIBS)
 
 test_queue_object:	test_queue_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_queue_object.c \
@@ -133,7 +133,7 @@ TESTS =		test_debug_framework \
 		test_lock_speed \
 		test_stack_object \
 		test_bitlist \
-		test_linkedlist \
+		test_ordered_list \
 		test_queue_object \
 		test_chunk_manager \
 		test_malloc \

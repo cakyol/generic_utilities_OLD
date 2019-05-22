@@ -39,7 +39,7 @@ extern "C" {
 
 #include "common.h"
 #include "timer_object.h"
-#include "linkedlist_object.h"
+#include "ordered_list.h"
 
 /*
  * A task has an absolute execution time, a function to execute

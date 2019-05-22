@@ -99,7 +99,7 @@ extern "C" {
 
 #include "common.h"
 #include "lock_object.h"
-#include "linkedlist_object.h"
+#include "ordered_list.h"
 #include "index_object.h"
 #include "object_types.h"
 
@@ -244,14 +244,14 @@ typedef struct event_manager_s {
      * list of registrants interested in object events (object creation
      * and deletion) for ANY type of object.
      */
-    linkedlist_t object_event_registrants_for_all_objects;
+    ordered_list_t object_event_registrants_for_all_objects;
 
     /*
      * list of registrants interested in attribute
      * events (attribute id add/delete, attribute value
      * add/delete) for ANY type of object.
      */
-    linkedlist_t attribute_event_registrants_for_all_objects;
+    ordered_list_t attribute_event_registrants_for_all_objects;
     
     /*
      * list of registrants interested in object

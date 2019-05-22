@@ -43,8 +43,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __LINKEDLIST_OBJECT_H__
-#define __LINKEDLIST_OBJECT_H__
+#ifndef __ORDERED_LIST_H__
+#define __ORDERED_LIST_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,8 +56,8 @@ extern "C" {
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 
-typedef struct linkedlist_s linkedlist_t;
-typedef struct linkedlist_node_s linkedlist_node_t;
+typedef struct ordered_list_s ordered_list_t;
+typedef struct ordered_list_node_s ordered_list_node_t;
 
 /*
  * Users should be aware that the list is terminated with an
@@ -69,13 +69,13 @@ typedef struct linkedlist_node_s linkedlist_node_t;
  * the fact that the LAST node is ONLY a marker and NOT
  * real data.
  */
-struct linkedlist_node_s {
+struct ordered_list_node_s {
 
     /* what list I belong to */
-    linkedlist_t *list;
+    ordered_list_t *list;
 
     /* next node */
-    linkedlist_node_t *next;
+    ordered_list_node_t *next;
 
     /* user opaque data */
     void *user_data;
@@ -85,13 +85,13 @@ struct linkedlist_node_s {
  * singly linked list object.
  * comparison function is used to test ranking/ordering of list elements.
  */
-struct linkedlist_s {
+struct ordered_list_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
     /* start of list */
-    linkedlist_node_t *head;
+    ordered_list_node_t *head;
 
     /*
      * comparison function used for ordering the list.
@@ -121,7 +121,7 @@ struct linkedlist_s {
  */
 
 static inline int
-endof_linkedlist (linkedlist_node_t *llnp)
+endof_ordered_list (ordered_list_node_t *llnp)
 {
     return
         (NULL == llnp) || 
@@ -129,7 +129,7 @@ endof_linkedlist (linkedlist_node_t *llnp)
 }
 
 static inline int
-not_endof_linkedlist (linkedlist_node_t *llnp)
+not_endof_ordered_list (ordered_list_node_t *llnp)
 {
     return
         llnp && (NULL != llnp->next) && (NULL != llnp->user_data);
@@ -139,7 +139,7 @@ not_endof_linkedlist (linkedlist_node_t *llnp)
  * initializes the linked list object
  */
 extern int
-linkedlist_init (linkedlist_t *listp,
+ordered_list_init (ordered_list_t *listp,
         int make_it_thread_safe,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
@@ -153,7 +153,7 @@ linkedlist_init (linkedlist_t *listp,
  * comparison function. 
  */
 extern int
-linkedlist_add (linkedlist_t *listp, void *user_data);
+ordered_list_add (ordered_list_t *listp, void *user_data);
 
 /*
  * same as adding data but the data is added only once.
@@ -169,7 +169,7 @@ linkedlist_add (linkedlist_t *listp, void *user_data);
  * including if the data was already in the list (EEXIST).
  */
 extern int
-linkedlist_add_once (linkedlist_t *listp, void *user_data, 
+ordered_list_add_once (ordered_list_t *listp, void *user_data, 
         void **data_found);
 
 /*
@@ -183,7 +183,7 @@ linkedlist_add_once (linkedlist_t *listp, void *user_data,
  * passed in as NULL.
  */
 extern int
-linkedlist_search (linkedlist_t *listp, void *searched_data, 
+ordered_list_search (ordered_list_t *listp, void *searched_data, 
         void **data_found);
 
 /*
@@ -195,7 +195,7 @@ linkedlist_search (linkedlist_t *listp, void *searched_data,
  * needed, it can be passed in as NULL.
  */
 extern int 
-linkedlist_delete (linkedlist_t *listp, void *to_be_deleted,
+ordered_list_delete (ordered_list_t *listp, void *to_be_deleted,
         void **data_deleted);
 
 /*
@@ -211,7 +211,7 @@ linkedlist_delete (linkedlist_t *listp, void *to_be_deleted,
  * touched.
  */
 extern void
-linkedlist_destroy (linkedlist_t *listp,
+ordered_list_destroy (ordered_list_t *listp,
         destruction_handler_t dh_fptr, void *extra_arg);
 
 /*
@@ -219,8 +219,8 @@ linkedlist_destroy (linkedlist_t *listp,
  */
 
 #define FOR_ALL_LINKEDLIST_ELEMENTS(listp, objp) \
-        for (linkedlist_node_t *__n__ = (listp)->head; \
-             not_endof_linkedlist(__n__) && \
+        for (ordered_list_node_t *__n__ = (listp)->head; \
+             not_endof_ordered_list(__n__) && \
              (objp = (__typeof__(objp))(__n__->user_data)); \
              __n__ = __n__->next)
 
@@ -230,8 +230,8 @@ linkedlist_destroy (linkedlist_t *listp,
  * If that is not done, infinite loops WILL result.
  */
 #define WHILE_LINKEDLIST_NOT_EMPTY(listp, objp) \
-        for (linkedlist_node_t *__n__ = (listp)->head; \
-             not_endof_linkedlist(__n__) && \
+        for (ordered_list_node_t *__n__ = (listp)->head; \
+             not_endof_ordered_list(__n__) && \
              (objp = (__typeof__(objp))(__n__->user_data)); \
              __n__ = listp->head)
 
@@ -239,7 +239,7 @@ linkedlist_destroy (linkedlist_t *listp,
 } // extern C
 #endif 
 
-#endif // __LINKEDLIST_OBJECT_H__
+#endif // __ORDERED_LIST_H__
 
 
 

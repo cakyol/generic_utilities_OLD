@@ -33,14 +33,15 @@ extern "C" {
 
 #define PUBLIC
 
-/*
+/***************************************************************************
  * Every time an event is registered, these two items are stored
  * in the appropriate lists.  Registerer can specify an arbitrary
- * user pointer and a callback function to call when the event gets
+ * user argument and a callback function to call when the event gets
  * reported. The user callback will be called with the event pointer
- * and the opaque parameter supplied at the time of registration.
+ * and the argument parameter supplied at the time of registration.
  * The name 'f_and_arg' stands for 'function and argument'.
  */
+
 typedef struct f_and_arg_s {
 
     event_handler_t fptr;
@@ -62,11 +63,13 @@ create_f_and_arg (event_manager_t *emp,
     return new_one;
 }
 
+/* treat the structure as simply a sequence of bytes */
 static int
 compare_f_and_arg (void *p1, void *p2)
 {
     int result;
 
+    if (p1 == p2) return 0;
     result = ((f_and_arg_t*) p1)->fptr - ((f_and_arg_t*) p2)->fptr;
     if (result) return result;
     return
@@ -77,8 +80,9 @@ static int
 identical_f_and_arg (f_and_arg_t *fa1, f_and_arg_t *fa2)
 {
     return
-        (fa1->fptr == fa2->fptr) &&
-        (fa1->extra_arg = fa2->extra_arg);
+        (fa1 == fa2) ||
+        ((fa1->fptr == fa2->fptr) &&
+        (fa1->extra_arg = fa2->extra_arg));
 }
 
 static void
@@ -89,15 +93,19 @@ destroy_f_and_arg (void *user_data, void *extra_arg)
     MEM_MONITOR_FREE(emp, user_data);
 }
 
-/*
- * This is a structure accessed by the object type which stores a list
- * of the f_and_arg_s structures(function npointers and arguments).
- * It is stored in an index object and searched using the object type.
+/***************************************************************************
+ * This is a structure which contains a list of registered function
+ * and argument pairs for a SPECIFIC object type.  It contains the
+ * list of all functions to be invoked when an event matches its
+ * object type.  The object type is used as a search index to quickly
+ * get the list of those functions anmd arguments when an event 
+ * happens.
  */
+
 typedef struct f_and_arg_container_s {
 
     int object_type;
-    linkedlist_t list_of_f_and_arg;
+    ordered_list_t list_of_f_and_arg;
 
 } f_and_arg_container_t;
 
@@ -118,7 +126,7 @@ create_f_and_arg_container (event_manager_t *emp, int object_type)
     new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
     if (new_one) {
         new_one->object_type = object_type;
-        failed = linkedlist_init(&new_one->list_of_f_and_arg, 0,
+        failed = ordered_list_init(&new_one->list_of_f_and_arg, 0,
                     compare_f_and_arg, emp->mem_mon_p);
         if (failed) {
             MEM_MONITOR_FREE(emp, new_one);
@@ -132,8 +140,8 @@ static void
 destroy_f_and_arg_container (event_manager_t *emp,
     f_and_arg_container_t *farg_cont_p)
 {
-    linkedlist_destroy(&farg_cont_p->list_of_f_and_arg,
-            destroy_f_and_arg, emp);
+    ordered_list_destroy(&farg_cont_p->list_of_f_and_arg,
+        destroy_f_and_arg, emp);
     MEM_MONITOR_FREE(emp, farg_cont_p);
 }
 
@@ -154,7 +162,7 @@ static int
 get_correct_list (event_manager_t *emp,
         int event_type, int object_type,
         int create_if_missing,
-        linkedlist_t **list_returned,
+        ordered_list_t **list_returned,
         f_and_arg_container_t **container_returned,
         index_obj_t **index_object_returned)
 {
@@ -224,14 +232,14 @@ thread_unsafe_already_registered (event_manager_t *emp,
 {
     int failed;
     f_and_arg_t faat;
-    linkedlist_t *list;
+    ordered_list_t *list;
         
     failed = get_correct_list(emp, event_type, object_type, 0, &list, NULL, NULL);
     if (failed) return 0;
     assert(list);
     faat.fptr = fptr;
     faat.extra_arg = extra_arg;
-    return (0 == linkedlist_search(list, &faat, NULL));
+    return (0 == ordered_list_search(list, &faat, NULL));
 }
 
 static int
@@ -245,7 +253,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
     void *found;
     index_obj_t *idxp;
     f_and_arg_container_t *contp;
-    linkedlist_t *list;
+    ordered_list_t *list;
 
     /* if we are traversing lists, block any potential changes */
     if (emp->cannot_be_modified) return EBUSY;
@@ -272,7 +280,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         fandargp->extra_arg = extra_arg;
 
         /* uniquely add it to the list */
-        failed = linkedlist_add_once(list, fandargp, NULL);
+        failed = ordered_list_add_once(list, fandargp, NULL);
         if (failed) {
             MEM_MONITOR_FREE(emp, fandargp);
             return failed;
@@ -298,7 +306,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         /* delete it from the list */
         fandarg.fptr = fptr;
         fandarg.extra_arg = extra_arg;
-        linkedlist_delete(list, &fandarg, &found);
+        ordered_list_delete(list, &fandarg, &found);
 
         /* if nothing else remains in the list, delete the container itself */
         if (idxp && (list->n <= 0)) {
@@ -306,7 +314,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
             failed = dynamic_array_remove(idxp, object_type, &found);
             if (0 == failed) {
                 assert(found == list);
-                linkedlist_destroy(list);
+                ordered_list_destroy(list);
                 MEM_MONITOR_FREE(emp, list);
             }
         }
@@ -316,7 +324,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 }
 
 static void
-execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
+execute_all_callbacks (ordered_list_t *list, event_record_t *erp)
 {
     f_and_arg_t *fandargp;
 
@@ -330,7 +338,7 @@ execute_all_callbacks (linkedlist_t *list, event_record_t *erp)
 static void
 thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
 {
-    linkedlist_t *list;
+    ordered_list_t *list;
     index_obj_t *dummy;
 
     /*
@@ -373,32 +381,32 @@ event_manager_init (event_manager_t *emp,
     /* until initialisation is finished, dont allow registrations */
     emp->cannot_be_modified = 1;
 
-    failed = linkedlist_init(&emp->object_event_registrants_for_all_objects, 
+    failed = ordered_list_init(&emp->object_event_registrants_for_all_objects, 
             0, compare_errs, emp->mem_mon_p);
     if (failed) {
         return failed;
     }
 
-    failed = linkedlist_init(&emp->attribute_event_registrants_for_all_objects,
+    failed = ordered_list_init(&emp->attribute_event_registrants_for_all_objects,
             0, compare_errs, emp->mem_mon_p);
     if (failed) {
-        linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->object_event_registrants_for_all_objects);
         return failed;
     }
 
     failed = dynamic_array_init(&emp->object_event_registrants_for_one_object,
             0, 3, emp->mem_mon_p);
     if (failed) {
-        linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
-        linkedlist_destroy(&emp->attribute_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->object_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects);
         return failed;
     }
 
     failed = dynamic_array_init(&emp->attribute_event_registrants_for_one_object,
             0, 3, emp->mem_mon_p);
     if (failed) {
-        linkedlist_destroy(&emp->object_event_registrants_for_all_objects);
-        linkedlist_destroy(&emp->attribute_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->object_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects);
         dynamic_array_destroy(&emp->object_event_registrants_for_one_object);
         return failed;
     }
