@@ -5,21 +5,19 @@
 #define LOW_OBJECT      15
 #define HI_OBJECT       1000
 
-#define EVENT_MGR_MODULE        1
-
+char *EVENT_MGR_MODULE = "EventManagerModule";
 event_manager_t em;
 
-int process_event (void *evp, void *arg)
+void process_event (event_record_t *evp, void *arg)
 {
-    return 0;
+    return;
 }
 
 int main (int argc, char *argv[])
 {
     int i;
 
-    debug_init();
-    debug_module_set_name(EVENT_MGR_MODULE, "EventManagerModule");
+    debugger_initialize(NULL);
 
     if (event_manager_init(&em, 0, 0)) {
         FATAL_ERROR(EVENT_MGR_MODULE, "event_manager_init failed");
@@ -31,7 +29,7 @@ int main (int argc, char *argv[])
                 "register_for_object_events failed for object %d", i);
         }
         if (register_for_attribute_events(&em, i, process_event, NULL)) {
-            ERROR(EVENT_MGR_MODULE,
+            ERROR(EVENT_MGR_MODULE, 
                 "register_for_attribute_events failed for object %d", i);
         }
     }

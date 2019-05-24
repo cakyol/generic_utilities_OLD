@@ -58,7 +58,8 @@ default_debug_reporting_function (const char *msg)
     fprintf(stderr, "%s", msg);
 }
 
-debug_reporting_function_pointer debug_reporter = default_debug_reporting_function;
+debug_reporting_function_pointer debug_reporter =
+    default_debug_reporting_function;
 
 void
 debugger_set_reporting_function (debug_reporting_function_pointer fn)
@@ -100,7 +101,7 @@ _process_debug_message_ (char *module_name, const char *level,
      * printed also with the proper indentation.
      */
     len += snprintf(&msg_buffer[index], size_left,
-		"%*s%s: %s<%s: %s(%d)> ",
+		"%*s%s: %s <%s: %s(%d)> ",
         function_trace_indent, " ", level,
         module_name ? module_name : "",
         file_name, function_name, line_number);

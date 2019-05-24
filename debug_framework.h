@@ -232,7 +232,7 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
 #endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
 
 /* errors are ALWAYS reported */
-#define ERROR(module_name, module_debug_flag, fmt, args...) \
+#define ERROR(module_name, fmt, args...) \
     do { \
         grab_write_lock(&debugger_lock); \
         _process_debug_message_(module_name, error_string, \

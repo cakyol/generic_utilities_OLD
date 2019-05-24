@@ -106,7 +106,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     void **source;
 
     /* assume no entry */
-    *exists = NULL;
+    safe_pointer_set(exists, NULL);
 
     /* being traversed, no access */
     if (idx->cannot_be_modified) return EBUSY;
@@ -119,7 +119,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
     /* key/data already in index */
     if (i >= 0) {
-        *exists = idx->elements[i];
+        safe_pointer_set(exists, idx->elements[i]);
         return 0;
     }
 
@@ -164,7 +164,7 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
 {
     int i, dummy;
 
-    *found = NULL;
+    safe_pointer_set(found, NULL);
     if (idx->cannot_be_modified) return EBUSY;
 
     i = index_find_position(idx, search_key, &dummy);
@@ -174,7 +174,7 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
         return ENODATA;
     }
 
-    *found = idx->elements[i];
+    safe_pointer_set(found, idx->elements[i]);
     return 0;
 }
 
@@ -185,7 +185,8 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 {
     int i, size, dummy;
 
-    *actual_data_removed = NULL;
+    safe_pointer_set(actual_data_removed, NULL);
+
     if (idx->cannot_be_modified) return EBUSY;
 
     /* first see if it is there */
@@ -196,7 +197,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
         return ENODATA;
     }
 
-    *actual_data_removed = idx->elements[i];
+    safe_pointer_set(actual_data_removed, idx->elements[i]);
     idx->n--;
 
     /* pull the elements AFTER "index" to the left by one */

@@ -76,17 +76,8 @@ compare_f_and_arg (void *p1, void *p2)
         ((f_and_arg_t*) p1)->extra_arg - ((f_and_arg_t*) p2)->extra_arg;
 }
 
-static int
-identical_f_and_arg (f_and_arg_t *fa1, f_and_arg_t *fa2)
-{
-    return
-        (fa1 == fa2) ||
-        ((fa1->fptr == fa2->fptr) &&
-        (fa1->extra_arg = fa2->extra_arg));
-}
-
 static void
-destroy_f_and_arg (void *user_data, void *extra_arg)
+destroy_f_and_arg_cb (void *user_data, void *extra_arg)
 {
     event_manager_t *emp = (event_manager_t*) extra_arg;
 
@@ -106,6 +97,7 @@ typedef struct f_and_arg_container_s {
 
     int object_type;
     ordered_list_t list_of_f_and_arg;
+    index_obj_t *my_index;
 
 } f_and_arg_container_t;
 
@@ -117,59 +109,88 @@ compare_f_and_arg_container (void *p1, void *p2)
         ((f_and_arg_container_t*) p2)->object_type;
 }
 
+/*
+ * This function returns the searched container.
+ * If it cannot be found AND 'create' is set, then
+ * the container will be created and returned.
+ */
 static f_and_arg_container_t *
-create_f_and_arg_container (event_manager_t *emp, int object_type)
+get_f_and_arg_container (event_manager_t *emp, int create,
+    int object_type, index_obj_t *my_index)
 {
-    f_and_arg_container_t *new_one;
     int failed;
+    f_and_arg_container_t searched, *faargp;
 
-    new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
-    if (new_one) {
-        new_one->object_type = object_type;
-        failed = ordered_list_init(&new_one->list_of_f_and_arg, 0,
+    /* if already in the index, return it */
+    searched.object_type = object_type;
+    if (index_obj_search(my_index, &searched, (void**) &faargp) == 0) {
+        assert(faargp);
+        return faargp;
+    }
+
+    /*
+     * if here, we cannot find it.  If also creation is NOT required,
+     * nothing more to do, simply return NULL
+     */
+    if (!create) return NULL;
+
+    /* it does not exist AND creation is needed */
+    faargp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
+    if (faargp) {
+        failed = ordered_list_init(&faargp->list_of_f_and_arg, 0,
                     compare_f_and_arg, emp->mem_mon_p);
         if (failed) {
-            MEM_MONITOR_FREE(emp, new_one);
-            new_one = NULL;
+            MEM_MONITOR_FREE(emp, faargp);
+            return NULL;
         }
+        faargp->object_type = object_type;
+        faargp->my_index = my_index;
+        return faargp;
     }
-    return new_one;
+
+    /* cannot be found or created */
+    return NULL;
 }
 
 static void
 destroy_f_and_arg_container (event_manager_t *emp,
     f_and_arg_container_t *farg_cont_p)
 {
+    /* clean out its ordered list */
     ordered_list_destroy(&farg_cont_p->list_of_f_and_arg,
-        destroy_f_and_arg, emp);
+        destroy_f_and_arg_cb, emp);
+
+    /* remove it off the index it belongs to */
+    index_obj_remove(farg_cont_p->my_index, farg_cont_p, NULL);
+
+    /* free the actual memory */
     MEM_MONITOR_FREE(emp, farg_cont_p);
 }
 
 /*
  * given the object type & event type, this function finds the correct
- * and relevant registration list that needs to be operated on.  It
- * also returns the container & the index object which that list was
- * in.  It is useful to have those, especially when we are about to
- * delete something.  Note that not all returned variables are available
- * in every context.  For example, when object type is 'any object',
- * both the container & index will be meaningless and hence will be
- * set to NULL.
+ * and relevant structures that needs to be operated on.
+ * Note that not all returned variables are available in every context.
+ * For example, when object type is 'any object', both the container &
+ * index will be meaningless and hence will be set to NULL.
  *
- * Note that all the pointer parameters to be returned may be passed
- * in as NULL if they are not needed.
+ * Return pointer parameters may be passed in as NULL if any are
+ * not needed.
  */
 static int
-get_correct_list (event_manager_t *emp,
+get_relevant_structures (event_manager_t *emp,
         int event_type, int object_type,
         int create_if_missing,
+
+        /* returns these */
         ordered_list_t **list_returned,
         f_and_arg_container_t **container_returned,
         index_obj_t **index_object_returned)
 {
-    int failed;
     index_obj_t *idxp;
-    f_and_arg_container_t searched, *found, *new_one;
+    f_and_arg_container_t *found;
 
+    /* initially nothing is known */
     safe_pointer_set(list_returned, NULL);
     safe_pointer_set(container_returned, NULL);
     safe_pointer_set(index_object_returned, NULL);
@@ -196,33 +217,17 @@ get_correct_list (event_manager_t *emp,
         return EINVAL;
     }
 
-    /* Get the container, this is searched by the specific object type */
-    searched.object_type = object_type;
-    failed = index_obj_search(idxp, &searched, (void**) &found);
+    found = get_f_and_arg_container(emp, create_if_missing,
+                object_type, idxp);
     if (found) {
-        assert(!failed);
         safe_pointer_set(list_returned, &found->list_of_f_and_arg);
         safe_pointer_set(container_returned, found);
         safe_pointer_set(index_object_returned, idxp);
         return 0;
     }
 
-    /* not found, create if requested */
-    if (create_if_missing) {
-        new_one = create_f_and_arg_container(emp, object_type);
-        if (NULL == new_one) return ENOMEM;
-        failed = index_obj_insert(idxp, new_one, (void**) &found);
-        if (failed) {
-            destroy_f_and_arg_container(emp, new_one);
-            return failed;
-        }
-        safe_pointer_set(list_returned, &new_one->list_of_f_and_arg);
-        safe_pointer_set(container_returned, new_one);
-        safe_pointer_set(index_object_returned, idxp);
-        return 0;
-    }
-
-    return ENODATA;
+    /* almost all failures are due to lack of memory */
+    return ENOMEM;
 }
 
 static int
@@ -231,15 +236,17 @@ thread_unsafe_already_registered (event_manager_t *emp,
     event_handler_t fptr, void *extra_arg)
 {
     int failed;
-    f_and_arg_t faat;
+    f_and_arg_t faarg;
     ordered_list_t *list;
         
-    failed = get_correct_list(emp, event_type, object_type, 0, &list, NULL, NULL);
-    if (failed) return 0;
+    failed = get_relevant_structures(emp, event_type, object_type,
+                0, &list, NULL, NULL);
+    //if (failed) return 0;
+
     assert(list);
-    faat.fptr = fptr;
-    faat.extra_arg = extra_arg;
-    return (0 == ordered_list_search(list, &faat, NULL));
+    faarg.fptr = fptr;
+    faarg.extra_arg = extra_arg;
+    return (0 == ordered_list_search(list, &faarg, NULL));
 }
 
 static int
@@ -250,7 +257,6 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 {
     int failed;
     f_and_arg_t fandarg, *fandargp;
-    void *found;
     index_obj_t *idxp;
     f_and_arg_container_t *contp;
     ordered_list_t *list;
@@ -258,26 +264,22 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
     /* if we are traversing lists, block any potential changes */
     if (emp->cannot_be_modified) return EBUSY;
 
-    failed = get_correct_list(emp, event_type, object_type, register_it,
-                &list, &contp, &idxp);
+    failed = get_relevant_structures(emp, event_type, object_type,
+                register_it, &list, &contp, &idxp);
 
     /*
-     * if we are registering, we must create a list in the appropriate
-     * container and store the info in that list if not already there.
+     * if we are registering, store the function & arg pair in a new
+     * f_and_arg_t structure and store it in the list.
      */
     if (register_it) {
 
-        /* during registration, missing list is always a failure */
-        if (NULL == list) {
-            assert(failed);
-            return failed;
-        }
+        /* :-( */
+        if (failed) return failed;
+        assert(list);
 
         /* create new function & arg pair and store it in list */
-        fandargp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_t));
+        fandargp = create_f_and_arg(emp, fptr, extra_arg);
         if (NULL == fandargp) return ENOMEM;
-        fandargp->fptr = fptr;
-        fandargp->extra_arg = extra_arg;
 
         /* uniquely add it to the list */
         failed = ordered_list_add_once(list, fandargp, NULL);
@@ -306,17 +308,16 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         /* delete it from the list */
         fandarg.fptr = fptr;
         fandarg.extra_arg = extra_arg;
-        ordered_list_delete(list, &fandarg, &found);
+        ordered_list_delete(list, &fandarg, (void**) &fandargp);
+        if (fandargp) destroy_f_and_arg_cb(fandargp, emp);
 
-        /* if nothing else remains in the list, delete the container itself */
-        if (idxp && (list->n <= 0)) {
-            failed = index_obj_remove(idxp, 
-            failed = dynamic_array_remove(idxp, object_type, &found);
-            if (0 == failed) {
-                assert(found == list);
-                ordered_list_destroy(list);
-                MEM_MONITOR_FREE(emp, list);
-            }
+        /*
+         * if the list was part of a container (specific object type),
+         * AND there is no other function & arg pairs left in the list,
+         * get rid of the container object too, no need for it.
+         */
+        if ((list->n <= 0) && contp) {
+            destroy_f_and_arg_container(emp, contp);
         }
     }
 
@@ -330,7 +331,7 @@ execute_all_callbacks (ordered_list_t *list, event_record_t *erp)
 
     if (list) {
         FOR_ALL_ORDEREDLIST_ELEMENTS(list, fandargp) {
-            fandargp->ehfp(erp, fandargp->extra_arg);
+            fandargp->fptr(erp, fandargp->extra_arg);
         }
     }
 }
@@ -338,28 +339,28 @@ execute_all_callbacks (ordered_list_t *list, event_record_t *erp)
 static void
 thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
 {
-    ordered_list_t *list;
-    index_obj_t *dummy;
+    ordered_list_t *list = NULL;
 
     /*
-     * starting to traverse links, block any changes which may occur
-     * if any callback function attempts to perform any registrations
-     * and/or changes to the lists.
+     * starting to traverse lists, lock the lists against any changes
+     * which the callback functions may attempt.
      */
     emp->cannot_be_modified = 1;
 
     /*
      * First, notify the event to the registrants who registered
-     * to receive events for ALL the object types.
+     * to receive events for ALL/ANY object type.
      */
-    list = get_correct_list(emp, ALL_OBJECT_TYPES, erp->event_type, 0, &dummy);
+    get_relevant_structures(emp, ALL_OBJECT_TYPES, erp->event_type, 0,
+        &list, NULL, NULL);
     execute_all_callbacks(list, erp);
 
     /*
      * Next, notify the event to the registrants who are registered
      * to receive events ONLY from this specific type of object.
      */
-    list = get_correct_list(emp, erp->object_type, erp->event_type, 0, &dummy);
+    get_relevant_structures(emp, erp->object_type, erp->event_type, 0,
+        &list, NULL, NULL);
     execute_all_callbacks(list, erp);
 
     /* ok traversal complete, modifications to lists can now happen */
@@ -382,32 +383,38 @@ event_manager_init (event_manager_t *emp,
     emp->cannot_be_modified = 1;
 
     failed = ordered_list_init(&emp->object_event_registrants_for_all_objects, 
-            0, compare_errs, emp->mem_mon_p);
+            0, compare_f_and_arg, emp->mem_mon_p);
     if (failed) {
         return failed;
     }
 
     failed = ordered_list_init(&emp->attribute_event_registrants_for_all_objects,
-            0, compare_errs, emp->mem_mon_p);
+            0, compare_f_and_arg, emp->mem_mon_p);
     if (failed) {
-        ordered_list_destroy(&emp->object_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
+            NULL, NULL);
         return failed;
     }
 
-    failed = dynamic_array_init(&emp->object_event_registrants_for_one_object,
-            0, 3, emp->mem_mon_p);
+    failed = index_obj_init(&emp->object_event_registrants_for_one_object,
+            0, compare_f_and_arg_container, 16, 16, emp->mem_mon_p);
     if (failed) {
-        ordered_list_destroy(&emp->object_event_registrants_for_all_objects);
-        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects);
+        ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
+            NULL, NULL);
+        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
+            NULL, NULL);
         return failed;
     }
 
-    failed = dynamic_array_init(&emp->attribute_event_registrants_for_one_object,
-            0, 3, emp->mem_mon_p);
+    failed = index_obj_init(&emp->attribute_event_registrants_for_one_object,
+            0, compare_f_and_arg_container, 16, 16, emp->mem_mon_p);
     if (failed) {
-        ordered_list_destroy(&emp->object_event_registrants_for_all_objects);
-        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects);
-        dynamic_array_destroy(&emp->object_event_registrants_for_one_object);
+        ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
+            NULL, NULL);
+        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
+            NULL, NULL);
+        index_obj_destroy(&emp->object_event_registrants_for_one_object,
+            NULL, NULL);
         return failed;
     }
 
