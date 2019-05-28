@@ -792,6 +792,7 @@ avl_tree_destroy (avl_tree_t *tree,
     tree->cannot_be_modified = 0;
     WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
+    memset(tree, 0, sizeof(avl_tree_t));
 }
 
 #ifdef __cplusplus

@@ -110,6 +110,14 @@ avl_tree_traverse (avl_tree_t *tree,
 
 /**************************** Destroy ****************************************/
 
+/*
+ * Note that this destroys ONLY the contents of the object, NOT
+ * the object itself, since it is not known whether this object
+ * was statically or dynamically created.  It is up to the user
+ * to free up the object itself (or not).  Note however that once
+ * the object is destroyed, it is rendered unusable and MUST be
+ * re-initialized if it needs to be reused again.
+ */
 extern void 
 avl_tree_destroy (avl_tree_t *tree,
         destruction_handler_t dcbf, void *extra_arg);

@@ -87,11 +87,11 @@ typedef two_parameter_function_pointer object_comparer;
 typedef seven_parameter_function_pointer traverse_function_pointer;
 
 /*
- * This is a function prototype which will be called when a destroy
- * object function is running.  It can be any object being destroyed.
+ * This is a function prototype which will be called when an object
+ * is being destroyed.  It can be any object being destroyed.
  * It can be an avl tree, index object, list object etc.  The idea
- * is, as the object itself is being destroyed (its nodes being returned
- * to storage), this is called with the actual 'user_data' stored on 
+ * is, as the object itself is being destroyed (its nodes being freed
+ * back to storage), this is called with the actual 'user_data' stored on 
  * that node, in case user wants to also destroy/free their own
  * data itself.  It will be called one node at a time as the destruction
  * happens.  When this is called, the user MUST be aware that their data
@@ -100,8 +100,8 @@ typedef seven_parameter_function_pointer traverse_function_pointer;
  * free up his/her object but this may not always be the case.
  * The FIRST parameter passed into this function is the user data itself
  * and the second parameter is whatever the user supplied at the time of
- * the destruction call.  It goes without saying that the user function
- * should NOT manipulate the container object in any way.
+ * the destruction call.  It goes without saying that this function
+ * should NOT make any object calls.
  */
 typedef void (*destruction_handler_t)(void *user_data, void *extra_arg);
 

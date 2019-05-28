@@ -199,16 +199,12 @@ ordered_list_delete (ordered_list_t *listp, void *to_be_deleted,
         void **data_deleted);
 
 /*
- * frees up all the nodes of the list and cleans it out.
- * The list must be re-initialized properly if it needs to be
- * re-used.  Note that only the list elements are removed.
- * For every user data stored in the list, the delete
- * callback function will be called with the list and the
- * data itself as the parameters.  This gives the caller to
- * also have the capability to clear out his objects one at a
- * time if needed.  'dcbf' can be NULL, in which case only the
- * list will be destroyed and the user values will not be
- * touched.
+ * Note that this destroys ONLY the contents of the object, NOT
+ * the object itself, since it is not known whether this object
+ * was statically or dynamically created.  It is up to the user
+ * to free up the object itself (or not).  Note however that once
+ * the object is destroyed, it is rendered unusable and MUST be
+ * re-initialized if it needs to be reused again.
  */
 extern void
 ordered_list_destroy (ordered_list_t *listp,

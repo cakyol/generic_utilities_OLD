@@ -65,7 +65,7 @@ create_f_and_arg (event_manager_t *emp,
 
 /* treat the structure as simply a sequence of bytes */
 static int
-compare_f_and_arg (void *p1, void *p2)
+compare_f_and_args (void *p1, void *p2)
 {
     int result;
 
@@ -96,17 +96,61 @@ destroy_f_and_arg_cb (void *user_data, void *extra_arg)
 typedef struct f_and_arg_container_s {
 
     int object_type;
-    ordered_list_t list_of_f_and_arg;
+    ordered_list_t list_of_f_and_args;
     index_obj_t *my_index;
 
 } f_and_arg_container_t;
 
+/* 'object_type' is the key */
 static int
-compare_f_and_arg_container (void *p1, void *p2)
+compare_f_and_args_containers (void *p1, void *p2)
 {
     return
         ((f_and_arg_container_t*) p1)->object_type -
         ((f_and_arg_container_t*) p2)->object_type;
+}
+
+static void
+destroy_f_and_arg_container (void *p1, void *p2)
+{
+    event_manager_t *emp = (event_manager_t*) p1;
+    f_and_arg_container_t *fargcp = (f_and_arg_container_t*) p2;
+
+    /* clean out its ordered list */
+    ordered_list_destroy(&fargcp->list_of_f_and_args,
+        destroy_f_and_arg_cb, emp);
+
+    /* remove it off the index it belongs to */
+    index_obj_remove(fargcp->my_index, fargcp, NULL);
+
+    /* free the actual memory */
+    MEM_MONITOR_FREE(emp, fargcp);
+}
+
+static f_and_arg_container_t *
+create_f_and_arg_container (event_manager_t *emp,
+    int object_type, index_obj_t *my_index)
+{
+    int failed;
+    f_and_arg_container_t *fargcp;
+
+    fargcp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
+    if (fargcp) {
+        failed = ordered_list_init(&fargcp->list_of_f_and_args, 0,
+                    compare_f_and_args, emp->mem_mon_p);
+        if (failed) {
+            MEM_MONITOR_FREE(emp, fargcp);
+            return NULL;
+        }
+        fargcp->object_type = object_type;
+        fargcp->my_index = my_index;
+        failed = index_obj_insert(my_index, fargcp, NULL);
+        if (failed) {
+            destroy_f_and_arg_container(emp, fargcp);
+            return NULL;
+        }
+    }
+    return fargcp;
 }
 
 /*
@@ -118,53 +162,25 @@ static f_and_arg_container_t *
 get_f_and_arg_container (event_manager_t *emp, int create,
     int object_type, index_obj_t *my_index)
 {
-    int failed;
-    f_and_arg_container_t searched, *faargp;
+    f_and_arg_container_t searched, *fargcp;
 
     /* if already in the index, return it */
     searched.object_type = object_type;
-    if (index_obj_search(my_index, &searched, (void**) &faargp) == 0) {
-        assert(faargp);
-        return faargp;
+    if (index_obj_search(my_index, &searched, (void**) &fargcp) == 0) {
+        assert(fargcp);
+        return fargcp;
     }
 
     /*
      * if here, we cannot find it.  If also creation is NOT required,
      * nothing more to do, simply return NULL
      */
-    if (!create) return NULL;
-
-    /* it does not exist AND creation is needed */
-    faargp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
-    if (faargp) {
-        failed = ordered_list_init(&faargp->list_of_f_and_arg, 0,
-                    compare_f_and_arg, emp->mem_mon_p);
-        if (failed) {
-            MEM_MONITOR_FREE(emp, faargp);
-            return NULL;
-        }
-        faargp->object_type = object_type;
-        faargp->my_index = my_index;
-        return faargp;
+    if (create) {
+        return
+            create_f_and_arg_container(emp, object_type, my_index);
     }
 
-    /* cannot be found or created */
     return NULL;
-}
-
-static void
-destroy_f_and_arg_container (event_manager_t *emp,
-    f_and_arg_container_t *farg_cont_p)
-{
-    /* clean out its ordered list */
-    ordered_list_destroy(&farg_cont_p->list_of_f_and_arg,
-        destroy_f_and_arg_cb, emp);
-
-    /* remove it off the index it belongs to */
-    index_obj_remove(farg_cont_p->my_index, farg_cont_p, NULL);
-
-    /* free the actual memory */
-    MEM_MONITOR_FREE(emp, farg_cont_p);
 }
 
 /*
@@ -220,7 +236,7 @@ get_relevant_structures (event_manager_t *emp,
     found = get_f_and_arg_container(emp, create_if_missing,
                 object_type, idxp);
     if (found) {
-        safe_pointer_set(list_returned, &found->list_of_f_and_arg);
+        safe_pointer_set(list_returned, &found->list_of_f_and_args);
         safe_pointer_set(container_returned, found);
         safe_pointer_set(index_object_returned, idxp);
         return 0;
@@ -241,7 +257,7 @@ thread_unsafe_already_registered (event_manager_t *emp,
         
     failed = get_relevant_structures(emp, event_type, object_type,
                 0, &list, NULL, NULL);
-    //if (failed) return 0;
+    if (failed) return 0;
 
     assert(list);
     faarg.fptr = fptr;
@@ -383,13 +399,13 @@ event_manager_init (event_manager_t *emp,
     emp->cannot_be_modified = 1;
 
     failed = ordered_list_init(&emp->object_event_registrants_for_all_objects, 
-            0, compare_f_and_arg, emp->mem_mon_p);
+            0, compare_f_and_args, emp->mem_mon_p);
     if (failed) {
         return failed;
     }
 
     failed = ordered_list_init(&emp->attribute_event_registrants_for_all_objects,
-            0, compare_f_and_arg, emp->mem_mon_p);
+            0, compare_f_and_args, emp->mem_mon_p);
     if (failed) {
         ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
             NULL, NULL);
@@ -397,7 +413,7 @@ event_manager_init (event_manager_t *emp,
     }
 
     failed = index_obj_init(&emp->object_event_registrants_for_one_object,
-            0, compare_f_and_arg_container, 16, 16, emp->mem_mon_p);
+            0, compare_f_and_args_containers, 16, 16, emp->mem_mon_p);
     if (failed) {
         ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
             NULL, NULL);
@@ -407,7 +423,7 @@ event_manager_init (event_manager_t *emp,
     }
 
     failed = index_obj_init(&emp->attribute_event_registrants_for_one_object,
-            0, compare_f_and_arg_container, 16, 16, emp->mem_mon_p);
+            0, compare_f_and_args_containers, 16, 16, emp->mem_mon_p);
     if (failed) {
         ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
             NULL, NULL);
@@ -460,20 +476,13 @@ register_for_object_events (event_manager_t *emp,
 }
 
 PUBLIC void
-announce_event (event_manager_t *emp, event_record_t *erp)
-{
-    WRITE_LOCK(emp);
-    thread_unsafe_announce_event(emp, erp);
-    WRITE_UNLOCK(emp);
-}
-
-PUBLIC void
 un_register_from_object_events (event_manager_t *emp,
-        int object_type, event_handler_t ehfp)
+        int object_type,
+        event_handler_t ehfp, void *extra_arg)
 {
     WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
-            object_type, ehfp, NULL, 0);
+            object_type, ehfp, extra_arg, 0);
     WRITE_UNLOCK(emp);
 }
 
@@ -497,17 +506,38 @@ register_for_attribute_events (event_manager_t *emp,
 
 PUBLIC void
 un_register_from_attribute_events (event_manager_t *emp,
-        int object_type, event_handler_t ehfp)
+        int object_type,
+        event_handler_t ehfp, void *extra_arg)
 {
     WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
-            object_type, ehfp, NULL, 0);
+            object_type, ehfp, extra_arg, 0);
+    WRITE_UNLOCK(emp);
+}
+
+PUBLIC void
+announce_event (event_manager_t *emp, event_record_t *erp)
+{
+    WRITE_LOCK(emp);
+    thread_unsafe_announce_event(emp, erp);
     WRITE_UNLOCK(emp);
 }
 
 PUBLIC void
 event_manager_destroy (event_manager_t *emp)
 {
+    WRITE_LOCK(emp);
+    ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
+        destroy_f_and_arg_cb, NULL);
+    ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
+        destroy_f_and_arg_cb, NULL);
+    index_obj_destroy(&emp->object_event_registrants_for_one_object,
+        destroy_f_and_arg_container, NULL);
+    index_obj_destroy(&emp->attribute_event_registrants_for_one_object,
+        destroy_f_and_arg_container, NULL);
+    WRITE_UNLOCK(emp);
+    LOCK_OBJ_DESTROY(emp);
+    memset(emp, 0, sizeof(event_manager_t));
 }
 
 #ifdef __cplusplus

@@ -387,6 +387,7 @@ ordered_list_destroy (ordered_list_t *listp,
     assert(0 == listp->n);
     WRITE_UNLOCK(listp);
     LOCK_OBJ_DESTROY(listp);
+    memset(listp, 0, sizeof(ordered_list_t));
 }
 
 #ifdef __cplusplus

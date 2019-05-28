@@ -130,9 +130,12 @@ index_obj_trim (index_obj_t *idx);
 /**************************** Destroy ****************************************/
 
 /*
- * This function destroys the index object & frees all the storage it holds.
- * In addition, if the index is not empty, it will call the user supplied
- * 'dh_fptr' function consecutively on every stored element.
+ * Note that this destroys ONLY the contents of the object, NOT
+ * the object itself, since it is not known whether this object
+ * was statically or dynamically created.  It is up to the user
+ * to free up the object itself (or not).  Note however that once
+ * the object is destroyed, it is rendered unusable and MUST be
+ * re-initialized if it needs to be reused again.
  */
 extern void
 index_obj_destroy (index_obj_t *idx,

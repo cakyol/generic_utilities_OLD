@@ -143,6 +143,7 @@ TESTS =		test_debug_framework \
 		test_dynamic_array \
 		test_radix_tree \
 		test_radix_tree2 \
+		test_event_manager \
 		test_db \
 		test_db_load \
 		test_db_speed \

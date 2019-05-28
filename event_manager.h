@@ -314,7 +314,8 @@ register_for_object_events (event_manager_t *emp,
  */
 extern void
 un_register_from_object_events (event_manager_t *emp,
-    int object_type, event_handler_t evhfptr);
+    int object_type,
+    event_handler_t evhfptr, void *extra_arg);
 
 /*
  * Same concept as above but this time registration is only for attribute
@@ -333,7 +334,8 @@ register_for_attribute_events (event_manager_t *emp,
  */
 extern void
 un_register_from_attribute_events (event_manager_t *emp,
-    int object_type, event_handler_t evhfptr);
+    int object_type,
+    event_handler_t evhfptr, void *extra_arg);
 
 /*
  * The user calls this when he wants to report the occurence of an event.

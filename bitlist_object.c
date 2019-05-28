@@ -280,8 +280,12 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
 PUBLIC void
 bitlist_destroy (bitlist_t *bl)
 {
+    WRITE_LOCK(bl);
     if (bl->the_bits) MEM_MONITOR_FREE(bl, bl->the_bits);
-    bl->the_bits = NULL;
+    WRITE_UNLOCK(bl);
+    LOCK_OBJ_DESTROY(bl);
+    memset(bl, 0, sizeof(bitlist_t));
+
 }
 
 #ifdef __cplusplus
