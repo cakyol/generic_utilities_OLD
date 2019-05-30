@@ -312,33 +312,35 @@ database_initialize (object_database_t *obj_db,
 static inline int
 database_register_for_object_events (object_database_t *obj_db,
         int object_type,
-        two_parameter_function_pointer ecbf, void *extra_arg)
+        event_handler_t ehfp, void *extra_arg)
 {
     return
-        register_for_object_events(&obj_db->evm, object_type, ecbf, extra_arg);
+        register_for_object_events(&obj_db->evm, object_type, ehfp, extra_arg);
 }
 
 static inline void
 database_un_register_from_object_events (object_database_t *obj_db,
-        int object_type, two_parameter_function_pointer ecbf)
+        int object_type,
+        event_handler_t ehfp, void *extra_arg)
 {
-    un_register_from_object_events(&obj_db->evm, object_type, ecbf);
+    un_register_from_object_events(&obj_db->evm, object_type, ehfp, extra_arg);
 }
 
 static inline int
 database_register_for_attribute_events (object_database_t *obj_db,
         int object_type,
-        two_parameter_function_pointer ecbf, void *extra_arg)
+        event_handler_t ehfp, void *extra_arg)
 {
     return
-        register_for_attribute_events(&obj_db->evm, object_type, ecbf, extra_arg);
+        register_for_attribute_events(&obj_db->evm, object_type, ehfp, extra_arg);
 }
 
 static inline void
 database_un_register_from_attribute_events (object_database_t *obj_db,
-        int object_type, two_parameter_function_pointer ecbf)
+        int object_type,
+        event_handler_t ehfp, void *extra_arg)
 {
-    un_register_from_attribute_events(&obj_db->evm, object_type, ecbf);
+    un_register_from_attribute_events(&obj_db->evm, object_type, ehfp, extra_arg);
 }
 
 extern int

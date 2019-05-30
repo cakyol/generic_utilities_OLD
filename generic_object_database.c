@@ -34,19 +34,49 @@ extern "C" {
 
 /******************************************************************************
  *
- * global variables which control whether an avl tree or the index
- * object should be used for some heavily used data structures.
- * Using avl trees makes all insertions/deletions much faster but
- * uses much more memory.  If your database is relatively static after
- * it has been created (ie, it is mostly used for lookups rather than
- * continually being inserted into and deleted from), then this value
- * can be set to '0'.  However if it is very dynamic, then set this
- * to '1' if to get the best speed performance (but maximum memory
- * consumption).  Also, if memory consefailedation is the MOST important
- * consideration, then always set the avl usage variables to 0.
+ * FACTS:
+ * ------
+ * Below are global variables which control whether an avl tree or 
+ * the index object should be used for some heavily accessed data 
+ * structures.  Setting them to 0 will disable use of avl trees
+ * and will activate index object structures.  Setting them to 1 
+ * will do the reverse, ie activate the avl tree implementation.
+ *
+ * Using avl trees will ALWAYS make ALL creations and deletions MUCH
+ * MUCH faster but will ALWAYS use much more memory (approximately 10
+ * fold more).  Using the index object uses much less memory (10 times
+ * less) but MAY make your creations/deletions much slower.  It is
+ * possible that using the index object may also make your creations
+ * and deletions just as fast as an avl tree but that is heavily
+ * dependent on the 'order' of how the objects are created and deleted.
+ * Its speed is therefore very undeterministic and can never be guaranteed.
+ *
+ * Searching data in the database however is the SAME speed whether you
+ * use the avl trees or the index object.  The determining factor is the
+ * frequency of creations/deletion and not the searches.
+ *
+ * RECOMMENDATION:
+ * ----------------
+ * If your database is relatively static once it has been created
+ * (it is mostly used for lookups rather than frequently being modified),
+ * then all 'use_avl_tree*' variables can be set to 0.  This will save
+ * a LOT of memory and lookups will be just as fast as an avl tree.
+ *
+ * However, if your database is dynamic (objects and attributes being
+ * constantly created & deleted), then usage of avl trees makes sense
+ * unless you have very limited memory.
+ *
+ * If you have lots of memory, then it makes sense to use the avl
+ * variables.  In this case you get maximum performance whether you
+ * are searching, creating or deleting objects/attributes.
+ *
+ * If your database is very dynamic AND you do not have sufficient
+ * memory, you are out of luck.  In this case, it is better NOT to
+ * use the avl variables and suffer with slower performance.
  */
 static int use_avl_tree_for_database_object_index = 1;
 static int use_avl_tree_for_object_children = 1;
+
 #ifndef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
 static int use_avl_tree_for_attribute_ids = 1;
 #endif

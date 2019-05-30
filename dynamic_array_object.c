@@ -338,11 +338,23 @@ dynamic_array_get_all (dynamic_array_t *datp, int *count)
 }
 
 PUBLIC void 
-dynamic_array_destroy (dynamic_array_t *datp)
+dynamic_array_destroy (dynamic_array_t *datp,
+        destruction_handler_t dcbf, void *extra_arg)
 {
+    int i;
+
+    WRITE_LOCK(datp);
     if (datp->elements) {
+        if (dcbf) {
+            for (i = 0; i < datp->size; i++) {
+                if (datp->elements[i]) {
+                    dcbf(datp->elements[i], extra_arg);
+                }
+            }
+        }
         MEM_MONITOR_FREE(datp, datp->elements);
     }
+    WRITE_UNLOCK(datp);
     LOCK_OBJ_DESTROY(datp);
     memset(datp, 0, sizeof(dynamic_array_t));
 }

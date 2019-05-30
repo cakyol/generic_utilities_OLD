@@ -115,7 +115,8 @@ extern void **
 dynamic_array_get_all (dynamic_array_t *datp, int *count);
 
 extern void
-dynamic_array_destroy (dynamic_array_t *datp);
+dynamic_array_destroy (dynamic_array_t *datp,
+        destruction_handler_t dcbf, void *extra_arg);
 
 #ifdef __cplusplus
 } // extern C

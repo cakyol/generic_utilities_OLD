@@ -9,11 +9,20 @@
 
 int array[SIZE];
 
+void destruction_function (void *p1, void *p2)
+{
+    int *p = (int*) p1;
+
+    printf("destroying %d\n", *p);
+}
+
 int main (int argc, char *argv[])
 {
     dynamic_array_t dyn;
     int i, j, *data;
     int errors, failed;
+
+    for (i = 0; i < SIZE; i++) array[i] = i * 3;
 
     dynamic_array_init(&dyn, 0, 8, NULL);
     printf("initialized dynamic array\n");
@@ -47,6 +56,7 @@ int main (int argc, char *argv[])
         fflush(stdout);
     }
     printf("dynamic array is%s sane\n", errors ? " NOT" : "");
+    dynamic_array_destroy(&dyn, destruction_function, NULL);
 
     return 0;
 }
