@@ -85,6 +85,9 @@ static int use_avl_tree_for_attribute_ids = 1;
  * forward declarations
  */
 
+static void
+object_destroy_callback (void *p1, void *p2);
+
 static int
 database_announce_event (object_database_t *obj_db,
     int event,
@@ -455,6 +458,7 @@ remove_attribute_value_from_list (attribute_instance_t *aitp,
 /*
  * WILL handle NULL keep, in fact this is deliberately used in
  * some functions below so do *NOT* check for NULL keep.
+ * When keep is NULL, it will destroy ALL attribute values.
  */
 static void
 destroy_all_attribute_values_except (attribute_instance_t *aitp,
@@ -495,6 +499,12 @@ destroy_all_attribute_values_except (attribute_instance_t *aitp,
     } else {
         aitp->n_attribute_values = 0;
     }
+}
+
+static void
+destroy_all_attribute_values (attribute_instance_t *aitp)
+{
+    destroy_all_attribute_values_except(aitp, NULL);
 }
 
 /******************************************************************************/
@@ -655,7 +665,7 @@ attribute_instance_destroy (attribute_instance_t *aitp)
                 ATTRIBUTE_INSTANCE_DELETED);
 
     /* delete all its values first */
-    destroy_all_attribute_values_except(aitp, NULL);
+    destroy_all_attribute_values(aitp);
 
     /* now delete the instance itself */
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
@@ -734,7 +744,9 @@ object_attributes_delete_all (object_t *obj)
  * This variable controls that.
  */
 static void 
-object_destroy_engine (object_t *obj, int leave_parent_consistent)
+object_destroy_engine (object_t *obj,
+        int leave_parent_consistent,
+        int destroy_all_children)
 {
     void *removed_obj;
     void **all_its_children;
@@ -760,18 +772,14 @@ object_destroy_engine (object_t *obj, int leave_parent_consistent)
         table_remove(&parent->children, obj, &removed_obj);
     }
 
-    /*
-     * destroy all its children recursively.  Since *THIS* object is
-     * also being destroyed, all its children can be destroyed without
-     * having to keep their parent/child relationship consistent,
-     * hence passing '0' to the function below.
-     */ 
-    all_its_children = table_get_all(&obj->children, &child_count);
-    if (child_count && all_its_children) {
-        for (i = 0; i < child_count; i++) {
-            object_destroy_engine((object_t*) all_its_children[i], 0);
+    if (destroy_all_children) {
+        all_its_children = table_get_all(&obj->children, &child_count);
+        if (child_count && all_its_children) {
+            for (i = 0; i < child_count; i++) {
+                object_destroy_engine((object_t*) all_its_children[i], 0, 0);
+            }
+            free(all_its_children);
         }
-        free(all_its_children);
     }
 
     /* free up all its attribute storage */
@@ -793,7 +801,7 @@ object_destroy_engine (object_t *obj, int leave_parent_consistent)
     assert(removed_obj == obj);
 
     /* free up its index objects */
-    table_destroy(&obj->children);
+    table_destroy(&obj->children, object_destroy_callback, NULL);
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
     dynamic_array_destroy(&obj->attributes);
 #else
@@ -806,6 +814,14 @@ object_destroy_engine (object_t *obj, int leave_parent_consistent)
 
     /* and blow it away */
     MEM_MONITOR_FREE(obj_db, obj);
+}
+
+static void
+object_destroy_callback (void *p1, void *p2)
+{
+    object_t *obj = (object_t*) p1;
+
+    object_destroy_engine(obj, 0, 0);
 }
 
 static object_t *
@@ -1108,7 +1124,7 @@ process_object_destroyed_event (object_database_t *obj_db,
     obj = get_object_pointer(obj_db, 
                 evrp->object_type, evrp->object_instance);
     if (obj) {
-        object_destroy_engine(obj, 1);
+        object_destroy_engine(obj, 1, 1);
     }
     return 0;
 }
@@ -1680,7 +1696,7 @@ object_destroy (object_database_t *obj_db,
         failed = ENODATA;
     } else {
         failed = 0;
-        object_destroy_engine(obj, 1);
+        object_destroy_engine(obj, 1, 1);
     }
     WRITE_UNLOCK(obj_db);
     return failed;
