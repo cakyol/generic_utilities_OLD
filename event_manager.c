@@ -367,7 +367,7 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
      * First, notify the event to the registrants who registered
      * to receive events for ALL/ANY object type.
      */
-    get_relevant_structures(emp, ALL_OBJECT_TYPES, erp->event_type, 0,
+    get_relevant_structures(emp, erp->event_type, ALL_OBJECT_TYPES, 0,
         &list, NULL, NULL);
     execute_all_callbacks(list, erp);
 
@@ -375,7 +375,7 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
      * Next, notify the event to the registrants who are registered
      * to receive events ONLY from this specific type of object.
      */
-    get_relevant_structures(emp, erp->object_type, erp->event_type, 0,
+    get_relevant_structures(emp, erp->event_type, erp->object_type, 0,
         &list, NULL, NULL);
     execute_all_callbacks(list, erp);
 

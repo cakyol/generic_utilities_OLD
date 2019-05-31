@@ -562,9 +562,6 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     int failed = 0;
     avl_node_t *current;
 
-    /* already being traversed */
-    if (tree->cannot_be_modified) return EBUSY;
-
     /* if the starting root is NULL, start from top of tree */
     if (NULL == root) {
         root = tree->root_node;

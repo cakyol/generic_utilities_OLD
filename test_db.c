@@ -3,7 +3,7 @@
 #include <sys/resource.h>
 
 #define MAX_TYPES               3000
-#define MAX_ATTRS               2
+#define MAX_ATTRS               5
 #define ITER                    1
 #define MAX_AV_COUNT            2
 
@@ -19,9 +19,8 @@ char *attribute_value_string (event_record_t *evrp)
     return temp_buffer;
 }
 
-int notify_event (void *arg1, void *arg2)
+void notify_event (event_record_t *evrp, void *arg2)
 {
-    event_record_t *evrp = (event_record_t*) arg1;
     object_database_t *dbp = (object_database_t*) arg2;
     int event = evrp->event_type;
 
@@ -35,38 +34,37 @@ int notify_event (void *arg1, void *arg2)
         printf("child (%d, %d) created for parent (%d, %d)\n",
             evrp->related_object_type, evrp->related_object_instance,
             evrp->object_type, evrp->object_instance);
-        return 0;
+        return;
     }
     if (event & ATTRIBUTE_INSTANCE_ADDED) {
         printf("attribute %d added to object (%d, %d)\n",
             evrp->attribute_id, evrp->object_type, evrp->object_instance);
-        return 0;
+        return;
     }
     if (event & ATTRIBUTE_VALUE_ADDED) {
-        printf("attribute %d value <%s> added for object (%d, %d)\n",
+        printf("attribute %d value <%s> added to object (%d, %d)\n",
             evrp->attribute_id, attribute_value_string(evrp),
             evrp->object_type, evrp->object_instance);
-        return 0;
+        return;
     }
     if (event & ATTRIBUTE_VALUE_DELETED) {
         printf("attribute %d value <%s> deleted from object (%d, %d)\n",
             evrp->attribute_id, attribute_value_string(evrp),
             evrp->object_type, evrp->object_instance);
-        return 0;
+        return;
     }
     if (event & ATTRIBUTE_INSTANCE_DELETED) {
         printf("attribute %d deleted from object (%d, %d)\n",
             evrp->attribute_id, evrp->object_type, evrp->object_instance);
-        return 0;
+        return;
     }
     if (event & OBJECT_DESTROYED) {
         printf("object (%d, %d) destroyed\n", 
             evrp->object_type, evrp->object_instance);
-        return 0;
+        return;
     }
 
     printf("UNKNOWN EVENT TYPE %d\n", event);
-    return -1;
 }
 
 void add_del_attributes (object_database_t *obj_db, int type, int instance)
@@ -86,7 +84,7 @@ void add_del_attributes (object_database_t *obj_db, int type, int instance)
                         (byte*) complex_value, strlen(complex_value) + 1);
                 count++;
             }
-
+            object_attribute_destroy(obj_db, type, instance, i);
         }
     }
 }

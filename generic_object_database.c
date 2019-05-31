@@ -685,6 +685,12 @@ attribute_instance_destroy (attribute_instance_t *aitp)
 }
 
 static void
+attribute_instance_destroy_callback (void *p1, void *p2)
+{
+    attribute_instance_destroy((attribute_instance_t*) p1);
+}
+
+static void
 object_indexes_init (mem_monitor_t *memp, object_t *obj)
 {
     assert(0 == table_init(&obj->children, 
@@ -803,9 +809,11 @@ object_destroy_engine (object_t *obj,
     /* free up its index objects */
     table_destroy(&obj->children, object_destroy_callback, NULL);
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    dynamic_array_destroy(&obj->attributes);
+    dynamic_array_destroy(&obj->attributes,
+        attribute_instance_destroy_callback, NULL);
 #else
-    table_destroy(&obj->attributes);
+    table_destroy(&obj->attributes,
+        attribute_instance_destroy_callback, NULL);
 #endif
 
     /* finally notify its destruction */
@@ -819,9 +827,7 @@ object_destroy_engine (object_t *obj,
 static void
 object_destroy_callback (void *p1, void *p2)
 {
-    object_t *obj = (object_t*) p1;
-
-    object_destroy_engine(obj, 0, 0);
+    object_destroy_engine((object_t*) p1, 0, 0);
 }
 
 static object_t *
