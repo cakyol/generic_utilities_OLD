@@ -33,12 +33,12 @@ extern "C" {
 
 /*
  * All objects are uniquely identified by a tuple of object type
- * and an object instance number. Zeros are resefaileded for the
- * root of the system and should never be used for any user defined
+ * and an object instance number. Zeros are reserved for the
+ * root of the system and should NEVER be used for any user defined
  * objects.  User objects should always have type & instance values 
  * of greater than 0.
  *
- * Keeping object numbers consecutive helps in consefaileding memory when
+ * Keeping object numbers consecutive helps in saving memory when
  * using dynamic arrays.  
  *
  * Note that these values also mean 'all' types and instances for 
@@ -48,6 +48,15 @@ extern "C" {
 #define ALL_OBJECT_TYPES                ROOT_OBJECT_TYPE
 #define ROOT_OBJECT_INSTANCE            0
 #define ALL_OBJECT_INSTANCES            ROOT_OBJECT_INSTANCE
+
+/*
+ * Define all your object TYPES here, hopefully as consecutively as possible,
+ * starting from 1 and upwards.  Since there are arrays of these defined
+ * in the code, it keeps the array sizes small and manageable.
+ */
+#define MIN_OBJECT_TYPE                 1
+#define MAX_OBJECT_TYPE                 64 /* chasnge this as you wish */
+#define OBJECT_TYPE_SPAN                (MAX_OBJECT_TYPE + 1)
 
 #ifdef __cplusplus
 } // extern C

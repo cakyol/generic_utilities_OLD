@@ -104,6 +104,15 @@ extern "C" {
 #include "object_types.h"
 
 /*
+ * Define this if you decide to use object types which are relatively
+ * limited in number and consecutively numbered.  Since they will be
+ * in an array, this will make the event manager work MUCH faster and
+ * as long as the numbers are kept consecutive, it will not occupy as
+ * much memory.
+ */
+#define CONSECUTIVE_OBJECT_TYPES_USED
+
+/*
  * These are *ALL* the possible events which can happen
  * These definitions are typically used with the event
  * manager & object manager code.
@@ -252,20 +261,29 @@ typedef struct event_manager_s {
      * add/delete) for ANY type of object.
      */
     ordered_list_t attribute_event_registrants_for_all_objects;
-    
+
+#ifdef CONSECUTIVE_OBJECT_TYPES_USED
+
     /*
      * list of registrants interested in object
      * events for ONE specific type of object.
      * index is the object_type.
      */
-    index_obj_t object_event_registrants_for_one_object;
-    
+    ordered_list_t object_event_registrants_for_one_object [OBJECT_TYPE_SPAN];
+
     /*
      * list of registrants interested in attribute
      * events for ONE specific type of object.
      * index is the object_type.
      */
+    ordered_list_t attribute_event_registrants_for_one_object [OBJECT_TYPE_SPAN];
+
+#else
+    
+    index_obj_t object_event_registrants_for_one_object;
     index_obj_t attribute_event_registrants_for_one_object;
+
+#endif
 
 } event_manager_t;
 

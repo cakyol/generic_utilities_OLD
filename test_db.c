@@ -9,6 +9,8 @@
 
 char temp_buffer [64];
 
+long long int calls = 0;
+
 char *attribute_value_string (event_record_t *evrp)
 {
     if (evrp->attribute_value_length == 0) {
@@ -24,11 +26,12 @@ void notify_event (event_record_t *evrp, void *arg2)
     object_database_t *dbp = (object_database_t*) arg2;
     int event = evrp->event_type;
 
-    SUPPRESS_UNUSED_VARIABLE_WARNING(evrp);
-    SUPPRESS_UNUSED_VARIABLE_WARNING(dbp);
-    SUPPRESS_UNUSED_VARIABLE_WARNING(event);
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(evrp);
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(dbp);
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(event);
 
-    // return 0;
+    calls++;
+    return;
 
     if (event & OBJECT_CREATED) {
         printf("child (%d, %d) created for parent (%d, %d)\n",
@@ -144,6 +147,7 @@ int main (int argc, char *argv[])
         }
     }
     printf("finished creating all %d objects\n", count);
+    printf("%lld events recorded\n", calls);
     printf("now writing to file ... ");
     fflush(stdout);
     fflush(stdout);

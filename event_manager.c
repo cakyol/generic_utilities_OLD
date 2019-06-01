@@ -33,6 +33,17 @@ extern "C" {
 
 #define PUBLIC
 
+static int
+object_type_within_limits (int object_type)
+{
+#ifdef CONSECUTIVE_OBJECT_TYPES_USED
+    return
+        (object_type >= MIN_OBJECT_TYPE) && (object_type <= MAX_OBJECT_TYPE);
+#else /* !CONSECUTIVE_OBJECT_TYPES_USED */
+    return 1;
+#endif /* !CONSECUTIVE_OBJECT_TYPES_USED */
+}
+
 /***************************************************************************
  * Every time an event is registered, these two items are stored
  * in the appropriate lists.  Registerer can specify an arbitrary
@@ -100,6 +111,8 @@ typedef struct f_and_arg_container_s {
     index_obj_t *my_index;
 
 } f_and_arg_container_t;
+
+#ifndef CONSECUTIVE_OBJECT_TYPES_USED
 
 /* 'object_type' is the key */
 static int
@@ -183,6 +196,8 @@ get_f_and_arg_container (event_manager_t *emp, int create,
     return NULL;
 }
 
+#endif /* CONSECUTIVE_OBJECT_TYPES_USED */
+
 /*
  * given the object type & event type, this function finds the correct
  * and relevant structures that needs to be operated on.
@@ -206,6 +221,9 @@ get_relevant_structures (event_manager_t *emp,
     index_obj_t *idxp;
     f_and_arg_container_t *found;
 
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(idxp);
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(found);
+
     /* initially nothing is known */
     safe_pointer_set(list_returned, NULL);
     safe_pointer_set(container_returned, NULL);
@@ -221,18 +239,38 @@ get_relevant_structures (event_manager_t *emp,
                     &emp->attribute_event_registrants_for_all_objects);
             return 0;
         }
+#ifdef CONSECUTIVE_OBJECT_TYPES_USED
+        if (object_type_within_limits(object_type)) {
+            safe_pointer_set(list_returned,
+                &emp->attribute_event_registrants_for_one_object[object_type]);
+            return 0;
+        }
+        return EINVAL;
+#else
         idxp = &emp->attribute_event_registrants_for_one_object;
+#endif /* CONSECUTIVE_OBJECT_TYPES_USED */
+
     } else if (is_an_object_event(event_type)) {
         if (ALL_OBJECT_TYPES == object_type) {
             safe_pointer_set(list_returned,
                     &emp->object_event_registrants_for_all_objects);
             return 0;
         }
+#ifdef CONSECUTIVE_OBJECT_TYPES_USED
+        if (object_type_within_limits(object_type)) {
+            safe_pointer_set(list_returned,
+                &emp->object_event_registrants_for_one_object[object_type]);
+            return 0;
+        }
+        return EINVAL;
+#else
         idxp = &emp->object_event_registrants_for_one_object;
+#endif /* CONSECUTIVE_OBJECT_TYPES_USED */
     } else {
         return EINVAL;
     }
 
+#ifndef CONSECUTIVE_OBJECT_TYPES_USED
     found = get_f_and_arg_container(emp, create_if_missing,
                 object_type, idxp);
     if (found) {
@@ -244,6 +282,7 @@ get_relevant_structures (event_manager_t *emp,
 
     /* almost all failures are due to lack of memory */
     return ENOMEM;
+#endif /* CONSECUTIVE_OBJECT_TYPES_USED */
 }
 
 static int
@@ -327,6 +366,8 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         ordered_list_delete(list, &fandarg, (void**) &fandargp);
         if (fandargp) destroy_f_and_arg_cb(fandargp, emp);
 
+#ifndef CONSECUTIVE_OBJECT_TYPES_USED
+
         /*
          * if the list was part of a container (specific object type),
          * AND there is no other function & arg pairs left in the list,
@@ -335,6 +376,9 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         if ((list->n <= 0) && contp) {
             destroy_f_and_arg_container(emp, contp);
         }
+
+#endif /* CONSECUTIVE_OBJECT_TYPES_USED */
+
     }
 
     return 0;
@@ -385,12 +429,18 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
 
 /*****************************************************************************/
 
+/*
+ * crash & burn if any of the init functions fail, there is no point
+ * in continuing since it would be meaningless to limp along.
+ */
 PUBLIC int
 event_manager_init (event_manager_t *emp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
-    int failed;
+    int failed, i;
+
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(i);
 
     MEM_MONITOR_SETUP(emp);
     LOCK_SETUP(emp);
@@ -400,45 +450,43 @@ event_manager_init (event_manager_t *emp,
 
     failed = ordered_list_init(&emp->object_event_registrants_for_all_objects, 
             0, compare_f_and_args, emp->mem_mon_p);
-    if (failed) {
-        return failed;
-    }
+    assert(0 == failed);
 
     failed = ordered_list_init(&emp->attribute_event_registrants_for_all_objects,
             0, compare_f_and_args, emp->mem_mon_p);
-    if (failed) {
-        ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
-            NULL, NULL);
-        return failed;
+    assert(0 == failed);
+
+#ifdef CONSECUTIVE_OBJECT_TYPES_USED
+
+    for (i = 0; i < OBJECT_TYPE_SPAN; i++) {
+        failed =
+            ordered_list_init(&emp->object_event_registrants_for_one_object[i],
+                0, compare_f_and_args, emp->mem_mon_p);
+        assert(0 == failed);
     }
+    for (i = 0; i < OBJECT_TYPE_SPAN; i++) {
+        failed =
+            ordered_list_init(&emp->attribute_event_registrants_for_one_object[i],
+                0, compare_f_and_args, emp->mem_mon_p);
+        assert(0 == failed);
+    }
+
+#else
 
     failed = index_obj_init(&emp->object_event_registrants_for_one_object,
             0, compare_f_and_args_containers, 16, 16, emp->mem_mon_p);
-    if (failed) {
-        ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
-            NULL, NULL);
-        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
-            NULL, NULL);
-        return failed;
-    }
-
+    assert(0 == failed);
     failed = index_obj_init(&emp->attribute_event_registrants_for_one_object,
             0, compare_f_and_args_containers, 16, 16, emp->mem_mon_p);
-    if (failed) {
-        ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
-            NULL, NULL);
-        ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
-            NULL, NULL);
-        index_obj_destroy(&emp->object_event_registrants_for_one_object,
-            NULL, NULL);
-        return failed;
-    }
+    assert(0 == failed);
+
+#endif /* !CONSECUTIVE_OBJECT_TYPES_USED */
 
     /* ok we are cleared to use the object now */
     emp->cannot_be_modified = 0;
 
     WRITE_UNLOCK(emp);
-    return failed;
+    return 0;
 }
 
 PUBLIC int
@@ -526,15 +574,34 @@ announce_event (event_manager_t *emp, event_record_t *erp)
 PUBLIC void
 event_manager_destroy (event_manager_t *emp)
 {
+    int i;
+
+    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(i);
+
     WRITE_LOCK(emp);
     ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
         destroy_f_and_arg_cb, NULL);
     ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
         destroy_f_and_arg_cb, NULL);
+
+#ifdef CONSECUTIVE_OBJECT_TYPES_USED
+
+    for (i = 0; i < OBJECT_TYPE_SPAN; i++)
+        ordered_list_destroy(&emp->object_event_registrants_for_one_object[i],
+            destroy_f_and_arg_cb, NULL);
+    for (i = 0; i < OBJECT_TYPE_SPAN; i++)
+        ordered_list_destroy(&emp->attribute_event_registrants_for_one_object[i],
+            destroy_f_and_arg_cb, NULL);
+
+#else
+
     index_obj_destroy(&emp->object_event_registrants_for_one_object,
         destroy_f_and_arg_container, NULL);
     index_obj_destroy(&emp->attribute_event_registrants_for_one_object,
         destroy_f_and_arg_container, NULL);
+
+#endif /* !CONSECUTIVE_OBJECT_TYPES_USED */
+    
     WRITE_UNLOCK(emp);
     LOCK_OBJ_DESTROY(emp);
     memset(emp, 0, sizeof(event_manager_t));
