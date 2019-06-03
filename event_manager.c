@@ -24,7 +24,6 @@
 *******************************************************************************
 ******************************************************************************/
 
-#include <stdio.h>
 #include "event_manager.h"
 
 #ifdef __cplusplus
@@ -385,7 +384,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
 }
 
 static void
-execute_all_callbacks (ordered_list_t *list, event_record_t *erp)
+notify_all_registrants (ordered_list_t *list, event_record_t *erp)
 {
     f_and_arg_t *fandargp;
 
@@ -413,7 +412,7 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
      */
     get_relevant_structures(emp, erp->event_type, ALL_OBJECT_TYPES, 0,
         &list, NULL, NULL);
-    execute_all_callbacks(list, erp);
+    notify_all_registrants(list, erp);
 
     /*
      * Next, notify the event to the registrants who are registered
@@ -421,7 +420,7 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
      */
     get_relevant_structures(emp, erp->event_type, erp->object_type, 0,
         &list, NULL, NULL);
-    execute_all_callbacks(list, erp);
+    notify_all_registrants(list, erp);
 
     /* ok traversal complete, modifications to lists can now happen */
     emp->cannot_be_modified = 0;
