@@ -31,7 +31,7 @@ void notify_event (event_record_t *evrp, void *arg2)
     SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(event);
 
     calls++;
-    return;
+    //return;
 
     if (event & OBJECT_CREATED) {
         printf("child (%d, %d) created for parent (%d, %d)\n",
@@ -103,13 +103,13 @@ int main (int argc, char *argv[])
 
     database_initialize(&db, 1, 1, NULL);
 
-    rc = database_register_for_object_events(&db, ALL_OBJECT_TYPES,
+    rc = database_register_for_object_events(&db, MAX_TYPES/2,
                 notify_event, &db);
     if (rc) {
         fprintf(stderr, "database_register_for_object_events failed: %d\n", rc);
         return rc;
     }
-    rc = database_register_for_attribute_events(&db, ALL_OBJECT_TYPES,
+    rc = database_register_for_attribute_events(&db, MAX_TYPES/2,
                 notify_event, &db);
     if (rc) {
         fprintf(stderr, "database_register_for_attribute_events failed: %d\n", rc);

@@ -110,7 +110,7 @@ extern "C" {
  * as long as the numbers are kept consecutive, it will not occupy as
  * much memory.
  */
-#define CONSECUTIVE_OBJECT_TYPES_USED
+//#define CONSECUTIVE_OBJECT_TYPES_USED
 
 /*
  * These are *ALL* the possible events which can happen
