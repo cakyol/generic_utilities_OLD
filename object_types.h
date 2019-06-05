@@ -53,10 +53,32 @@ extern "C" {
  * Define all your object TYPES here, hopefully as consecutively as possible,
  * starting from 1 and upwards.  Since there are arrays of these defined
  * in the code, it keeps the array sizes small and manageable.
+ * Always define MIN_OBJECT_TYPE & MAX_OBJECT_TYPE since the array bounds
+ * are determined by these values.  DO NOT USE 0 as object type.  It
+ * is special.  Always start from 1.
+ *
+ * If your objects types are consecutive and not too many, define 
+ * CONSECUTIVE_OBJECT_TYPES_USED so that event manager gets a hint 
+ * to work faster.  If however, your object types are all over the
+ * place with very large numbers and not consecutive, then do NOT
+ * define CONSECUTIVE_OBJECT_TYPES_USED.
  */
 #define MIN_OBJECT_TYPE                 1
-#define MAX_OBJECT_TYPE                 64 /* chasnge this as you wish */
+    /*
+     * define all your objects here within these limits
+     */
+#define MAX_OBJECT_TYPE                 4096 /* change this as you wish */
 #define OBJECT_TYPE_SPAN                (MAX_OBJECT_TYPE + 1)
+
+//#define CONSECUTIVE_OBJECT_TYPES_USED
+
+static inline int
+object_type_within_limits (int object_type)
+{
+    return
+        (object_type >= MIN_OBJECT_TYPE) &&
+        (object_type <= MAX_OBJECT_TYPE);
+}
 
 #ifdef __cplusplus
 } // extern C

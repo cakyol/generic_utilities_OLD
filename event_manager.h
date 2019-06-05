@@ -104,15 +104,6 @@ extern "C" {
 #include "object_types.h"
 
 /*
- * Define this if you decide to use object types which are relatively
- * limited in number and consecutively numbered.  Since they will be
- * in an array, this will make the event manager work MUCH faster and
- * as long as the numbers are kept consecutive, it will not occupy as
- * much memory.
- */
-//#define CONSECUTIVE_OBJECT_TYPES_USED
-
-/*
  * These are *ALL* the possible events which can happen
  * These definitions are typically used with the event
  * manager & object manager code.

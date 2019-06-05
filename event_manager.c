@@ -100,16 +100,7 @@ typedef struct f_and_arg_container_s {
 
 } f_and_arg_container_t;
 
-#ifdef CONSECUTIVE_OBJECT_TYPES_USED
-
-static inline int
-object_type_within_limits (int object_type)
-{
-    return
-        (object_type >= MIN_OBJECT_TYPE) && (object_type <= MAX_OBJECT_TYPE);
-}
-
-#else /* !CONSECUTIVE_OBJECT_TYPES_USED */
+#ifndef CONSECUTIVE_OBJECT_TYPES_USED
 
 /* 'object_type' is the key */
 static int
@@ -193,7 +184,7 @@ get_f_and_arg_container (event_manager_t *emp, int create,
     return NULL;
 }
 
-#endif /* !CONSECUTIVE_OBJECT_TYPES_USED */
+#endif /* CONSECUTIVE_OBJECT_TYPES_USED */
 
 /*
  * given the object type & event type, this function finds the correct
