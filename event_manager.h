@@ -185,8 +185,8 @@ typedef struct event_record_s {
      */
     int event_type;
 
-    /* optional: which database this event/command applies to */
-    int database_id;
+    /* optional: which object manager this event/command applies to */
+    int manager_id;
 
     /* object to which the event is directly relevant to */
     int object_type;

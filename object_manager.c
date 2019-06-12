@@ -24,7 +24,7 @@
 *******************************************************************************
 ******************************************************************************/
 
-#include "generic_object_database.h"
+#include "object_manager.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,18 +51,18 @@ extern "C" {
  * dependent on the 'order' of how the objects are created and deleted.
  * Its speed is therefore very undeterministic and can never be guaranteed.
  *
- * Searching data in the database however is the SAME speed whether you
+ * Searching data in the manager however is the SAME speed whether you
  * use the avl trees or the index object.  The determining factor is the
  * frequency of creations/deletion and not the searches.
  *
  * RECOMMENDATION:
  * ----------------
- * If your database is relatively static once it has been created
+ * If your manager is relatively static once it has been created
  * (it is mostly used for lookups rather than frequently being modified),
  * then all 'use_avl_tree*' variables can be set to 0.  This will save
  * a LOT of memory and lookups will be just as fast as an avl tree.
  *
- * However, if your database is dynamic (objects and attributes being
+ * However, if your manager is dynamic (objects and attributes being
  * constantly created & deleted), then usage of avl trees makes sense
  * unless you have very limited memory.
  *
@@ -70,11 +70,11 @@ extern "C" {
  * variables.  In this case you get maximum performance whether you
  * are searching, creating or deleting objects/attributes.
  *
- * If your database is very dynamic AND you do not have sufficient
+ * If your manager is very dynamic AND you do not have sufficient
  * memory, you are out of luck.  In this case, it is better NOT to
  * use the avl variables and suffer with slower performance.
  */
-static int use_avl_tree_for_database_object_index = 1;
+static int use_avl_tree_for_manager_object_index = 1;
 static int use_avl_tree_for_object_children = 1;
 
 #ifndef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
@@ -89,7 +89,7 @@ static void
 object_destroy_callback (void *p1, void *p2);
 
 static int
-database_announce_event (object_database_t *obj_db,
+om_announce_event (object_manager_t *omp,
     int event,
     object_t *obj, object_t *obj_related, 
     int attribute_id, attribute_value_t *related_attribute_value);
@@ -119,7 +119,7 @@ object_is_root (object_t *obj)
 }
 
 static object_t *
-get_object_pointer (object_database_t *obj_db,
+get_object_pointer (object_manager_t *omp,
         int object_type, int object_instance)
 {
     object_t searched;
@@ -127,12 +127,12 @@ get_object_pointer (object_database_t *obj_db,
 
     if (object_type == ROOT_OBJECT_TYPE) {
         return
-            &obj_db->root_object;
+            &omp->root_object;
     }
 
     searched.object_type = object_type;
     searched.object_instance = object_instance;
-    if (0 == table_search(&obj_db->object_index, &searched, &found)) {
+    if (0 == table_search(&omp->object_index, &searched, &found)) {
         return found;
     }
     return NULL;
@@ -147,7 +147,7 @@ get_parent_pointer (object_t *obj)
     }
         
     return
-        get_object_pointer(obj->obj_db,
+        get_object_pointer(obj->omp,
             obj->parent.u.object_id.object_type,
             obj->parent.u.object_id.object_instance);
 }
@@ -178,7 +178,7 @@ get_attribute_instance_pointer (object_t *obj, int attribute_id)
  * during a deletion event.  In a deletion event,
  * only the topmost delete needs to be announced.
  * sub event deletions need not be sent and must be suppressed
- * to cut unnecessary chatter between the databases.
+ * to cut unnecessary chatter between the managers.
  * The purpose of this function is to set the blocked event
  * bits.  Once those are set, those bits MUST stick and
  * perhaps be added with more bits as calls get deeper
@@ -189,19 +189,19 @@ get_attribute_instance_pointer (object_t *obj, int attribute_id)
  * it was not blocked before, it still stays unblocked.
  */
 static int
-allow_event_if_not_already_blocked (object_database_t *obj_db, 
+allow_event_if_not_already_blocked (object_manager_t *omp, 
         int allowed_events)
 {
-    int orig = obj_db->blocked_events;
+    int orig = omp->blocked_events;
 
-    obj_db->blocked_events |= (~allowed_events);
+    omp->blocked_events |= (~allowed_events);
     return orig;
 }
 
 static void
-restore_events (object_database_t *obj_db, int events)
+restore_events (object_manager_t *omp, int events)
 {
-    obj_db->blocked_events = events;
+    omp->blocked_events = events;
 }
 
 /*
@@ -471,7 +471,7 @@ destroy_all_attribute_values_except (attribute_instance_t *aitp,
     if (NULL == aitp) return;
     obj = aitp->object;
 
-    events = allow_event_if_not_already_blocked(obj->obj_db, 
+    events = allow_event_if_not_already_blocked(obj->omp, 
             ATTRIBUTE_VALUE_DELETED);
     
     /* now delete all skipping over the kept one */
@@ -479,14 +479,14 @@ destroy_all_attribute_values_except (attribute_instance_t *aitp,
     while (curr) {
         next = curr->next_attribute_value;
         if (keep != curr) {
-            database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
+            om_announce_event(obj->omp, ATTRIBUTE_VALUE_DELETED, obj,
                 NULL, aitp->attribute_id, curr);
-            MEM_MONITOR_FREE(obj->obj_db, curr);
+            MEM_MONITOR_FREE(obj->omp, curr);
         }
         curr = next;
     }
 
-    restore_events(obj->obj_db, events);
+    restore_events(obj->omp, events);
 
     /*
      * if we kept any, we can now make it the ONLY one in the list,
@@ -524,10 +524,10 @@ attribute_add_simple_value_engine (attribute_instance_t *aitp,
     if (avtp) return avtp;
 
     /* not there, add it */
-    avtp = create_simple_attribute_value(obj->obj_db->mem_mon_p, value);
+    avtp = create_simple_attribute_value(obj->omp->mem_mon_p, value);
     if (avtp) {
         add_attribute_value_to_list(aitp, avtp);
-        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
+        om_announce_event(obj->omp, ATTRIBUTE_VALUE_ADDED, obj,
             NULL, aitp->attribute_id, avtp);
     }
 
@@ -570,9 +570,9 @@ attribute_delete_simple_value (attribute_instance_t *aitp,
     avtp = find_simple_attribute_value(aitp, value, &prev_avtp);
     if (avtp) {
         remove_attribute_value_from_list(aitp, avtp, prev_avtp);
-        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
+        om_announce_event(obj->omp, ATTRIBUTE_VALUE_DELETED, obj,
             NULL, aitp->attribute_id, avtp);
-        MEM_MONITOR_FREE(obj->obj_db, avtp);
+        MEM_MONITOR_FREE(obj->omp, avtp);
         return 0;
     }
     return -1;
@@ -596,11 +596,11 @@ attribute_add_complex_value_engine (attribute_instance_t *aitp,
     if (avtp) return avtp;
 
     /* not there, add it */
-    avtp = create_complex_attribute_value(obj->obj_db->mem_mon_p,
+    avtp = create_complex_attribute_value(obj->omp->mem_mon_p,
                 complex_value_data, complex_value_data_length);
     if (avtp) {
         add_attribute_value_to_list(aitp, avtp);
-        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_ADDED, obj,
+        om_announce_event(obj->omp, ATTRIBUTE_VALUE_ADDED, obj,
             NULL, aitp->attribute_id, avtp);
     }
     return avtp;
@@ -645,9 +645,9 @@ attribute_delete_complex_value (attribute_instance_t *aitp,
                 complex_value_data, complex_value_data_length, &prev_avtp);
     if (avtp) {
         remove_attribute_value_from_list(aitp, avtp, prev_avtp);
-        database_announce_event(obj->obj_db, ATTRIBUTE_VALUE_DELETED, obj,
+        om_announce_event(obj->omp, ATTRIBUTE_VALUE_DELETED, obj,
             NULL, aitp->attribute_id, avtp);
-        MEM_MONITOR_FREE(obj->obj_db, avtp);
+        MEM_MONITOR_FREE(obj->omp, avtp);
         return 0;
     }
     return -1;
@@ -657,11 +657,11 @@ static void
 attribute_instance_destroy (attribute_instance_t *aitp)
 {
     object_t *obj = aitp->object;
-    object_database_t *obj_db = obj->obj_db;
+    object_manager_t *omp = obj->omp;
     void *removed_data;
     int events;
 
-    events = allow_event_if_not_already_blocked(obj_db, 
+    events = allow_event_if_not_already_blocked(omp, 
                 ATTRIBUTE_INSTANCE_DELETED);
 
     /* delete all its values first */
@@ -675,13 +675,13 @@ attribute_instance_destroy (attribute_instance_t *aitp)
 #endif
     assert(aitp == removed_data);
 
-    database_announce_event(obj->obj_db, ATTRIBUTE_INSTANCE_DELETED, 
+    om_announce_event(obj->omp, ATTRIBUTE_INSTANCE_DELETED, 
             obj, NULL, aitp->attribute_id, NULL);
 
     /* ok event is processed, now restore back */
-    restore_events(obj_db, events);
+    restore_events(omp, events);
 
-    MEM_MONITOR_FREE(obj_db, aitp);
+    MEM_MONITOR_FREE(omp, aitp);
 }
 
 static void
@@ -756,7 +756,7 @@ object_destroy_engine (object_t *obj,
 {
     void *removed_obj;
     void **all_its_children;
-    object_database_t *obj_db = obj->obj_db;
+    object_manager_t *omp = obj->omp;
     object_t *parent;
     int child_count, i;
     int events;
@@ -766,7 +766,7 @@ object_destroy_engine (object_t *obj,
      * from being advertised.  That would cause too much noise.
      * Only 'this object' destroyed event is sufficient.
      */ 
-    events = allow_event_if_not_already_blocked(obj_db, 0);
+    events = allow_event_if_not_already_blocked(omp, 0);
 
     parent = get_parent_pointer(obj);
 
@@ -797,13 +797,13 @@ object_destroy_engine (object_t *obj,
      * static and should never be deleted.
      */ 
     if (object_is_root(obj)) {
-        restore_events(obj_db, events);
-        database_announce_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
+        restore_events(omp, events);
+        om_announce_event(omp, OBJECT_DESTROYED, obj, NULL, 0, NULL);
         return;
     }
 
     /* take object out of the main object index */
-    assert(0 == table_remove(&obj_db->object_index, obj, &removed_obj));
+    assert(0 == table_remove(&omp->object_index, obj, &removed_obj));
     assert(removed_obj == obj);
 
     /* free up its index objects */
@@ -817,11 +817,11 @@ object_destroy_engine (object_t *obj,
 #endif
 
     /* finally notify its destruction */
-    restore_events(obj_db, events);
-    database_announce_event(obj_db, OBJECT_DESTROYED, obj, NULL, 0, NULL);
+    restore_events(omp, events);
+    om_announce_event(omp, OBJECT_DESTROYED, obj, NULL, 0, NULL);
 
     /* and blow it away */
-    MEM_MONITOR_FREE(obj_db, obj);
+    MEM_MONITOR_FREE(omp, obj);
 }
 
 static void
@@ -831,7 +831,7 @@ object_destroy_callback (void *p1, void *p2)
 }
 
 static object_t *
-object_create_engine (object_database_t *obj_db,
+object_create_engine (object_manager_t *omp,
         int parent_must_exist,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
@@ -842,22 +842,22 @@ object_create_engine (object_database_t *obj_db,
     /* 
      * Obtain parent pointer.
      *
-     * Note that it IS possible when loading from the database,
+     * Note that it IS possible when loading from the manager,
      * that the parent object has not yet been created.  In that
      * case, simply store the type & instance of the parent rather
      * than a direct pointer to it.  This will get resolved later.
      * This is controlled by 'parent_must_exist'.
      */
-    parent = get_object_pointer(obj_db,
+    parent = get_object_pointer(omp,
                     parent_object_type, parent_object_instance);
     if (parent_must_exist && (NULL == parent)) {
         return NULL;
     }
 
     /* allocate the object & fill in some basics */
-    obj = MEM_MONITOR_ALLOC(obj_db, sizeof(object_t));
+    obj = MEM_MONITOR_ALLOC(omp, sizeof(object_t));
     assert(obj != NULL);
-    obj->obj_db = obj_db;
+    obj->omp = omp;
     if (parent) {
         obj->parent.is_pointer = 1;
         obj->parent.u.object_ptr = parent;
@@ -872,11 +872,11 @@ object_create_engine (object_database_t *obj_db,
     /*
      * if the object already exists simply return that.
      */
-    assert(0 == table_insert(&obj_db->object_index, obj, &exists));
+    assert(0 == table_insert(&omp->object_index, obj, &exists));
     if (exists) {
 
         /* it already exists, we dont need the new one we just created */
-        MEM_MONITOR_FREE(obj_db, obj);
+        MEM_MONITOR_FREE(omp, obj);
 
         return exists;
     }
@@ -887,18 +887,18 @@ object_create_engine (object_database_t *obj_db,
     }
 
     /* initialize the children and attribute indexes */
-    object_indexes_init(obj_db->mem_mon_p, obj);
+    object_indexes_init(omp->mem_mon_p, obj);
 
     /*
      * send out the creation event but only if the parent exists.
      * If it does not, it means we are just loading from the 
-     * database and some parents have not yet been resolved.
-     * In this case, wait now since the 2nd pass of the database
+     * manager and some parents have not yet been resolved.
+     * In this case, wait now since the 2nd pass of the manager
      * parent resolving phase will generate the events as the
      * parent resolving completes.
      */
     if (parent) {
-        database_announce_event(obj_db, OBJECT_CREATED, obj, parent, 0, NULL);
+        om_announce_event(omp, OBJECT_CREATED, obj, parent, 0, NULL);
     }
 
     /* done */
@@ -919,27 +919,27 @@ attribute_instance_add (object_t *obj, int attribute_id)
     }
     
     /* create the new attribute */
-    aitp = MEM_MONITOR_ALLOC(obj->obj_db, sizeof(attribute_instance_t));
+    aitp = MEM_MONITOR_ALLOC(obj->omp, sizeof(attribute_instance_t));
     if (NULL == aitp) return NULL;
 
     /* add it to object */
     aitp->attribute_id = attribute_id;
     if (dynamic_array_insert(&obj->attributes, attribute_id, aitp) != 0) {
-        MEM_MONITOR_FREE(obj->obj_db, aitp);
+        MEM_MONITOR_FREE(obj->omp, aitp);
         return NULL;
     }
 
 #else
 
     /* create the new attribute  */
-    aitp = MEM_MONITOR_ALLOC(obj->obj_db, sizeof(attribute_instance_t));
+    aitp = MEM_MONITOR_ALLOC(obj->omp, sizeof(attribute_instance_t));
     if (NULL == aitp) return NULL;
 
     /* if already there, just free up the new one & return */
     aitp->attribute_id = attribute_id;
     if (table_insert(&obj->attributes, aitp, &found) == 0) {
         if (found) {
-            MEM_MONITOR_FREE(obj->obj_db, aitp);
+            MEM_MONITOR_FREE(obj->omp, aitp);
             return found;
         }
     }
@@ -952,7 +952,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
     aitp->avps = NULL;
 
     /* notify */
-    database_announce_event(obj->obj_db, ATTRIBUTE_INSTANCE_ADDED, 
+    om_announce_event(obj->omp, ATTRIBUTE_INSTANCE_ADDED, 
         obj, NULL, aitp->attribute_id, NULL);
 
     /* done */
@@ -1094,40 +1094,40 @@ __object_get_matching_descendants (object_t *parent,
  */
 
 static void
-get_both_objects (object_database_t *obj_db,
+get_both_objects (object_manager_t *omp,
     event_record_t *evrp,
     object_t **obj, object_t **related_obj)
 {
     if (obj) {
-        *obj = get_object_pointer(obj_db, 
+        *obj = get_object_pointer(omp, 
                     evrp->object_type, evrp->object_instance);
     }
     if (related_obj) {
-        *related_obj = get_object_pointer(obj_db,
+        *related_obj = get_object_pointer(omp,
                             evrp->related_object_type,
                             evrp->related_object_instance);
     }
 }
 
 static int
-process_object_created_event (object_database_t *obj_db,
+process_object_created_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
 
-    obj = object_create_engine(obj_db, 1,
+    obj = object_create_engine(omp, 1,
                 evrp->related_object_type, evrp->related_object_instance,
                 evrp->object_type, evrp->object_instance);
     return obj ? 0 : -1;
 }
 
 static int
-process_object_destroyed_event (object_database_t *obj_db,
+process_object_destroyed_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
 
-    obj = get_object_pointer(obj_db, 
+    obj = get_object_pointer(omp, 
                 evrp->object_type, evrp->object_instance);
     if (obj) {
         object_destroy_engine(obj, 1, 1);
@@ -1136,13 +1136,13 @@ process_object_destroyed_event (object_database_t *obj_db,
 }
 
 static int
-process_attribute_added_event (object_database_t *obj_db,
+process_attribute_added_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
     attribute_instance_t *aitp;
 
-    get_both_objects(obj_db, evrp, &obj, NULL);
+    get_both_objects(omp, evrp, &obj, NULL);
     if (obj) {
         aitp = attribute_instance_add(obj, evrp->attribute_id);
         return aitp ? 0 : -1;
@@ -1151,12 +1151,12 @@ process_attribute_added_event (object_database_t *obj_db,
 }
 
 static int
-process_attribute_deleted_event (object_database_t *obj_db,
+process_attribute_deleted_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
 
-    get_both_objects(obj_db, evrp, &obj, NULL);
+    get_both_objects(omp, evrp, &obj, NULL);
     if (obj) {
         return
             __object_attribute_instance_destroy(obj, evrp->attribute_id);
@@ -1165,12 +1165,12 @@ process_attribute_deleted_event (object_database_t *obj_db,
 }
 
 static int
-process_attribute_value_added_event (object_database_t *obj_db,
+process_attribute_value_added_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
 
-    get_both_objects(obj_db, evrp, &obj, NULL);
+    get_both_objects(omp, evrp, &obj, NULL);
     if (NULL == obj)
         return -1;
     if (evrp->attribute_value_length == 0) {
@@ -1187,12 +1187,12 @@ process_attribute_value_added_event (object_database_t *obj_db,
 }
 
 static int
-process_attribute_value_deleted_event (object_database_t *obj_db,
+process_attribute_value_deleted_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
 
-    get_both_objects(obj_db, evrp, &obj, NULL);
+    get_both_objects(omp, evrp, &obj, NULL);
     if (NULL == obj)
         return -1;
     if (evrp->attribute_value_length == 0) {
@@ -1277,7 +1277,7 @@ read_exact_size (int fd, void *buffer, int size, int can_block)
 }
 
 /*
- * read an event record which arrived from a remote database.
+ * read an event record which arrived from a remote object manager.
  * the space is assumed to be really big so we do not have to worry
  * about limits...
  */
@@ -1300,7 +1300,7 @@ read_event_record (int fd, event_record_t *evrp)
 }
 
 static event_record_t *
-create_event_record (object_database_t *obj_db,
+create_event_record (object_manager_t *omp,
         int event,
         object_t *obj, object_t *obj_related,
         int attribute_id, attribute_value_t *related_attribute_value)
@@ -1330,7 +1330,7 @@ create_event_record (object_database_t *obj_db,
 
     /* set essentials */
     evrp->total_length = size;
-    evrp->database_id = obj_db->database_id;
+    evrp->manager_id = omp->manager_id;
     evrp->event_type = event;
     evrp->attribute_id = attribute_id;
 
@@ -1367,7 +1367,7 @@ create_event_record (object_database_t *obj_db,
 }
 
 static int
-database_announce_event (object_database_t *obj_db,
+om_announce_event (object_manager_t *omp,
     int event,
     object_t *obj, object_t *obj_related, 
     int attribute_id, attribute_value_t *related_attribute_value)
@@ -1378,12 +1378,12 @@ database_announce_event (object_database_t *obj_db,
      */
     event_record_t *evrp;
 
-    evrp = create_event_record(obj_db, event, obj, obj_related,
+    evrp = create_event_record(omp, event, obj, obj_related,
                 attribute_id, related_attribute_value);
     if (NULL == evrp) return ENOMEM;
 
     /* tell event manager to distribute it */
-    announce_event(&obj_db->evm, evrp);
+    announce_event(&omp->evm, evrp);
 
     /* we are done */
     free(evrp);
@@ -1394,24 +1394,24 @@ database_announce_event (object_database_t *obj_db,
 /*************** Public functions *********************************************/
 
 PUBLIC int
-database_initialize (object_database_t *obj_db,
+om_initialize (object_manager_t *omp,
         int make_it_thread_safe,
-        int database_id,
+        int manager_id,
         mem_monitor_t *parent_mem_monitor)
 {
     object_t *root_obj;
 
-    memset(obj_db, 0, sizeof(object_database_t));
+    memset(omp, 0, sizeof(object_manager_t));
 
-    MEM_MONITOR_SETUP(obj_db);
-    LOCK_SETUP(obj_db);
+    MEM_MONITOR_SETUP(omp);
+    LOCK_SETUP(omp);
 
     /* memset to 0 already does this but just making a point */
-    obj_db->processing_remote_event = 0;
-    obj_db->blocked_events = 0;
+    omp->processing_remote_event = 0;
+    omp->blocked_events = 0;
 
-    root_obj = &obj_db->root_object;
-    root_obj->obj_db = obj_db;
+    root_obj = &omp->root_object;
+    root_obj->omp = omp;
 
     root_obj->parent.is_pointer = 1;
     root_obj->parent.u.object_ptr = NULL;
@@ -1419,198 +1419,198 @@ database_initialize (object_database_t *obj_db,
     root_obj->object_type = ROOT_OBJECT_TYPE;
     root_obj->object_instance = ROOT_OBJECT_INSTANCE;
 
-    /* initialize the event manager for this database */
-    assert(0 == event_manager_init(&obj_db->evm, 0, obj_db->mem_mon_p));
+    /* initialize the event manager for this object manager */
+    assert(0 == event_manager_init(&omp->evm, 0, omp->mem_mon_p));
 
     /* initialize object lookup indexes */
-    assert(0 == table_init(&obj_db->object_index,
+    assert(0 == table_init(&omp->object_index,
                     0, 
                     compare_objects,
-                    obj_db->mem_mon_p,
-                    use_avl_tree_for_database_object_index));
+                    omp->mem_mon_p,
+                    use_avl_tree_for_manager_object_index));
 
-    obj_db->database_id = database_id;
+    omp->manager_id = manager_id;
 
     /* initialize root object indexes */
-    object_indexes_init(obj_db->mem_mon_p, root_obj);
+    object_indexes_init(omp->mem_mon_p, root_obj);
 
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
 
     /* done */
     return 0;
 }
 
 PUBLIC int
-object_create (object_database_t *obj_db,
+object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = object_create_engine(obj_db, 1,
+    WRITE_LOCK(omp);
+    obj = object_create_engine(omp, 1,
                 parent_object_type, parent_object_instance,
                 child_object_type, child_object_instance);
     failed = (obj ? 0 : EFAULT);
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_exists (object_database_t *obj_db,
+object_exists (object_manager_t *omp,
         int object_type, int object_instance)
 {
     int failed;
 
-    READ_LOCK(obj_db);
-    failed = (NULL != get_object_pointer(obj_db, object_type, object_instance));
-    READ_UNLOCK(obj_db);
+    READ_LOCK(omp);
+    failed = (NULL != get_object_pointer(omp, object_type, object_instance));
+    READ_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_add (object_database_t *obj_db,
+object_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id)
 {
     int failed;
     object_t *obj;
     attribute_instance_t *aitp;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         aitp = attribute_instance_add(obj, attribute_id);
         failed = (aitp ? 0 : ENOMEM);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_add_simple_value (object_database_t *obj_db,
+object_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_add_simple_value(obj,
                     attribute_id, simple_value);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_set_simple_value (object_database_t *obj_db,
+object_attribute_set_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_set_simple_value(obj,
                     attribute_id, simple_value);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_delete_simple_value (object_database_t *obj_db,
+object_attribute_delete_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_delete_simple_value(obj,
                     attribute_id, simple_value);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_add_complex_value (object_database_t *obj_db,
+object_attribute_add_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_add_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_set_complex_value (object_database_t *obj_db,
+object_attribute_set_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_set_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_delete_complex_value (object_database_t *obj_db,
+object_attribute_delete_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_delete_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_attribute_get_value (object_database_t *obj_db, 
+object_attribute_get_value (object_manager_t *omp, 
     int object_type, int object_instance,
     int attribute_id, int nth,
     attribute_value_t **cloned_avtp)
@@ -1620,22 +1620,22 @@ object_attribute_get_value (object_database_t *obj_db,
     attribute_value_t *avtp;
     int i;
 
-    READ_LOCK(obj_db);
+    READ_LOCK(omp);
 
     /* assume failure */
     *cloned_avtp = NULL;
 
     /* get object */
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
-        READ_UNLOCK(obj_db);
+        READ_UNLOCK(omp);
         return ENODATA;
     }
 
     /* get attribute */
     aitp = get_attribute_instance_pointer(obj, attribute_id);
     if (NULL == aitp) {
-        READ_UNLOCK(obj_db);
+        READ_UNLOCK(omp);
         return ENODATA;
     }
 
@@ -1653,63 +1653,63 @@ object_attribute_get_value (object_database_t *obj_db,
     }
     if (avtp) {
         *cloned_avtp = clone_attribute_value(avtp);
-        READ_UNLOCK(obj_db);
+        READ_UNLOCK(omp);
         return 0;
     }
 
-    READ_UNLOCK(obj_db);
+    READ_UNLOCK(omp);
     return EFAULT;
 }
 
 PUBLIC int
-object_attribute_get_all_values (object_database_t *obj_db,
+object_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[])
 {
-    READ_LOCK(obj_db);
-    READ_UNLOCK(obj_db);
+    READ_LOCK(omp);
+    READ_UNLOCK(omp);
     return 0;
 }
 
 PUBLIC int
-object_attribute_destroy (object_database_t *obj_db,
+object_attribute_destroy (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_instance_destroy(obj, attribute_id);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-object_destroy (object_database_t *obj_db,
+object_destroy (object_manager_t *omp,
         int object_type, int object_instance)
 {
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(obj_db);
-    obj = get_object_pointer(obj_db, object_type, object_instance);
+    WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = 0;
         object_destroy_engine(obj, 1, 1);
     }
-    WRITE_UNLOCK(obj_db);
+    WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC object_representation_t *
-object_get_matching_children (object_database_t *obj_db,
+object_get_matching_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
@@ -1717,10 +1717,10 @@ object_get_matching_children (object_database_t *obj_db,
     object_t *root;
     object_representation_t *found_objects;
 
-    READ_LOCK(obj_db);
+    READ_LOCK(omp);
     *returned_count = 0;
     found_objects = NULL;
-    root = get_object_pointer(obj_db,
+    root = get_object_pointer(omp,
                 parent_object_type, parent_object_instance);
     if (root) {
         size = table_member_count(&root->children);
@@ -1731,23 +1731,23 @@ object_get_matching_children (object_database_t *obj_db,
             *returned_count = size;
         }
     }
-    READ_UNLOCK(obj_db);
+    READ_UNLOCK(omp);
     return found_objects;
 }
 
 PUBLIC object_representation_t *
-object_get_children (object_database_t *obj_db,
+object_get_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count)
 {
     return
-        object_get_matching_children(obj_db,
+        object_get_matching_children(omp,
             parent_object_type, parent_object_instance,
             ALL_OBJECT_TYPES, returned_count);
 }
 
 PUBLIC object_representation_t *
-object_get_matching_descendants (object_database_t *obj_db,
+object_get_matching_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
@@ -1755,18 +1755,18 @@ object_get_matching_descendants (object_database_t *obj_db,
     object_t *root;
     object_representation_t *found_objects;
 
-    READ_LOCK(obj_db);
+    READ_LOCK(omp);
     *returned_count = 0;
     found_objects = NULL;
-    root = get_object_pointer(obj_db,
+    root = get_object_pointer(omp,
                 parent_object_type, parent_object_instance);
     if (root) {
 
         /*
          * We cannot guess in advance how many of these will be so
-         * allocate the full size of the database, just in case.
+         * allocate the full size of the object manager, just in case.
          */
-        size = table_member_count(&obj_db->object_index);
+        size = table_member_count(&omp->object_index);
 
         found_objects = malloc((size + 1) * sizeof(object_representation_t));
         if (found_objects) {
@@ -1775,54 +1775,54 @@ object_get_matching_descendants (object_database_t *obj_db,
             *returned_count = size;
         }
     }
-    READ_UNLOCK(obj_db);
+    READ_UNLOCK(omp);
     return found_objects;
 }
 
 PUBLIC object_representation_t *
-object_get_descendants (object_database_t *obj_db,
+object_get_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count)
 {
     return
         object_get_matching_descendants
-            (obj_db, parent_object_type, parent_object_instance,
+            (omp, parent_object_type, parent_object_instance,
              ALL_OBJECT_TYPES, returned_count);
 }
 
 PUBLIC void
-database_destroy (object_database_t *obj_db)
+om_destroy (object_manager_t *omp)
 {
-    WRITE_LOCK(obj_db);
+    WRITE_LOCK(omp);
 
-    event_manager_destroy(&obj_db->evm);
+    event_manager_destroy(&omp->evm);
 
     /*
      * we cannot unlock since the lock
      * will also have been destroyed.
      *
-     * WRITE_UNLOCK(obj_db);
+     * WRITE_UNLOCK(omp);
      *
      */
 }
 
 /******************************************************************************
  *
- * Reading and writing the database from/to a file for permanency.
+ * Reading and writing the object manager from/to a file for permanency.
  */
 
 /*
- * acronyms used in the database file
+ * acronyms used in the object manager file
  */
 static char *object_acronym = "OBJ";
 static char *attribute_id_acronym = "AID";
 static char *complex_attribute_value_acronym = "CAV";
 static char *simple_attribute_value_acronym = "SAV";
 
-/*************** Writing the database to a file functions *********************/
+/*************** Writing the object manager to a file functions *********************/
 
 static int
-database_write_one_attribute_value (FILE *fp, attribute_value_t *avtp)
+om_write_one_attribute_value (FILE *fp, attribute_value_t *avtp)
 {
     int i;
     byte *bptr;
@@ -1847,7 +1847,7 @@ database_write_one_attribute_value (FILE *fp, attribute_value_t *avtp)
 }
 
 static int
-database_write_one_attribute (FILE *fp, void *vattr)
+om_write_one_attribute (FILE *fp, void *vattr)
 {
     attribute_instance_t *attr = (attribute_instance_t*) vattr;
     attribute_value_t *avtp;
@@ -1855,14 +1855,14 @@ database_write_one_attribute (FILE *fp, void *vattr)
     fprintf(fp, "\n  %s %d ", attribute_id_acronym, attr->attribute_id);
     avtp = attr->avps;
     while (avtp) {
-        database_write_one_attribute_value(fp, avtp);
+        om_write_one_attribute_value(fp, avtp);
         avtp = avtp->next_attribute_value;
     }
     return 0;
 }
 
 static int
-database_write_one_object_tfn (void *utility_object, void *utility_node,
+om_write_one_object_tfn (void *utility_object, void *utility_node,
         void *v_object, void *v_FILE, 
         void *p1, void *p2, void *p3)
 {
@@ -1887,7 +1887,7 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
 #endif
     if (attributes && attr_count) {
         while (--attr_count >= 0) {
-            database_write_one_attribute(fp, attributes[attr_count]);
+            om_write_one_attribute(fp, attributes[attr_count]);
         }
         free(attributes);
     }
@@ -1896,11 +1896,11 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
 }
 
 /*
- * Write the database out to disk.
+ * Write the object manager out to disk.
  *
  * THIS IS *** VERY *** IMPORTANT SO UNDERSTAND IT WELL.
  *
- * We have to ensure that the database is written out in a way such
+ * We have to ensure that the object manager is written out in a way such
  * that when we recreate it reading back from the file, the parent 
  * of an object to be created must already have been written out 
  * earlier such that when we create an object, its parent
@@ -1908,22 +1908,22 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
  * able to do that, we have to start recursively writing from root
  * object down, first writing out the object and its children later.
  * This way since children are written out later, the parent object has
- * already been created.  So, writing the database to a file involves
+ * already been created.  So, writing the object manager to a file involves
  * writing the current object out, followed recusively writing out
  * all its children.
  *
- * This is fine and dandy with ONE HUGE PROBLEM.  For very deep databases,
+ * This is fine and dandy with ONE HUGE PROBLEM.  For very deep object managers,
  * we run out of recursion stack, no matter how hard I tried to extend 
  * the stack and we almost always crash.  
  *
  * So, unfortunately, this method of recursively writing objects followed
  * after by their children, although correct, cannot be used.
  *
- * Here is the alternative.  The 'object_index' in the database holds 
+ * Here is the alternative.  The 'object_index' in the object manager holds 
  * ALL the objects but in random order (not neatly parent followed 
  * by children as we want).  But since our tree traversal uses morris
  * traversals, it does not use any extra stack or queue or any kind
- * of memory.  This makes it PERFECT for extremely large databases
+ * of memory.  This makes it PERFECT for extremely large object managers
  * since we never run out of stack space.  But now, we introduce the
  * problem where we may have to create an object without having yet 
  * created its parent.  So, how do we solve this problem.  This actually
@@ -1942,39 +1942,39 @@ database_write_one_object_tfn (void *utility_object, void *utility_node,
  * will have their parents represented as 'pointer' values.
  *
  * So, in the absolute worst case, we will make 2n object processing 
- * if there are n elements in the database.
+ * if there are n elements in the object manager.
  * Since both these passes use iterative methods (morris traverse),
- * we will never run out of stack, even for very large databases.
+ * we will never run out of stack, even for very large object managers.
  * But we will consume more time.  Increasing execution time is a valid
  * solution but crashing due to stack overflow is not.
  */
 
 PUBLIC int
-database_store (object_database_t *obj_db)
+om_store (object_manager_t *omp)
 {
     FILE *fp;
-    char database_name [TYPICAL_NAME_SIZE];
-    char backup_db_name [TYPICAL_NAME_SIZE];
-    char backup_db_tmp [TYPICAL_NAME_SIZE];
+    char om_name [TYPICAL_NAME_SIZE];
+    char backup_om_name [TYPICAL_NAME_SIZE];
+    char backup_om_tmp [TYPICAL_NAME_SIZE];
     void *unused = NULL;    // shut the compiler up
 
-    READ_LOCK(obj_db);
+    READ_LOCK(omp);
 
-    sprintf(database_name, "database_%d", obj_db->database_id);
-    sprintf(backup_db_name, "%s_BACKUP", database_name);
-    sprintf(backup_db_tmp, "%s_tmp", backup_db_name);
+    sprintf(om_name, "om_%d", omp->manager_id);
+    sprintf(backup_om_name, "%s_BACKUP", om_name);
+    sprintf(backup_om_tmp, "%s_tmp", backup_om_name);
 
     /* does not matter if these fail */
-    unlink(backup_db_tmp);
-    rename(backup_db_name, backup_db_tmp);
-    rename(database_name, backup_db_name);
+    unlink(backup_om_tmp);
+    rename(backup_om_name, backup_om_tmp);
+    rename(om_name, backup_om_name);
 
-    fp = fopen(database_name, "w");
+    fp = fopen(om_name, "w");
     if (NULL == fp) {
-        READ_UNLOCK(obj_db);
+        READ_UNLOCK(omp);
         return -1;
     }
-    table_traverse(&obj_db->object_index, database_write_one_object_tfn,
+    table_traverse(&omp->object_index, om_write_one_object_tfn,
         fp, unused, unused, unused);
 
     /* close up the file */
@@ -1983,11 +1983,11 @@ database_store (object_database_t *obj_db)
     fclose(fp);
 
 #if 0 // error
-    unlink(database_name);
-    rename(backup_db_name, database_name);
-    unlink(backup_db_tmp);
+    unlink(om_name);
+    rename(backup_om_name, om_name);
+    unlink(backup_om_tmp);
 #endif
-    READ_UNLOCK(obj_db);
+    READ_UNLOCK(omp);
 
     return 0;
 }
@@ -1995,7 +1995,7 @@ database_store (object_database_t *obj_db)
 /*************** Reading back from a file functions ***************************/
 
 static int
-load_object (object_database_t *obj_db, FILE *fp,
+load_object (object_manager_t *omp, FILE *fp,
         object_t **objp)
 {
     int count;
@@ -2005,14 +2005,14 @@ load_object (object_database_t *obj_db, FILE *fp,
                 &parent_type, &parent_instance, 
                 &object_type, &object_instance);
     if (4 != count) return -1;
-    *objp = object_create_engine(obj_db, 0,
+    *objp = object_create_engine(omp, 0,
                 parent_type, parent_instance,
                 object_type, object_instance);
     return *objp ? 0 : -1;
 }
 
 static int
-load_attribute_id (object_database_t *obj_db, FILE *fp,
+load_attribute_id (object_manager_t *omp, FILE *fp,
     object_t *obj, attribute_instance_t **aitpp)
 {
     int aid;
@@ -2030,7 +2030,7 @@ load_attribute_id (object_database_t *obj_db, FILE *fp,
 }
 
 static int
-load_simple_attribute_value (object_database_t *obj_db, FILE *fp,
+load_simple_attribute_value (object_manager_t *omp, FILE *fp,
     attribute_instance_t *aitp)
 {
     long long int value;
@@ -2046,7 +2046,7 @@ load_simple_attribute_value (object_database_t *obj_db, FILE *fp,
 }
 
 static int
-load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
+load_complex_attribute_value (object_manager_t *omp, FILE *fp,
     attribute_instance_t *aitp)
 {
     byte *value;
@@ -2087,16 +2087,16 @@ load_complex_attribute_value (object_database_t *obj_db, FILE *fp,
  */
 static int
 resolve_parent_tfn (void *utility_object, void *utility_node,
-    void *user_data, void *v_obj_db,
+    void *user_data, void *v_omp,
     void *v_1, void *v_2, void *v_3)
 {
-    object_database_t *obj_db;
+    object_manager_t *omp;
     object_t *obj, *parent;
 
-    obj_db = (object_database_t*) v_obj_db;
+    omp = (object_manager_t*) v_omp;
     obj = (object_t*) user_data;
     if (!(obj->parent.is_pointer)) {
-        parent = get_object_pointer(obj_db,
+        parent = get_object_pointer(omp,
                     obj->parent.u.object_id.object_type,
                     obj->parent.u.object_id.object_instance);
         assert(NULL != parent);
@@ -2107,19 +2107,19 @@ resolve_parent_tfn (void *utility_object, void *utility_node,
 }
 
 static int
-database_resolve_all_parents (object_database_t *obj_db)
+om_resolve_all_parents (object_manager_t *omp)
 {
     void *unused = 0;
 
-    table_traverse(&obj_db->object_index, resolve_parent_tfn, obj_db, 
+    table_traverse(&omp->object_index, resolve_parent_tfn, omp, 
         unused, unused, unused);
     return 0;
 }
 
 PUBLIC int
-database_load (int database_id, object_database_t *obj_db)
+om_load (int manager_id, object_manager_t *omp)
 {
-    char database_name [TYPICAL_NAME_SIZE];
+    char om_name [TYPICAL_NAME_SIZE];
     FILE *fp;
     int failed, count;
     object_t *obj, *parent;
@@ -2127,12 +2127,12 @@ database_load (int database_id, object_database_t *obj_db)
     attribute_value_t *avtp;
     char string [TYPICAL_NAME_SIZE];
 
-    sprintf(database_name, "database_%d", database_id);
-    fp = fopen(database_name, "r");
+    sprintf(om_name, "om_%d", manager_id);
+    fp = fopen(om_name, "r");
     if (NULL == fp) return -1;
 
-    //database_destroy(obj_db);
-    if (database_initialize(obj_db, 1, database_id, NULL) != 0) {
+    //om_destroy(omp);
+    if (om_initialize(omp, 1, manager_id, NULL) != 0) {
         return -1;
     }
 
@@ -2147,22 +2147,22 @@ database_load (int database_id, object_database_t *obj_db)
         if (count != 1) continue;
 
         if (strcmp(string, object_acronym) == 0) {
-            if (load_object(obj_db, fp, &obj) != 0) {
+            if (load_object(omp, fp, &obj) != 0) {
                 failed = -1;
                 break;
             }
         } else if (strcmp(string, attribute_id_acronym) == 0) {
-            if (load_attribute_id(obj_db, fp, obj, &aitp) != 0) {
+            if (load_attribute_id(omp, fp, obj, &aitp) != 0) {
                 failed = -1;
                 break;
             }
         } else if (strcmp(string, simple_attribute_value_acronym) == 0) {
-            if (load_simple_attribute_value(obj_db, fp, aitp) != 0) {
+            if (load_simple_attribute_value(omp, fp, aitp) != 0) {
                 failed = -1;
                 break;
             }
         } else if (strcmp(string, complex_attribute_value_acronym) == 0) {
-            if (load_complex_attribute_value(obj_db, fp, aitp) != 0) {
+            if (load_complex_attribute_value(omp, fp, aitp) != 0) {
                 failed = -1;
                 break;
             }
@@ -2171,12 +2171,12 @@ database_load (int database_id, object_database_t *obj_db)
     fclose(fp);
 
     /*
-     * now perform a second pass over the database 
+     * now perform a second pass over the object manager 
      * to resolve all un-resolved parent pointers
      */
     if (0 == failed) {
         return
-            database_resolve_all_parents(obj_db);
+            om_resolve_all_parents(omp);
     }
 
     return failed;

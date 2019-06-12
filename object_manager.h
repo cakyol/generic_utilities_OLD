@@ -32,7 +32,7 @@
 **
 ** @@@@@ GENERIC OBJECT DATABASE
 **
-**      This is a VERY fast and a VERY flexible hierarchical object database.
+**      This is a VERY fast and a VERY flexible hierarchical object manager.
 **
 **      Almost every data structure is either an avl tree or a binary
 **      index object, making it very efficient.
@@ -51,8 +51,8 @@
 **
 **      An object is identified distinctly by its type & instance and hence
 **      there can be only ONE instance of an object of the same type in one
-**      database.  All object types & instances MUST be > 0.  Values <= 0 are
-**      resefaileded and should not be used.
+**      manager.  All object types & instances MUST be > 0.  Values <= 0 are
+**      reserved and should not be used.
 **
 **      Conversely, an attribute is also distinctly identified by an integer
 **      of value > 0.  Do not use attribute ids of <= 0.
@@ -87,8 +87,8 @@
 *******************************************************************************
 ******************************************************************************/
 
-#ifndef __GENERIC_OBJECT_DATABASE_H__
-#define __GENERIC_OBJECT_DATABASE_H__
+#ifndef __OBJECT_MANAGER_H__
+#define __OBJECT_MANAGER_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -120,7 +120,7 @@ typedef struct attribute_instance_s attribute_instance_t;
 typedef struct object_identifier_s object_identifier_t;
 typedef struct object_representation_s object_representation_t;
 typedef struct object_s object_t;
-typedef struct object_database_s object_database_t;
+typedef struct object_manager_s object_manager_t;
 
 /******************************************************************************
  *
@@ -216,12 +216,12 @@ struct object_representation_s {
 
 struct object_s {
 
-    /* which database this object belongs to */
-    object_database_t *obj_db;
+    /* which object manager this object belongs to */
+    object_manager_t *omp;
 
     /*
      * Unique identification of this object.  This combination is
-     * always unique per database and distinctly identifies an object.
+     * always unique per object manager and distinctly identifies an object.
      * This combination is always the unique 'key'.
      */ 
     int object_type;
@@ -247,50 +247,50 @@ struct object_s {
 
 /******************************************************************************
  *
- * database related structures
+ * object manager related structures
  *
  */
 
-struct object_database_s {
+struct object_manager_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
-    /* unique integer for this database */
-    int database_id;
+    /* unique integer for this manager */
+    int manager_id;
 
-    /* event manager for this database */
+    /* event manager for this object manager */
     event_manager_t evm;
 
     /*
      * Objects are always uniquely indexed by 'object_type' & 
      * 'object_instance'.  There can be only ONE object of
-     * this unique combination in every database.
+     * this unique combination in every manager.
      */
     table_t object_index;
 
     /*
      * the root object; this is special, can NOT be deleted
      * This is used to store all the objects (children) of 
-     * the database.
+     * the manager.
      */
     object_t root_object;
 
     /*
-     * There are two reasons for database changes.  Ones produced locally
+     * There are two reasons for manager changes.  Ones produced locally
      * by direct function calls from the application itself, or ones that
-     * happen because of processing events arriving from remote databases
+     * happen because of processing events arriving from remote managers
      * to synchronise them all.
      *
-     * In the case of local changes, this database must send the change
-     * to all other databases so that they can be kept in sync.
+     * In the case of local changes, this manager must send the change
+     * to all other object managers so that they can be kept in sync.
      *
-     * If on the other hand, an event was received from another database,
-     * after syncing this database to it, the event must be locally
+     * If on the other hand, an event was received from another manager,
+     * after syncing this object manager to it, the event must be locally
      * advertised to the registered local event handler.
      *
      * When either case is happening, the other case must not be executed
-     * or the database will start spinning and chase its own tail 
+     * or the object manager will start spinning and chase its own tail 
      * continuously.
      *
      * This variable controls this situation.
@@ -304,101 +304,101 @@ struct object_database_s {
 /************* User functions ************************************************/
 
 extern int
-database_initialize (object_database_t *obj_db,
+om_initialize (object_manager_t *omp,
         int make_it_thread_safe,
-        int db_id,
+        int manager_id,
         mem_monitor_t *parent_mem_monitor);
 
 static inline int
-database_register_for_object_events (object_database_t *obj_db,
+om_register_for_object_events (object_manager_t *omp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
     return
-        register_for_object_events(&obj_db->evm, object_type, ehfp, extra_arg);
+        register_for_object_events(&omp->evm, object_type, ehfp, extra_arg);
 }
 
 static inline void
-database_un_register_from_object_events (object_database_t *obj_db,
+om_un_register_from_object_events (object_manager_t *omp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
-    un_register_from_object_events(&obj_db->evm, object_type, ehfp, extra_arg);
+    un_register_from_object_events(&omp->evm, object_type, ehfp, extra_arg);
 }
 
 static inline int
-database_register_for_attribute_events (object_database_t *obj_db,
+om_register_for_attribute_events (object_manager_t *omp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
     return
-        register_for_attribute_events(&obj_db->evm, object_type, ehfp, extra_arg);
+        register_for_attribute_events(&omp->evm, object_type, ehfp, extra_arg);
 }
 
 static inline void
-database_un_register_from_attribute_events (object_database_t *obj_db,
+om_un_register_from_attribute_events (object_manager_t *omp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
-    un_register_from_attribute_events(&obj_db->evm, object_type, ehfp, extra_arg);
+    un_register_from_attribute_events(&omp->evm, object_type, ehfp, extra_arg);
 }
 
 extern int
-object_create (object_database_t *obj_db,
+object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance);
 
 extern int
-object_exists (object_database_t *obj_db,
+object_exists (object_manager_t *omp,
         int object_type, int object_instance);
 
 extern int
-object_attribute_add (object_database_t *obj_db,
+object_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 extern int
-object_attribute_add_simple_value (object_database_t *obj_db,
+object_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
 extern int
-object_attribute_set_simple_value (object_database_t *obj_db,
+object_attribute_set_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
 extern int
-object_attribute_delete_simple_value (object_database_t *obj_db,
+object_attribute_delete_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
 extern int
-object_attribute_add_complex_value (object_database_t *obj_db,
+object_attribute_add_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-object_attribute_set_complex_value (object_database_t *obj_db,
+object_attribute_set_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-object_attribute_delete_complex_value (object_database_t *obj_db,
+object_attribute_delete_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-object_attribute_get_value (object_database_t *obj_db,
+object_attribute_get_value (object_manager_t *omp,
         int object_type, int object_instance, 
         int attribute_id, int nth,
         attribute_value_t **cloned_attribute_value);
 
 extern int
-object_attribute_get_all_values (object_database_t *obj_db,
+object_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[]);
 
 extern int
-object_attribute_destroy (object_database_t *obj_db,
+object_attribute_destroy (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 /*
@@ -407,7 +407,7 @@ object_attribute_destroy (object_database_t *obj_db,
  * Returns in the form of object identification (type, instance).
  */
 extern object_representation_t *
-object_get_matching_children (object_database_t *obj_db,
+object_get_matching_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count);
 
@@ -416,7 +416,7 @@ object_get_matching_children (object_database_t *obj_db,
  * Returns in the form of object identification (type, instance).
  */
 extern object_representation_t *
-object_get_children (object_database_t *obj_db,
+object_get_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count);
 
@@ -427,7 +427,7 @@ object_get_children (object_database_t *obj_db,
  * Returns in the form of object pointer.
  */
 extern object_representation_t *
-object_get_matching_descendants (object_database_t *obj_db,
+object_get_matching_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count);
 
@@ -438,32 +438,32 @@ object_get_matching_descendants (object_database_t *obj_db,
  * Returns in the form of object pointer.
  */
 extern object_representation_t *
-object_get_descendants (object_database_t *obj_db,
+object_get_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count);
 
 extern int
-object_destroy (object_database_t *obj_db,
+object_destroy (object_manager_t *omp,
         int object_type, int object_instance);
 
 static inline int
-database_object_count (object_database_t *obj_db)
-{ return table_member_count(&obj_db->object_index); }
+om_object_count (object_manager_t *omp)
+{ return table_member_count(&omp->object_index); }
 
 /******************************************************************************
  *
- *  Database reading & writing into a file.
+ *  Object manager reading & writing into a file.
  *
- *  The database in a file conforms to the below format:
+ *  The object manager in a file conforms to the below format:
  *
- *  - The filename is formed by concatanating "database_" & id number,
- *    such as "database_29".
+ *  - The filename is formed by concatanating "om_" & id number,
+ *    such as "om_29".
  *
  *  - One or more object records where each one is an object,
  *    its parent and all its attributes and attribute values.
  *
  *  OPTIONAL
- *  - Last entry is a checksum.  This stops the database file from being
+ *  - Last entry is a checksum.  This stops the object manager file from being
  *    hand modified.
  *
  *  Everything is in readable text.  All numbers are in decimal.
@@ -492,24 +492,24 @@ database_object_count (object_database_t *obj_db)
  */
 
 /*
- * Writes out the database to a file.
+ * Writes out the object manager to a file.
  */
 extern int
-database_store (object_database_t *obj_db);
+om_store (object_manager_t *omp);
 
 /*
- * reads a database from a file
+ * reads a object manager from a file
  */
 extern int
-database_load (int database_id, object_database_t *obj_db);
+om_load (int manager_id, object_manager_t *omp);
 
 extern void
-database_destroy (object_database_t *obj_db);
+om_destroy (object_manager_t *omp);
 
 #ifdef __cplusplus
 } /* extern C */
 #endif 
 
-#endif /* __GENERIC_OBJECT_DATABASE_H__ */
+#endif /* __OBJECT_MANAGER_H__ */
 
 

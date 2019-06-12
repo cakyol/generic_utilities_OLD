@@ -1,6 +1,6 @@
 
 #include "timer_object.h"
-#include "generic_object_database.h"
+#include "object_manager.h"
 
 // #define BY_NAME
 
@@ -9,7 +9,7 @@
 #define ITER                    4
 #define MAX_AV_COUNT            10
 
-object_database_t db;
+object_manager_t db;
 timer_obj_t timr;
 
 int main (int argc, char *argv[])
@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
     unsigned long long int bytes_used;
     double megabytes_used;
 
-    database_initialize(&db, 1, 1, NULL);
+    om_initialize(&db, 1, 1, NULL);
 
     /* create objects */
     count = 0;
@@ -45,15 +45,15 @@ int main (int argc, char *argv[])
     printf("\n");
 
     OBJECT_MEMORY_USAGE(&db, bytes_used, megabytes_used);
-    num_elements = database_object_count(&db);
-    printf("database has %d elements (%llu bytes %f Megabytes)\n",
+    num_elements = om_object_count(&db);
+    printf("object manager has %d elements (%llu bytes %f Megabytes)\n",
             num_elements, bytes_used, megabytes_used);
     printf("   approx %d bytes per element\n", (int) (bytes_used/num_elements));
 
-    printf("now writing database to disk ... ");
+    printf("now writing object manager to disk ... ");
     fflush(stdout);
     fflush(stdout);
-    database_store(&db);
+    om_store(&db);
     printf("done\n");
     fflush(stdout);
     fflush(stdout);

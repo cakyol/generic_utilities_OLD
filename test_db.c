@@ -1,5 +1,5 @@
 
-#include "generic_object_database.h"
+#include "object_manager.h"
 #include <sys/resource.h>
 
 #define MAX_TYPES               3000
@@ -23,7 +23,7 @@ char *attribute_value_string (event_record_t *evrp)
 
 void notify_event (event_record_t *evrp, void *arg2)
 {
-    object_database_t *dbp = (object_database_t*) arg2;
+    object_manager_t *dbp = (object_manager_t*) arg2;
     int event = evrp->event_type;
 
     SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(evrp);
@@ -70,7 +70,7 @@ void notify_event (event_record_t *evrp, void *arg2)
     printf("UNKNOWN EVENT TYPE %d\n", event);
 }
 
-void add_del_attributes (object_database_t *obj_db, int type, int instance)
+void add_del_attributes (object_manager_t *omp, int type, int instance)
 {
     int i, iter, count;
     char complex_value[50];
@@ -81,38 +81,38 @@ void add_del_attributes (object_database_t *obj_db, int type, int instance)
     for (iter = 0; iter < ITER; iter++) {
         for (i = MAX_ATTRS; i > 1; i--) {
             for (av = 0; av < MAX_AV_COUNT; av++) {
-                object_attribute_add_simple_value(obj_db, type, instance, i, av);
+                object_attribute_add_simple_value(omp, type, instance, i, av);
                 sprintf(complex_value, "cav %d", av);
-                object_attribute_add_complex_value(obj_db, type, instance, i,
+                object_attribute_add_complex_value(omp, type, instance, i,
                         (byte*) complex_value, strlen(complex_value) + 1);
                 count++;
             }
-            object_attribute_destroy(obj_db, type, instance, i);
+            object_attribute_destroy(omp, type, instance, i);
         }
     }
 }
 
 int main (int argc, char *argv[])
 {
-    object_database_t db;
+    object_manager_t db;
     int parent_type, parent_instance;
     int child_type, child_instance;
     int rc, count;
 
     printf("size of one object is %ld bytes\n", sizeof(object_t));
 
-    database_initialize(&db, 1, 1, NULL);
+    om_initialize(&db, 1, 1, NULL);
 
-    rc = database_register_for_object_events(&db, MAX_TYPES/2,
+    rc = om_register_for_object_events(&db, MAX_TYPES/2,
                 notify_event, &db);
     if (rc) {
-        fprintf(stderr, "database_register_for_object_events failed: %d\n", rc);
+        fprintf(stderr, "om_register_for_object_events failed: %d\n", rc);
         return rc;
     }
-    rc = database_register_for_attribute_events(&db, MAX_TYPES/2,
+    rc = om_register_for_attribute_events(&db, MAX_TYPES/2,
                 notify_event, &db);
     if (rc) {
-        fprintf(stderr, "database_register_for_attribute_events failed: %d\n", rc);
+        fprintf(stderr, "om_register_for_attribute_events failed: %d\n", rc);
         return rc;
     }
 
@@ -151,7 +151,7 @@ int main (int argc, char *argv[])
     printf("now writing to file ... ");
     fflush(stdout);
     fflush(stdout);
-    database_store(&db);
+    om_store(&db);
     printf("done\n");
     fflush(stdout);
     fflush(stdout);

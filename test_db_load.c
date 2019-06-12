@@ -1,7 +1,7 @@
 
-#include "generic_object_database.h"
+#include "object_manager.h"
 
-object_database_t db;
+object_manager_t db;
 
 int main (int argc, char *argv[])
 {
@@ -9,12 +9,12 @@ int main (int argc, char *argv[])
     long long int bsize;
     double dsize;
 
-    printf("loading database .. ");
+    printf("loading object manager .. ");
     fflush(stdout);
     fflush(stdout);
-    failed = database_load(1, &db);
+    failed = om_load(1, &db);
     if (0 == failed) {
-        printf("done, database has %d objects\n",
+        printf("done, object manager has %d objects\n",
             table_member_count(&db.object_index));
     } else {
         fprintf(stderr, "FAILED\n");

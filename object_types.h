@@ -38,8 +38,9 @@ extern "C" {
  * objects.  User objects should always have type & instance values 
  * of greater than 0.
  *
- * Keeping object numbers consecutive helps in saving memory when
- * using dynamic arrays.  
+ * Keeping object types starting from 1 and making them consecutive
+ * helps in saving memory when using dynamic arrays.  Unless absolutely
+ * necessary this is a very good rule to follow.
  *
  * Note that these values also mean 'all' types and instances for 
  * certain contexts.
@@ -50,22 +51,25 @@ extern "C" {
 #define ALL_OBJECT_INSTANCES            ROOT_OBJECT_INSTANCE
 
 /*
- * Define all your object TYPES here, hopefully as consecutively as possible,
+ * Define all YOUR object TYPES here, hopefully as consecutively as possible,
  * starting from 1 and upwards.  Since there are arrays of these defined
  * in the code, it keeps the array sizes small and manageable.
  * Always define MIN_OBJECT_TYPE & MAX_OBJECT_TYPE since the array bounds
- * are determined by these values.  DO NOT USE 0 as object type.  It
- * is special.  Always start from 1.
+ * are determined by these values.  DO NOT USE 0 as object type & instance.
+ * It is special.  Always start from 1.
  *
- * If your objects types are consecutive and not too many, define 
+ * If your object types are consecutive and not too many, define 
  * CONSECUTIVE_OBJECT_TYPES_USED so that event manager gets a hint 
- * to work faster.  If however, your object types are all over the
- * place with very large numbers and not consecutive, then do NOT
- * define CONSECUTIVE_OBJECT_TYPES_USED.
+ * to use arrays and work MUCH faster.  If however, your object types
+ * are all over the place with very large numbers and not consecutive,
+ * then do NOT define CONSECUTIVE_OBJECT_TYPES_USED.
  */
 #define MIN_OBJECT_TYPE                 1
     /*
-     * define all your objects here within these limits
+     * define all YOUR OWN objects here within these limits.
+     * An array will be defined in this range so try and keep
+     * the objects as sequential as possible starting from 1.
+     * This way, the array memory used will be optimal.
      */
 #define MAX_OBJECT_TYPE                 4096 /* change this as you wish */
 #define OBJECT_TYPE_SPAN                (MAX_OBJECT_TYPE + 1)

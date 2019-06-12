@@ -484,7 +484,7 @@ extern bool null_shm_address (shm_address_t *shmaddr);
 ** SHARED MEMORY INDEX OBJECT
 **
 ** This object provides index functionality to any user defined
-** data.  It is very similar in nature to a database index
+** data.  It is very similar in nature to a object manager index
 ** concept.  This implementation is tailored for shared memory
 ** usage and has locks.
 **
