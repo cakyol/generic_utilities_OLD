@@ -81,13 +81,13 @@ void add_del_attributes (object_manager_t *omp, int type, int instance)
     for (iter = 0; iter < ITER; iter++) {
         for (i = MAX_ATTRS; i > 1; i--) {
             for (av = 0; av < MAX_AV_COUNT; av++) {
-                object_attribute_add_simple_value(omp, type, instance, i, av);
+                om_om_object_attribute_add_simple_value(omp, type, instance, i, av);
                 sprintf(complex_value, "cav %d", av);
-                object_attribute_add_complex_value(omp, type, instance, i,
+                om_object_attribute_add_complex_value(omp, type, instance, i,
                         (byte*) complex_value, strlen(complex_value) + 1);
                 count++;
             }
-            object_attribute_destroy(omp, type, instance, i);
+            om_object_attribute_destroy(omp, type, instance, i);
         }
     }
 }
@@ -126,7 +126,7 @@ int main (int argc, char *argv[])
 
     for (child_type = MAX_TYPES; child_type > 0; child_type--) {
         for (child_instance = child_type; child_instance > 0; child_instance--) {
-            if (object_create(&db,
+            if (om_object_create(&db,
                             parent_type, parent_instance,
                             child_type, child_instance))
             {

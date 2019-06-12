@@ -86,7 +86,7 @@ static int use_avl_tree_for_attribute_ids = 1;
  */
 
 static void
-object_destroy_callback (void *p1, void *p2);
+om_object_destroy_callback (void *p1, void *p2);
 
 static int
 om_announce_event (object_manager_t *omp,
@@ -750,7 +750,7 @@ object_attributes_delete_all (object_t *obj)
  * This variable controls that.
  */
 static void 
-object_destroy_engine (object_t *obj,
+om_object_destroy_engine (object_t *obj,
         int leave_parent_consistent,
         int destroy_all_children)
 {
@@ -782,7 +782,7 @@ object_destroy_engine (object_t *obj,
         all_its_children = table_get_all(&obj->children, &child_count);
         if (child_count && all_its_children) {
             for (i = 0; i < child_count; i++) {
-                object_destroy_engine((object_t*) all_its_children[i], 0, 0);
+                om_object_destroy_engine((object_t*) all_its_children[i], 0, 0);
             }
             free(all_its_children);
         }
@@ -807,7 +807,7 @@ object_destroy_engine (object_t *obj,
     assert(removed_obj == obj);
 
     /* free up its index objects */
-    table_destroy(&obj->children, object_destroy_callback, NULL);
+    table_destroy(&obj->children, om_object_destroy_callback, NULL);
 #ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
     dynamic_array_destroy(&obj->attributes,
         attribute_instance_destroy_callback, NULL);
@@ -825,13 +825,13 @@ object_destroy_engine (object_t *obj,
 }
 
 static void
-object_destroy_callback (void *p1, void *p2)
+om_object_destroy_callback (void *p1, void *p2)
 {
-    object_destroy_engine((object_t*) p1, 0, 0);
+    om_object_destroy_engine((object_t*) p1, 0, 0);
 }
 
 static object_t *
-object_create_engine (object_manager_t *omp,
+om_object_create_engine (object_manager_t *omp,
         int parent_must_exist,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
@@ -960,7 +960,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
 }
 
 static int
-__object_attribute_add_simple_value (object_t *obj, int attribute_id, 
+__om_om_object_attribute_add_simple_value (object_t *obj, int attribute_id, 
     long long int simple_value)
 {
     attribute_instance_t *aitp;
@@ -999,7 +999,7 @@ __object_attribute_delete_simple_value (object_t *obj, int attribute_id,
 }
 
 static int
-__object_attribute_add_complex_value (object_t *obj, int attribute_id, 
+__om_object_attribute_add_complex_value (object_t *obj, int attribute_id, 
     byte *complex_value_data, int complex_value_data_length)
 {
     attribute_instance_t *aitp;
@@ -1014,7 +1014,7 @@ __object_attribute_add_complex_value (object_t *obj, int attribute_id,
 }
 
 static int
-__object_attribute_set_complex_value (object_t *obj, int attribute_id, 
+__om_object_attribute_set_complex_value (object_t *obj, int attribute_id, 
     byte *complex_value_data, int complex_value_data_length)
 {
     attribute_instance_t *aitp;
@@ -1029,7 +1029,7 @@ __object_attribute_set_complex_value (object_t *obj, int attribute_id,
 }
 
 static int
-__object_attribute_delete_complex_value (object_t *obj, int attribute_id, 
+__om_object_attribute_delete_complex_value (object_t *obj, int attribute_id, 
     byte *complex_value_data, int complex_value_data_length)
 {
     attribute_instance_t *aitp;
@@ -1054,7 +1054,7 @@ __object_attribute_instance_destroy (object_t *obj, int attribute_id)
 }
 
 static int
-__object_get_matching_children (object_t *parent,
+__om_object_get_matching_children (object_t *parent,
         int matching_object_type, 
         object_representation_t *found_objects, int limit)
 {
@@ -1070,7 +1070,7 @@ __object_get_matching_children (object_t *parent,
 }
 
 static int
-__object_get_matching_descendants (object_t *parent,
+__om_object_get_matching_descendants (object_t *parent,
         int matching_object_type,
         object_representation_t *found_objects, int limit)
 {
@@ -1110,19 +1110,19 @@ get_both_objects (object_manager_t *omp,
 }
 
 static int
-process_object_created_event (object_manager_t *omp,
+process_om_object_created_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
 
-    obj = object_create_engine(omp, 1,
+    obj = om_object_create_engine(omp, 1,
                 evrp->related_object_type, evrp->related_object_instance,
                 evrp->object_type, evrp->object_instance);
     return obj ? 0 : -1;
 }
 
 static int
-process_object_destroyed_event (object_manager_t *omp,
+process_om_object_destroyed_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
@@ -1130,7 +1130,7 @@ process_object_destroyed_event (object_manager_t *omp,
     obj = get_object_pointer(omp, 
                 evrp->object_type, evrp->object_instance);
     if (obj) {
-        object_destroy_engine(obj, 1, 1);
+        om_object_destroy_engine(obj, 1, 1);
     }
     return 0;
 }
@@ -1175,11 +1175,11 @@ process_attribute_value_added_event (object_manager_t *omp,
         return -1;
     if (evrp->attribute_value_length == 0) {
         return
-            __object_attribute_add_simple_value(obj, evrp->attribute_id,
+            __om_om_object_attribute_add_simple_value(obj, evrp->attribute_id,
                     evrp->attribute_value_data);
     } else if (evrp->attribute_value_length > 0) {
         return
-            __object_attribute_add_complex_value(obj, evrp->attribute_id,
+            __om_object_attribute_add_complex_value(obj, evrp->attribute_id,
                     (byte*) &evrp->attribute_value_data, 
                     evrp->attribute_value_length);
     }
@@ -1201,7 +1201,7 @@ process_attribute_value_deleted_event (object_manager_t *omp,
                     evrp->attribute_value_data);
     } else if (evrp->attribute_value_length > 0) {
         return
-            __object_attribute_delete_complex_value(obj, evrp->attribute_id,
+            __om_object_attribute_delete_complex_value(obj, evrp->attribute_id,
                     (byte*) &evrp->attribute_value_data, 
                     evrp->attribute_value_length);
     }
@@ -1441,7 +1441,7 @@ om_initialize (object_manager_t *omp,
 }
 
 PUBLIC int
-object_create (object_manager_t *omp,
+om_object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance)
 {
@@ -1449,7 +1449,7 @@ object_create (object_manager_t *omp,
     object_t *obj;
 
     WRITE_LOCK(omp);
-    obj = object_create_engine(omp, 1,
+    obj = om_object_create_engine(omp, 1,
                 parent_object_type, parent_object_instance,
                 child_object_type, child_object_instance);
     failed = (obj ? 0 : EFAULT);
@@ -1458,7 +1458,7 @@ object_create (object_manager_t *omp,
 }
 
 PUBLIC int
-object_exists (object_manager_t *omp,
+om_object_exists (object_manager_t *omp,
         int object_type, int object_instance)
 {
     int failed;
@@ -1470,7 +1470,7 @@ object_exists (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_add (object_manager_t *omp,
+om_object_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id)
 {
     int failed;
@@ -1490,7 +1490,7 @@ object_attribute_add (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_add_simple_value (object_manager_t *omp,
+om_om_object_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
@@ -1502,7 +1502,7 @@ object_attribute_add_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_add_simple_value(obj,
+        failed = __om_om_object_attribute_add_simple_value(obj,
                     attribute_id, simple_value);
     }
     WRITE_UNLOCK(omp);
@@ -1550,7 +1550,7 @@ object_attribute_delete_simple_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_add_complex_value (object_manager_t *omp,
+om_object_attribute_add_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
@@ -1562,7 +1562,7 @@ object_attribute_add_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_add_complex_value(obj, attribute_id,
+        failed = __om_object_attribute_add_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     WRITE_UNLOCK(omp);
@@ -1570,7 +1570,7 @@ object_attribute_add_complex_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_set_complex_value (object_manager_t *omp,
+om_object_attribute_set_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
@@ -1582,7 +1582,7 @@ object_attribute_set_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_set_complex_value(obj, attribute_id,
+        failed = __om_object_attribute_set_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     WRITE_UNLOCK(omp);
@@ -1590,7 +1590,7 @@ object_attribute_set_complex_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_delete_complex_value (object_manager_t *omp,
+om_object_attribute_delete_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
@@ -1602,7 +1602,7 @@ object_attribute_delete_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_delete_complex_value(obj, attribute_id,
+        failed = __om_object_attribute_delete_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     WRITE_UNLOCK(omp);
@@ -1610,7 +1610,7 @@ object_attribute_delete_complex_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_get_value (object_manager_t *omp, 
+om_object_attribute_get_value (object_manager_t *omp, 
     int object_type, int object_instance,
     int attribute_id, int nth,
     attribute_value_t **cloned_avtp)
@@ -1662,7 +1662,7 @@ object_attribute_get_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_get_all_values (object_manager_t *omp,
+om_object_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[])
 {
@@ -1672,7 +1672,7 @@ object_attribute_get_all_values (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_destroy (object_manager_t *omp,
+om_object_attribute_destroy (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id)
 {
     int failed;
@@ -1690,7 +1690,7 @@ object_attribute_destroy (object_manager_t *omp,
 }
 
 PUBLIC int
-object_destroy (object_manager_t *omp,
+om_object_destroy (object_manager_t *omp,
         int object_type, int object_instance)
 {
     int failed;
@@ -1702,14 +1702,14 @@ object_destroy (object_manager_t *omp,
         failed = ENODATA;
     } else {
         failed = 0;
-        object_destroy_engine(obj, 1, 1);
+        om_object_destroy_engine(obj, 1, 1);
     }
     WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC object_representation_t *
-object_get_matching_children (object_manager_t *omp,
+om_object_get_matching_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
@@ -1726,7 +1726,7 @@ object_get_matching_children (object_manager_t *omp,
         size = table_member_count(&root->children);
         found_objects = malloc((size + 1) * sizeof(object_representation_t));
         if (found_objects) {
-            __object_get_matching_children(root, 
+            __om_object_get_matching_children(root, 
                     matching_object_type, found_objects, size+1);
             *returned_count = size;
         }
@@ -1736,18 +1736,18 @@ object_get_matching_children (object_manager_t *omp,
 }
 
 PUBLIC object_representation_t *
-object_get_children (object_manager_t *omp,
+om_object_get_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count)
 {
     return
-        object_get_matching_children(omp,
+        om_object_get_matching_children(omp,
             parent_object_type, parent_object_instance,
             ALL_OBJECT_TYPES, returned_count);
 }
 
 PUBLIC object_representation_t *
-object_get_matching_descendants (object_manager_t *omp,
+om_object_get_matching_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count)
 {
@@ -1770,7 +1770,7 @@ object_get_matching_descendants (object_manager_t *omp,
 
         found_objects = malloc((size + 1) * sizeof(object_representation_t));
         if (found_objects) {
-            __object_get_matching_descendants(root, 
+            __om_object_get_matching_descendants(root, 
                     matching_object_type, found_objects, size+1);
             *returned_count = size;
         }
@@ -1780,12 +1780,12 @@ object_get_matching_descendants (object_manager_t *omp,
 }
 
 PUBLIC object_representation_t *
-object_get_descendants (object_manager_t *omp,
+om_object_get_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count)
 {
     return
-        object_get_matching_descendants
+        om_object_get_matching_descendants
             (omp, parent_object_type, parent_object_instance,
              ALL_OBJECT_TYPES, returned_count);
 }
@@ -2005,7 +2005,7 @@ load_object (object_manager_t *omp, FILE *fp,
                 &parent_type, &parent_instance, 
                 &object_type, &object_instance);
     if (4 != count) return -1;
-    *objp = object_create_engine(omp, 0,
+    *objp = om_object_create_engine(omp, 0,
                 parent_type, parent_instance,
                 object_type, object_instance);
     return *objp ? 0 : -1;

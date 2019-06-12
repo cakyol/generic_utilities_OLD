@@ -30,7 +30,7 @@
 *******************************************************************************
 *******************************************************************************
 **
-** @@@@@ GENERIC OBJECT DATABASE
+** @@@@@ GENERIC OBJECT MANAGER
 **
 **      This is a VERY fast and a VERY flexible hierarchical object manager.
 **
@@ -39,7 +39,8 @@
 **
 **      An object always has ONE parent but can have MANY children.  
 **      It is up to the user to make sure an object's child cannot 
-**      also be a parent otherwise infinite loops will be created.
+**      also be its parent otherwise infinite loops will be created.
+**      This is not checked by the object manager.
 **
 **      An object can have any number of attributes and these can be
 **      added and/or deleted dynamically during an object's lifetime.
@@ -344,20 +345,20 @@ om_un_register_from_attribute_events (object_manager_t *omp,
 }
 
 extern int
-object_create (object_manager_t *omp,
+om_object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance);
 
 extern int
-object_exists (object_manager_t *omp,
+om_object_exists (object_manager_t *omp,
         int object_type, int object_instance);
 
 extern int
-object_attribute_add (object_manager_t *omp,
+om_object_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 extern int
-object_attribute_add_simple_value (object_manager_t *omp,
+om_om_object_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
@@ -372,33 +373,33 @@ object_attribute_delete_simple_value (object_manager_t *omp,
         long long int simple_value);
 
 extern int
-object_attribute_add_complex_value (object_manager_t *omp,
+om_object_attribute_add_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-object_attribute_set_complex_value (object_manager_t *omp,
+om_object_attribute_set_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-object_attribute_delete_complex_value (object_manager_t *omp,
+om_object_attribute_delete_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-object_attribute_get_value (object_manager_t *omp,
+om_object_attribute_get_value (object_manager_t *omp,
         int object_type, int object_instance, 
         int attribute_id, int nth,
         attribute_value_t **cloned_attribute_value);
 
 extern int
-object_attribute_get_all_values (object_manager_t *omp,
+om_object_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[]);
 
 extern int
-object_attribute_destroy (object_manager_t *omp,
+om_object_attribute_destroy (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 /*
@@ -407,7 +408,7 @@ object_attribute_destroy (object_manager_t *omp,
  * Returns in the form of object identification (type, instance).
  */
 extern object_representation_t *
-object_get_matching_children (object_manager_t *omp,
+om_object_get_matching_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count);
 
@@ -416,7 +417,7 @@ object_get_matching_children (object_manager_t *omp,
  * Returns in the form of object identification (type, instance).
  */
 extern object_representation_t *
-object_get_children (object_manager_t *omp,
+om_object_get_children (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count);
 
@@ -427,7 +428,7 @@ object_get_children (object_manager_t *omp,
  * Returns in the form of object pointer.
  */
 extern object_representation_t *
-object_get_matching_descendants (object_manager_t *omp,
+om_object_get_matching_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int matching_object_type, int *returned_count);
 
@@ -438,12 +439,12 @@ object_get_matching_descendants (object_manager_t *omp,
  * Returns in the form of object pointer.
  */
 extern object_representation_t *
-object_get_descendants (object_manager_t *omp,
+om_object_get_descendants (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int *returned_count);
 
 extern int
-object_destroy (object_manager_t *omp,
+om_object_destroy (object_manager_t *omp,
         int object_type, int object_instance);
 
 static inline int
