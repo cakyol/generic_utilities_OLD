@@ -2124,7 +2124,6 @@ om_load (int manager_id, object_manager_t *omp)
     int failed, count;
     object_t *obj, *parent;
     attribute_instance_t *aitp;
-    attribute_value_t *avtp;
     char string [TYPICAL_NAME_SIZE];
 
     sprintf(om_name, "om_%d", manager_id);
@@ -2138,7 +2137,6 @@ om_load (int manager_id, object_manager_t *omp)
 
     obj = parent = NULL;
     aitp = NULL;
-    avtp = NULL;
     failed = 0;
 
     while ((count = fscanf(fp, "%s", string)) != EOF) {

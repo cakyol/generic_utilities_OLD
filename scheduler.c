@@ -186,7 +186,6 @@ reschedule_next_alarm (nano_seconds_t lateness)
 static void
 __alarm_signal_handler (int signo)
 {
-    int failed;
     ordered_list_node_t *d;
     task_t *tp, *first_task = NULL;
     timer_obj_t execution_time;
@@ -239,7 +238,7 @@ __alarm_signal_handler (int signo)
              * if we attempt to lock it again using one of the
              * public functions, we will get a write deadlock.
              */
-            failed = thread_unsafe_ordered_list_add_to_head(executable_tasks, tp);
+            thread_unsafe_ordered_list_add_to_head(executable_tasks, tp);
         } else {
             break;
         }
