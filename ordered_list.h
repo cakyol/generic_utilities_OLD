@@ -33,7 +33,7 @@
 *******************************************************************************
 *******************************************************************************
 **
-** Singly linked list object, with very fast deletion provided you
+** Ordered singly linked list object, with very fast deletion provided you
 ** know the node that you want to delete.  You do NOT have to know
 ** the 'previous' node.
 **
@@ -95,7 +95,7 @@ struct ordered_list_s {
 
     /*
      * comparison function used for ordering the list.
-     * If not specified, list will be totally random.
+     * MUST always be specified at init time.
      */
     object_comparer cmpf;
 
@@ -121,18 +121,18 @@ struct ordered_list_s {
  */
 
 static inline int
-endof_ordered_list (ordered_list_node_t *llnp)
+endof_ordered_list (ordered_list_node_t *olnp)
 {
     return
-        (NULL == llnp) || 
-        ((NULL == llnp->next) && (NULL == llnp->user_data));
+        (NULL == olnp) || 
+        ((NULL == olnp->next) && (NULL == olnp->user_data));
 }
 
 static inline int
-not_endof_ordered_list (ordered_list_node_t *llnp)
+not_endof_ordered_list (ordered_list_node_t *olnp)
 {
     return
-        llnp && (NULL != llnp->next) && (NULL != llnp->user_data);
+        olnp && (NULL != olnp->next) && (NULL != olnp->user_data);
 }
 
 /*

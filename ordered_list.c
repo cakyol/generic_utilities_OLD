@@ -62,6 +62,10 @@ ordered_list_new_node (ordered_list_t *listp, void *user_data)
  * DESTROY THE OBJECT ORDERING IN THE LIST WHICH WILL
  * CAUSE ALL SUBSEQUENT INSERT, SEARCH AND DELETE
  * OPERATIONS TO GO BERSERK.
+ *
+ * Despite this, sometimes it is necessary to maintain just
+ * a simple list without any ordering.  If 'searching' in
+ * the list is not needed, it is ok to use this.
  */
 int
 thread_unsafe_ordered_list_add_to_head (ordered_list_t *listp, void *user_data,
