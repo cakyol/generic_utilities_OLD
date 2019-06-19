@@ -99,14 +99,14 @@ index_find_position (index_obj_t *idx,
 static int
 thread_unsafe_index_obj_insert (index_obj_t *idx,
         void *data,
-        void **exists)
+        void **data_already_present)
 {
     int insertion_point = 0;    /* shut the -Werror up */
     int size, i;
     void **source;
 
     /* assume no entry */
-    safe_pointer_set(exists, NULL);
+    safe_pointer_set(data_already_present, NULL);
 
     /* being traversed, no access */
     if (idx->cannot_be_modified) return EBUSY;
@@ -119,7 +119,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
     /* key/data already in index */
     if (i >= 0) {
-        safe_pointer_set(exists, idx->elements[i]);
+        safe_pointer_set(data_already_present, idx->elements[i]);
         return 0;
     }
 

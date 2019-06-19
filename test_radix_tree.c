@@ -12,21 +12,22 @@ radix_tree_t radix_tree_obj;
 
 int main (int argc, char *argv[])
 {
-    int iter, i, valid, failed, found;
+    int iter, i, valid, failed, found, total;
     long long int mem;
     double megabytes;
     void *data, *found_data;
-    int key_size = sizeof(void*);
+    int key_size = sizeof(int);
 
-    printf("\nSIZE OF NTRIE NODE = %lu BYTES\n", sizeof(radix_tree_node_t));
-    valid = failed = found = 0;
+    printf("\nSIZE OF RADIX TREE NODE = %lu BYTES\n", sizeof(radix_tree_node_t));
+    total = valid = failed = found = 0;
     radix_tree_init(&radix_tree_obj, 0, NULL);
-    printf("\nPOPULATING TRIE\n");
+    printf("\nPOPULATING RADIX TREE\n");
     timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {
-        for (i = 0; i < MAX_DATA; i++) {
+        for (i = 1; i < MAX_DATA; i++) {
+            total++;
             data = integer2pointer(i);
-            if (radix_tree_insert(&radix_tree_obj, &data, key_size,
+            if (radix_tree_insert(&radix_tree_obj, &i, key_size,
                     data, &found_data)) {
                         failed++;
             } else {
@@ -36,20 +37,20 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * MAX_DATA, NULL);
+    timer_report(&timr, total, NULL);
     printf("successfully added %d (found %d failed %d) of %d data (nodes %d)\n", 
-        valid, found, failed, ITER*MAX_DATA, radix_tree_obj.node_count);
+        valid, found, failed, total, radix_tree_obj.node_count);
     OBJECT_MEMORY_USAGE(&radix_tree_obj, mem, megabytes);
     printf("total memory used is %llu bytes (%lf Mbytes)\n",
         mem, megabytes);
 
-    printf("\nSEARCHING TRIE\n");
-    valid = failed = found = 0;
+    printf("\nSEARCHING RADIX TREE\n");
+    total = valid = failed = found = 0;
     timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {
         for (i = 1; i < MAX_DATA; i++) {
-            data = integer2pointer(i);
-            if (radix_tree_search(&radix_tree_obj, &data, key_size, &found_data)) {
+            total++;
+            if (radix_tree_search(&radix_tree_obj, &i, key_size, &found_data)) {
                 failed++;
             } else {
                 found++;
@@ -58,9 +59,9 @@ int main (int argc, char *argv[])
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * MAX_DATA, NULL);
+    timer_report(&timr, total, NULL);
     printf("successfully found %d valid entries out of a total of %d entries\n",
-        valid, (ITER*MAX_DATA) - 1);
+        valid, total);
 
     return 0;
 }

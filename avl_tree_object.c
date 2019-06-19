@@ -245,7 +245,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     int is_left;
 
     /* assume the entry is not present initially */
-    *data_already_present = NULL;
+    safe_pointer_set(data_already_present, NULL);
 
     /*
      * some kind of traversal is already happening on the tree,
@@ -258,7 +258,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
                 &parent, &unbalanced, &is_left);
 
     if (found) {
-        *data_already_present = found->user_data;
+        safe_pointer_set(data_already_present, found->user_data);
         return 0;
     }
 
@@ -386,12 +386,12 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
 
     /* not there */
     if (!node) {
-        *actual_data_removed = NULL;
+        safe_pointer_set(actual_data_removed, NULL);
         return ENODATA;
     }
 
     /* if we are here, we found it */
-    *actual_data_removed = node->user_data;
+    safe_pointer_set(actual_data_removed, node->user_data);
 
     /* cache it for later freeing */
     to_be_deleted = node;
@@ -676,10 +676,10 @@ avl_tree_search (avl_tree_t *tree,
     node = avl_lookup_engine(tree, data_to_be_searched, 
                 &parent, &unbalanced, &is_left);
     if (node) {
-        *data_found = node->user_data;
+        safe_pointer_set(data_found, node->user_data);
         failed = 0;
     } else {
-        *data_found = NULL;
+        safe_pointer_set(data_found, NULL);
         failed = ENODATA;
     }
     READ_UNLOCK(tree);
@@ -691,13 +691,13 @@ avl_tree_search (avl_tree_t *tree,
 PUBLIC int
 avl_tree_remove (avl_tree_t *tree,
         void *data_to_be_removed,
-        void **data_actually_removed)
+        void **actual_data_removed)
 {
     int failed;
 
     WRITE_LOCK(tree);
     failed = thread_unsafe_avl_tree_remove(tree,
-                data_to_be_removed, data_actually_removed);
+                data_to_be_removed, actual_data_removed);
     WRITE_UNLOCK(tree);
     return failed;
 }

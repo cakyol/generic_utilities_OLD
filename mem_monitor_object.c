@@ -33,7 +33,10 @@ mem_monitor_allocate (mem_monitor_t *memp, int size)
         (unsigned long long int*) malloc(total_size);
 
     if (block) {
+
+        /* MUST do this, a lot of code depends on this being zeroed out */
         memset(block, 0, total_size);
+
         *block = total_size;
         memp->bytes_used += total_size;
         memp->allocations++;

@@ -72,10 +72,6 @@ extern "C" {
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 
-#ifdef USE_CHUNK_MANAGER
-#include "chunk_manager.h"
-#endif
-
 #define NTRIE_LOW_VALUE         0
 #define NTRIE_HI_VALUE          (0xF)
 #define NTRIE_ALPHABET_SIZE     (NTRIE_HI_VALUE - NTRIE_LOW_VALUE + 1)
@@ -96,9 +92,6 @@ typedef struct radix_tree_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
-#ifdef USE_CHUNK_MANAGER
-    chunk_manager_t nodes;
-#endif
     int cannot_be_modified;
     int node_count;
     radix_tree_node_t radix_tree_root;

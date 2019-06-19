@@ -47,14 +47,9 @@ radix_tree_new_node (radix_tree_t *ntp, int value)
 {
     radix_tree_node_t *node;
 
-#ifdef USE_CHUNK_MANAGER
-    node = chunk_manager_alloc(&ntp->nodes);
-#else
     node = (radix_tree_node_t*) MEM_MONITOR_ALLOC(ntp, sizeof(radix_tree_node_t));
-#endif
     if (node) {
         node->value = value;
-        node->current = 0;
     }
     return node;
 }
@@ -168,11 +163,7 @@ radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
         parent->n_children--;
 
         /* delete myself */
-#ifdef USE_CHUNK_MANAGER
-        chunk_manager_free(&ntp->nodes, node);
-#else
         MEM_MONITOR_FREE(ntp, node);
-#endif
         ntp->node_count--;
 
         /* go up one more parent & try again */
@@ -188,7 +179,10 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     radix_tree_node_t *node;
 
     /* assume failure */
-    *data_found = NULL;
+    safe_pointer_set(data_found, NULL);
+
+    /* should not store NULL data */
+    if (NULL == data_to_be_inserted) return EINVAL;
 
     /* being traversed, cannot access */
     if (ntp->cannot_be_modified) return EBUSY;
@@ -196,7 +190,7 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
         if (node->user_data) {
-            *data_found = node->user_data;
+            safe_pointer_set(data_found, node->user_data);
         } else {
             node->user_data = data_to_be_inserted;
         }
@@ -214,14 +208,11 @@ thread_unsafe_radix_tree_search (radix_tree_t *ntp,
     radix_tree_node_t *node;
     
     /* assume failure */
-    *data_found = NULL;
-
-    /* being traversed, cannot access */
-    if (ntp->cannot_be_modified) return EBUSY;
+    safe_pointer_set(data_found, NULL);
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
-        *data_found = node->user_data;
+        safe_pointer_set(data_found, node->user_data);
         return 0;
     }
 
@@ -236,14 +227,14 @@ thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
     radix_tree_node_t *node;
 
     /* assume failure */
-    *removed_data = NULL;
+    safe_pointer_set(removed_data, NULL);
 
     /* being traversed, cannot access */
     if (ntp->cannot_be_modified) return EBUSY;
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
-        *removed_data = node->user_data;
+        safe_pointer_set(removed_data, node->user_data);
         node->user_data = NULL;
         radix_tree_remove_node(ntp, node);
         return 0;
@@ -258,19 +249,12 @@ radix_tree_init (radix_tree_t *ntp,
         int make_it_thread_safe,
         mem_monitor_t *parent_mem_monitor)
 {
-    int failed = 0;
-
     MEM_MONITOR_SETUP(ntp);
     LOCK_SETUP(ntp);
     ntp->node_count = 0;
     radix_tree_node_init(&ntp->radix_tree_root, 0);
-#ifdef USE_CHUNK_MANAGER
-    failed = chunk_manager_init(&ntp->nodes, 0, sizeof(radix_tree_node_t),
-            1024, 1024, ntp->mem_mon_p);
-#endif
     WRITE_UNLOCK(ntp);
-
-    return failed;
+    return 0;
 }
 
 PUBLIC int
@@ -338,7 +322,12 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
     int index = 0;
     int failed = 0;
 
-    /* already being traversed */
+    /*
+     * already being traversed.  Normally, since a traversal is a 'read'
+     * operation, this should be allowed.  But the traversal in this function
+     * changes nodes (and restores) them.  So a recursive traveral cannot 
+     * be allowed.
+     */
     if (ntp->cannot_be_modified) return;
 
     /* start traversal */
