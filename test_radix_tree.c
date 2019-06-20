@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include "radix_tree_object.h"
 #include "timer_object.h"
-#include "test_data_generator.h"
 
 #define ITER                    4
 #define MAX_DATA                (6 * 1024 * 1024)
