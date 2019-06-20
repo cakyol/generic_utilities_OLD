@@ -107,12 +107,12 @@ extern int
 radix_tree_insert (radix_tree_t *ntp,
         void *key, int key_length, 
         void *data_to_be_inserted,
-        void **data_found);
+        void **present_data);
 
 extern int 
 radix_tree_search (radix_tree_t *ntp, 
         void *key, int key_length, 
-        void **data_found);
+        void **present_data);
 
 extern int 
 radix_tree_remove (radix_tree_t *ntp, 

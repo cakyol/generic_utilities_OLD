@@ -16,7 +16,7 @@ int main (int argc, char *argv[])
     int iter, i, valid, failed, found, total;
     long long int mem;
     double megabytes;
-    int *found_data;
+    int *present_data;
     int key_size = sizeof(int);
 
     for (i = 0; i < MAX_DATA; i++) array[i] = i;
@@ -30,12 +30,12 @@ int main (int argc, char *argv[])
         for (i = 1; i < MAX_DATA; i++) {
             total++;
             if (radix_tree_insert(&radix_tree_obj, &i, key_size,
-                    &array[i], (void**) &found_data)) {
+                    &array[i], (void**) &present_data)) {
                         failed++;
             } else {
                 valid++;
-                if (found_data) {
-                    if (*found_data == i) found++;
+                if (present_data) {
+                    if (*present_data == i) found++;
                 }
             }
         }
@@ -54,11 +54,11 @@ int main (int argc, char *argv[])
     for (iter = 0; iter < ITER; iter++) {
         for (i = 1; i < MAX_DATA; i++) {
             total++;
-            if (radix_tree_search(&radix_tree_obj, &i, key_size, (void**) &found_data)) {
+            if (radix_tree_search(&radix_tree_obj, &i, key_size, (void**) &present_data)) {
                 failed++;
             } else {
                 found++;
-                if (i == *found_data) valid++;
+                if (i == *present_data) valid++;
             }
         }
     }

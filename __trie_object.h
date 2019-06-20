@@ -89,10 +89,10 @@ trie_init (trie_t *triep,
 
 extern error_t 
 trie_insert (trie_t *triep, void *key, int key_length, 
-    datum_t user_data, datum_t *found_data);
+    datum_t user_data, datum_t *present_data);
 
 extern error_t
-trie_search (trie_t *triep, void *key, int key_length, datum_t *found_data);
+trie_search (trie_t *triep, void *key, int key_length, datum_t *present_data);
 
 extern error_t
 trie_traverse (trie_t *triep, trie_traverse_function_pointer tfn,
@@ -175,10 +175,10 @@ radix_tree_init (radix_tree_t *ntp, mem_monitor_t *parent_mem_monitor);
 
 extern error_t 
 radix_tree_insert (radix_tree_t *ntp, void *key, int key_length, 
-    void *user_data, void **found_data);
+    void *user_data, void **present_data);
 
 extern error_t 
-radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **found_data);
+radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **present_data);
 
 extern error_t 
 radix_tree_remove (radix_tree_t *ntp, void *key, int key_length, void **removed_data);

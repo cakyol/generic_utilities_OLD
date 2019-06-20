@@ -158,33 +158,33 @@ ordered_list_add (ordered_list_t *listp, void *user_data);
 /*
  * same as adding data but the data is added only once.
  * If it is already there, it will not be added again and
- * 'data_found' will be updated with what is already
+ * 'present_data' will be updated with what is already
  * found in the list.  If data was not already in the list,
- * 'data_found' will be set to NULL.  This mechanism
+ * 'present_data' will be set to NULL.  This mechanism
  * always gives the user the knowledge of whether the
  * data being inserted was in the list in the first place.
- * If 'data_found' is not needed, NULL can be passed in.
+ * If 'present_data' is not needed, NULL can be passed in.
  * The return value will be 0 if the addition succeeded.
  * Errors will be returned for any other condition,
  * including if the data was already in the list (EEXIST).
  */
 extern int
 ordered_list_add_once (ordered_list_t *listp, void *user_data, 
-        void **data_found);
+        void **present_data);
 
 /*
  * searches the first occurence of the matching data.
  * This is where the compare function is applied to find
  * out whether a match has occured.
- * Function return value will be 0 if found and 'data_found'
+ * Function return value will be 0 if found and 'present_data'
  * will be set to the found data.  If not found,
- * non 0 will be returned and 'data_found' will be set 
- * to NULL.  If 'data_found' is not needed, it can be
+ * non 0 will be returned and 'present_data' will be set 
+ * to NULL.  If 'present_data' is not needed, it can be
  * passed in as NULL.
  */
 extern int
 ordered_list_search (ordered_list_t *listp, void *searched_data, 
-        void **data_found);
+        void **present_data);
 
 /*
  * Removes the entry in the list matching user data specified

@@ -174,12 +174,12 @@ radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
 static int
 thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
         void *key, int key_length, 
-        void *data_to_be_inserted, void **data_found)
+        void *data_to_be_inserted, void **present_data)
 {
     radix_tree_node_t *node;
 
     /* assume failure */
-    safe_pointer_set(data_found, NULL);
+    safe_pointer_set(present_data, NULL);
 
     /* should not store NULL data */
     if (NULL == data_to_be_inserted) return EINVAL;
@@ -190,7 +190,7 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
         if (node->user_data) {
-            safe_pointer_set(data_found, node->user_data);
+            safe_pointer_set(present_data, node->user_data);
         } else {
             node->user_data = data_to_be_inserted;
         }
@@ -203,16 +203,16 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
 static int
 thread_unsafe_radix_tree_search (radix_tree_t *ntp,
         void *key, int key_length,
-        void **data_found)
+        void **present_data)
 {
     radix_tree_node_t *node;
     
     /* assume failure */
-    safe_pointer_set(data_found, NULL);
+    safe_pointer_set(present_data, NULL);
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
-        safe_pointer_set(data_found, node->user_data);
+        safe_pointer_set(present_data, node->user_data);
         return 0;
     }
 
@@ -260,13 +260,13 @@ radix_tree_init (radix_tree_t *ntp,
 PUBLIC int
 radix_tree_insert (radix_tree_t *ntp,
         void *key, int key_length,
-        void *data_to_be_inserted, void **data_found)
+        void *data_to_be_inserted, void **present_data)
 {
     int failed;
 
     WRITE_LOCK(ntp);
     failed = thread_unsafe_radix_tree_insert(ntp, key, key_length,
-                data_to_be_inserted, data_found);
+                data_to_be_inserted, present_data);
     WRITE_UNLOCK(ntp);
     return failed;
 }
@@ -274,12 +274,12 @@ radix_tree_insert (radix_tree_t *ntp,
 PUBLIC int
 radix_tree_search (radix_tree_t *ntp,
         void *key, int key_length,
-        void **data_found)
+        void **present_data)
 {
     int failed;
 
     READ_LOCK(ntp);
-    failed = thread_unsafe_radix_tree_search(ntp, key, key_length, data_found);
+    failed = thread_unsafe_radix_tree_search(ntp, key, key_length, present_data);
     READ_UNLOCK(ntp);
     return failed;
 }

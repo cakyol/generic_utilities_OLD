@@ -99,14 +99,14 @@ index_find_position (index_obj_t *idx,
 static int
 thread_unsafe_index_obj_insert (index_obj_t *idx,
         void *data,
-        void **data_already_present)
+        void **present_data)
 {
     int insertion_point = 0;    /* shut the -Werror up */
     int size, i;
     void **source;
 
     /* assume no entry */
-    safe_pointer_set(data_already_present, NULL);
+    safe_pointer_set(present_data, NULL);
 
     /* being traversed, no access */
     if (idx->cannot_be_modified) return EBUSY;
@@ -119,7 +119,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
     /* key/data already in index */
     if (i >= 0) {
-        safe_pointer_set(data_already_present, idx->elements[i]);
+        safe_pointer_set(present_data, idx->elements[i]);
         return 0;
     }
 
@@ -246,13 +246,13 @@ index_obj_init (index_obj_t *idx,
 PUBLIC int
 index_obj_insert (index_obj_t *idx,
         void *data_to_be_inserted,
-        void **data_already_present)
+        void **present_data)
 {
     int failed;
 
     WRITE_LOCK(idx);
     failed = thread_unsafe_index_obj_insert(idx, 
-            data_to_be_inserted, data_already_present);
+            data_to_be_inserted, present_data);
     WRITE_UNLOCK(idx);
     return failed;
 }
@@ -261,14 +261,14 @@ index_obj_insert (index_obj_t *idx,
 
 PUBLIC int
 index_obj_search (index_obj_t *idx,
-        void *data_to_be_inserted,
-        void **data_found)
+        void *data_to_be_searched,
+        void **present_data)
 {
     int failed;
 
     READ_LOCK(idx);
     failed = thread_unsafe_index_obj_search(idx, 
-            data_to_be_inserted, data_found);
+            data_to_be_searched, present_data);
     READ_UNLOCK(idx);
     return failed;
 }

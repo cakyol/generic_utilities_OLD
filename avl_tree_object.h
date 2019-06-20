@@ -80,14 +80,14 @@ avl_tree_init (avl_tree_t *tree,
 extern int 
 avl_tree_insert (avl_tree_t *tree,
         void *data_to_be_inserted,
-        void **data_already_present);
+        void **present_data);
 
 /**************************** Search *****************************************/
 
 extern int 
 avl_tree_search (avl_tree_t *tree,
         void *data_to_be_searched,
-        void **data_found);
+        void **present_data);
 
 /**************************** Remove *****************************************/
 

@@ -215,17 +215,17 @@ trie_init (trie_t *triep, int alphabet_size, trie_index_converter tic,
 
 PUBLIC error_t
 trie_insert (trie_t *triep, void *key, int key_length, 
-    void *user_data, void **found_data)
+    void *user_data, void **present_data)
 {
     trie_node_t *node;
 
     /* assume failure */
-    SAFE_POINTER_SET(found_data, NULL);
+    SAFE_POINTER_SET(present_data, NULL);
 
     node = trie_node_insert(triep, key, key_length);
     if (node) {
         if (node->user_data) {
-            SAFE_POINTER_SET(found_data, node->user_data);
+            SAFE_POINTER_SET(present_data, node->user_data);
         } else {
             node->user_data = user_data;
         }
@@ -236,16 +236,16 @@ trie_insert (trie_t *triep, void *key, int key_length,
 }
 
 PUBLIC error_t
-trie_search (trie_t *triep, void *key, int key_length, void **found_data)
+trie_search (trie_t *triep, void *key, int key_length, void **present_data)
 {
     trie_node_t *node;
     
     /* assume failure */
-    SAFE_POINTER_SET(found_data, NULL);
+    SAFE_POINTER_SET(present_data, NULL);
 
     node = trie_node_find(triep, key, key_length);
     if (node && node->user_data) {
-        SAFE_POINTER_SET(found_data, node->user_data);
+        SAFE_POINTER_SET(present_data, node->user_data);
         return ok;
     }
 
@@ -510,17 +510,17 @@ radix_tree_init (radix_tree_t *ntp, mem_monitor_t *parent_mem_monitor)
 
 PUBLIC error_t
 radix_tree_insert (radix_tree_t *ntp, void *key, int key_length, 
-    void *user_data, void **found_data)
+    void *user_data, void **present_data)
 {
     radix_tree_node_t *node;
 
     /* assume failure */
-    SAFE_POINTER_SET(found_data, NULL);
+    SAFE_POINTER_SET(present_data, NULL);
 
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
         if (node->user_data) {
-            SAFE_POINTER_SET(found_data, node->user_data);
+            SAFE_POINTER_SET(present_data, node->user_data);
         } else {
             node->user_data = user_data;
         }
@@ -531,16 +531,16 @@ radix_tree_insert (radix_tree_t *ntp, void *key, int key_length,
 }
 
 PUBLIC int
-radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **found_data)
+radix_tree_search (radix_tree_t *ntp, void *key, int key_length, void **present_data)
 {
     radix_tree_node_t *node;
     
     /* assume failure */
-    SAFE_POINTER_SET(found_data, NULL);
+    SAFE_POINTER_SET(present_data, NULL);
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
-        SAFE_POINTER_SET(found_data, node->user_data);
+        SAFE_POINTER_SET(present_data, node->user_data);
         return ok;
     }
 

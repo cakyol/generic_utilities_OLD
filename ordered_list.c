@@ -132,7 +132,7 @@ thread_unsafe_ordered_list_add (ordered_list_t *listp, void *user_data,
 
 static int
 thread_unsafe_ordered_list_search (ordered_list_t *listp, void *searched_data,
-        void **data_found,
+        void **present_data,
         ordered_list_node_t **node_found,
         ordered_list_node_t **node_before)
 {
@@ -147,7 +147,7 @@ thread_unsafe_ordered_list_search (ordered_list_t *listp, void *searched_data,
 
         /* an exact match */
         if (0 == result) {
-            safe_pointer_set(data_found, cur->user_data);
+            safe_pointer_set(present_data, cur->user_data);
             safe_pointer_set(node_found, cur);
             safe_pointer_set(node_before, prev);
             return 0;
@@ -163,7 +163,7 @@ thread_unsafe_ordered_list_search (ordered_list_t *listp, void *searched_data,
     }
 
     /* not found */
-    safe_pointer_set(data_found, NULL);
+    safe_pointer_set(present_data, NULL);
     safe_pointer_set(node_found, NULL);
     safe_pointer_set(node_before, prev);
     return ENODATA;
@@ -178,14 +178,14 @@ thread_unsafe_ordered_list_search (ordered_list_t *listp, void *searched_data,
  */
 static int
 thread_unsafe_ordered_list_add_once (ordered_list_t *listp, void *user_data, 
-        void **data_found, ordered_list_node_t **node_found)
+        void **present_data, ordered_list_node_t **node_found)
 {
     int failed;
     ordered_list_node_t *node_added, *prev;
 
     failed =
         thread_unsafe_ordered_list_search(listp, user_data,
-                data_found, node_found, &prev);
+                present_data, node_found, &prev);
 
     /* found, already in list */
     if (0 == failed) return EEXIST;
@@ -307,13 +307,13 @@ ordered_list_add (ordered_list_t *listp, void *user_data)
 
 PUBLIC int
 ordered_list_add_once (ordered_list_t *listp, void *user_data, 
-        void **data_found)
+        void **present_data)
 {
     int failed;
 
     WRITE_LOCK(listp);
     failed =
-        thread_unsafe_ordered_list_add_once(listp, user_data, data_found, NULL);
+        thread_unsafe_ordered_list_add_once(listp, user_data, present_data, NULL);
     WRITE_UNLOCK(listp);
     return failed;
 }
@@ -322,13 +322,13 @@ ordered_list_add_once (ordered_list_t *listp, void *user_data,
 
 PUBLIC int
 ordered_list_search (ordered_list_t *listp, void *searched_data,
-        void **data_found)
+        void **present_data)
 {
     int failed;
 
     READ_LOCK(listp);
     failed = thread_unsafe_ordered_list_search
-                (listp, searched_data, data_found, NULL, NULL);
+                (listp, searched_data, present_data, NULL, NULL);
     READ_UNLOCK(listp);
     return failed;
 }

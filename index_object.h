@@ -86,14 +86,14 @@ index_obj_init (index_obj_t *idx,
 extern int 
 index_obj_insert (index_obj_t *idx,
         void *data_to_be_inserted,
-        void **data_already_present);
+        void **present_data);
 
 /**************************** Search *****************************************/
 
 extern int 
 index_obj_search (index_obj_t *idx,
         void *data_to_be_searched,
-        void **data_found);
+        void **present_data);
 
 /**************************** Remove *****************************************/
 

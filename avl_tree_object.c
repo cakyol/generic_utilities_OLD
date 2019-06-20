@@ -239,13 +239,13 @@ avl_node_destroy_nodes (avl_tree_t *tree,
 static int 
 thread_unsafe_avl_tree_insert (avl_tree_t *tree,
     void *data_to_be_inserted,
-    void **data_already_present)
+    void **present_data)
 {
     avl_node_t *found, *parent, *unbalanced, *node;
     int is_left;
 
     /* assume the entry is not present initially */
-    safe_pointer_set(data_already_present, NULL);
+    safe_pointer_set(present_data, NULL);
 
     /*
      * some kind of traversal is already happening on the tree,
@@ -258,7 +258,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
                 &parent, &unbalanced, &is_left);
 
     if (found) {
-        safe_pointer_set(data_already_present, found->user_data);
+        safe_pointer_set(present_data, found->user_data);
         return 0;
     }
 
@@ -650,13 +650,13 @@ avl_tree_init (avl_tree_t *tree,
 PUBLIC int
 avl_tree_insert (avl_tree_t *tree,
         void *data_to_be_inserted,
-        void **data_already_present)
+        void **present_data)
 {
     int failed;
 
     WRITE_LOCK(tree);
     failed = thread_unsafe_avl_tree_insert(tree,
-            data_to_be_inserted, data_already_present);
+            data_to_be_inserted, present_data);
     WRITE_UNLOCK(tree);
     return failed;
 }
@@ -666,7 +666,7 @@ avl_tree_insert (avl_tree_t *tree,
 PUBLIC int 
 avl_tree_search (avl_tree_t *tree, 
         void *data_to_be_searched,
-        void **data_found)
+        void **present_data)
 {
     int failed;
     avl_node_t *parent, *unbalanced, *node;
@@ -676,10 +676,10 @@ avl_tree_search (avl_tree_t *tree,
     node = avl_lookup_engine(tree, data_to_be_searched, 
                 &parent, &unbalanced, &is_left);
     if (node) {
-        safe_pointer_set(data_found, node->user_data);
+        safe_pointer_set(present_data, node->user_data);
         failed = 0;
     } else {
-        safe_pointer_set(data_found, NULL);
+        safe_pointer_set(present_data, NULL);
         failed = ENODATA;
     }
     READ_UNLOCK(tree);
