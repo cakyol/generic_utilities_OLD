@@ -37,7 +37,6 @@ extern "C" {
 #include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
-#include "chunk_manager.h"
 
 typedef struct avl_node_s avl_node_t;
 

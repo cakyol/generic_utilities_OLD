@@ -189,6 +189,13 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
 
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
+
+        /*
+         * if the node returned here is a NEW one, it will NOT have
+         * its user_data assigned (it will be NULL).  If it is NOT
+         * null, then it indicates that the node was already in the
+         * tree, ie an already existing entry.
+         */
         if (node->user_data) {
             safe_pointer_set(present_data, node->user_data);
         } else {
