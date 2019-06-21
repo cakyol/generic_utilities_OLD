@@ -1378,6 +1378,13 @@ om_announce_event (object_manager_t *omp,
      */
     event_record_t *evrp;
 
+    /*
+     * STILL TO DO.
+     * Check whether this event should be announced.  This is
+     * controlled by the 'blocked_events' variable.
+     */
+    //if (omp->blocked_events & etc...) etc....;
+
     evrp = create_event_record(omp, event, obj, obj_related,
                 attribute_id, related_attribute_value);
     if (NULL == evrp) return ENOMEM;
@@ -1405,10 +1412,6 @@ om_initialize (object_manager_t *omp,
 
     MEM_MONITOR_SETUP(omp);
     LOCK_SETUP(omp);
-
-    /* memset to 0 already does this but just making a point */
-    omp->processing_remote_event = 0;
-    omp->blocked_events = 0;
 
     root_obj = &omp->root_object;
     root_obj->omp = omp;

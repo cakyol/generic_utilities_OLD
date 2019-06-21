@@ -278,27 +278,14 @@ struct object_manager_s {
     object_t root_object;
 
     /*
-     * There are two reasons for manager changes.  Ones produced locally
-     * by direct function calls from the application itself, or ones that
-     * happen because of processing events arriving from remote managers
-     * to synchronise them all.
-     *
-     * In the case of local changes, this manager must send the change
-     * to all other object managers so that they can be kept in sync.
-     *
-     * If on the other hand, an event was received from another manager,
-     * after syncing this object manager to it, the event must be locally
-     * advertised to the registered local event handler.
-     *
-     * When either case is happening, the other case must not be executed
-     * or the object manager will start spinning and chase its own tail 
-     * continuously.
-     *
-     * This variable controls this situation.
+     * This helps suppression of sub event generation.  If an
+     * obbject is deleted, all its children are also deleted as
+     * well as their attributes etc, which will generate an
+     * enormous amount of events.  This variable is used to
+     * block all the subtree events.  It is used to send only
+     * the top most event (the object deletion and its attributes etc)
+     * but suppresses the object deletion events for all the children.
      */
-    int processing_remote_event;
-
-    /* for spurious event suppression */
     int blocked_events;
 };
 
