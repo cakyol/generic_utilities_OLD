@@ -120,7 +120,7 @@ debugger_initialize (debug_reporting_function_pointer fn);
 
 /*
  * User can redefine the reporting function by setting a new function
- * using this call.
+ * using this call.  Passing NULL will set it back to the default.
  */
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
