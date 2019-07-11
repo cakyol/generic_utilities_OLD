@@ -45,7 +45,7 @@
 ** There are 5 levels of debugging: debug, information, warning, error and
 ** fatal error in that specific order.  If a specific level is set for a
 ** module, lower level debugs will not be reported.  For example, if module
-** 'my_module' flog is set to the warning level, debugs and informations
+** 'my_module' flag is set to the warning level, debugs and informations
 ** will not be reported.  The exception to this is that errors & fatal
 ** errors will ALWAYS be reported.
 **
@@ -87,6 +87,12 @@ extern "C" {
 #include "lock_object.h"
 
 /*
+ * If you do NOT want debugging code to be generated/executed,
+ * then UN define this.
+ */
+#define INCLUDE_ALL_DEBUGGING_CODE
+
+/*
  * This is a debug flag which contains the level for which debug
  * messages for it can be processed.  Every module can have its 
  * own debug flag.  The user defines his/her modules.
@@ -106,13 +112,6 @@ typedef unsigned char module_debug_flag_t;
  */
 typedef void (*debug_reporting_function_pointer)(const char *msg);
 
-extern lock_obj_t debugger_lock;
-extern unsigned char function_trace_on;
-extern unsigned int function_trace_indent;
-extern const char *function_entered, *function_exited;
-extern char function_trace_string [];
-extern debug_reporting_function_pointer debug_reporter;
-
 /*
  * Always call this to initialize the debugger subsystem
  */
@@ -126,16 +125,15 @@ debugger_initialize (debug_reporting_function_pointer fn);
 extern void
 debugger_set_reporting_function (debug_reporting_function_pointer fn);
 
-#define INCLUDE_ALL_DEBUGGING_CODE
-
 #ifdef INCLUDE_ALL_DEBUGGING_CODE
 
     /* Turn off function entry/exit tracing */
-    static inline void DISABLE_FUNCTION_TRACING (void)
-    { function_trace_on = 0; }
+    #define DISABLE_FUNCTION_TRACING() \
+        (function_trace_on = 0)
 
-    static inline void ENABLE_FUNCTION_TRACING (void)
-    { function_trace_on = 1; }
+    /* Turn on function entry/exit tracing */
+    #define ENABLE_FUNCTION_TRACING() \
+        (function_trace_on = 1)
 
     /* Turn off all debugging for this module */
     #define DISABLE_ALL_DEBUG_MESSAGES(module_debug_flag) \
@@ -158,9 +156,9 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
         do { \
             if (function_trace_on) { \
                 grab_write_lock(&debugger_lock); \
-                sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
-                    function_trace_indent, " ", function_entered, \
-                        __FUNCTION__, __LINE__); \
+                sprintf(function_trace_string, "%*s(%d) %s (line %d)\n", \
+                    function_trace_indent+7, function_entered, \
+                    function_trace_indent, __FUNCTION__, __LINE__); \
                 function_trace_indent++; \
                 debug_reporter(function_trace_string); \
                 release_write_lock(&debugger_lock); \
@@ -173,9 +171,9 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
             if (function_trace_on) { \
                 grab_write_lock(&debugger_lock); \
                 function_trace_indent--; \
-                sprintf(function_trace_string, "%*s%s%s (line %d)\n", \
-                    function_trace_indent, " ", function_exited, \
-                        __FUNCTION__, __LINE__); \
+                sprintf(function_trace_string, "%*s(%d) %s (line %d)\n", \
+                    function_trace_indent+6, function_exited, \
+                    function_trace_indent, __FUNCTION__, __LINE__); \
                 debug_reporter(function_trace_string); \
                 release_write_lock(&debugger_lock); \
             } \
@@ -261,6 +259,13 @@ debugger_set_reporting_function (debug_reporting_function_pointer fn);
  *****************************************************************************
  *****************************************************************************
  ****************************************************************************/
+
+extern lock_obj_t debugger_lock;
+extern unsigned char function_trace_on;
+extern unsigned int function_trace_indent;
+extern const char *function_entered, *function_exited;
+extern char function_trace_string [];
+extern debug_reporting_function_pointer debug_reporter;
 
 #define DEBUG_LEVEL             (0b00000001)
 #define DEBUG_LEVEL_MASK        (0b00000001)

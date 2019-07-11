@@ -41,8 +41,8 @@ extern "C" {
 
 unsigned char function_trace_on = 0;
 unsigned int function_trace_indent = 0;
-const char *function_entered = "ENTERED ";
-const char *function_exited = "EXITED ";
+const char *function_entered = "ENTERED";
+const char *function_exited = "EXITED";
 lock_obj_t debugger_lock;
 char function_trace_string [128] = { 0 };
 
@@ -101,8 +101,8 @@ _process_debug_message_ (char *module_name, const char *level,
      * printed also with the proper indentation.
      */
     len += snprintf(&msg_buffer[index], size_left,
-		"%*s%s: %s <%s: %s(%d)> ",
-        function_trace_indent, " ", level,
+                "%*s: %s <%s: %s(%d)> ",
+        function_trace_indent - 1 + (int) strlen(level), level,
         module_name ? module_name : "",
         file_name, function_name, line_number);
 

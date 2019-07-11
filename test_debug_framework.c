@@ -27,6 +27,7 @@ int main (int argc, char *argv[])
 
     debugger_initialize(NULL);
     debugger_set_reporting_function(NULL);
+    DISABLE_FUNCTION_TRACING();
 
     for (i = 0; i < 5; i++) {
 
