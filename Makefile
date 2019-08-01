@@ -128,6 +128,10 @@ test_event_manager:	test_event_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
 				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
 
+enhanced_counters:	enhanced_counters.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) enhanced_counters.c \
+				-o enhanced_counters $(LIBNAME) $(STATIC_LIBS)
+
 TESTS =		test_debug_framework \
 		test_lock_object \
 		test_lock_speed \
@@ -149,6 +153,7 @@ TESTS =		test_debug_framework \
 		test_db_speed \
 		test_delay \
 		test_scheduler \
+		enhanced_counters \
 		\
 
 tests:		$(TESTS)
