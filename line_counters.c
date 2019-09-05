@@ -6,44 +6,44 @@
 
 #define MAX_ENHANCED_COUNTERS		1024
 
-typedef struct enhanced_counter_s {
+typedef struct line_counter_s {
 
 	char *function_name;
 	int line_number;
 	long long int value;
 
-} enhanced_counter_t;
+} line_counter_t;
 
-typedef struct enhanced_counter_block_s {
+typedef struct line_counter_block_s {
 
 	/* how many enhanced counters are in use */
 	int n;
 
 	/* actual counters */
-	enhanced_counter_t ec_array [MAX_ENHANCED_COUNTERS];
+	line_counter_t lc_array [MAX_ENHANCED_COUNTERS];
 
 	/* ordered pointers to the array */
-	enhanced_counter_t *ec_index [MAX_ENHANCED_COUNTERS];
+	line_counter_t *lc_index [MAX_ENHANCED_COUNTERS];
 
-} enhanced_counter_block_t;
+} line_counter_block_t;
 
 static void
-init_one_enhanced_counter (enhanced_counter_t *ecp)
+init_one_line_counter (line_counter_t *lcp)
 {
-	ecp->function_name = 0;
-	ecp->line_number = ecp->value = 0;
+	lcp->function_name = 0;
+	lcp->line_number = lcp->value = 0;
 }
 
 void
-init_enhanced_counter_block (enhanced_counter_block_t *ecbp)
+init_line_counter_block (line_counter_block_t *lcbp)
 {
 	int i;
 
 	for (i = 0; i < MAX_ENHANCED_COUNTERS; i++)  {
-		init_one_enhanced_counter(&ecbp->ec_array[i]);
-		ecbp->ec_index[i] = 0;
+		init_one_line_counter(&lcbp->lc_array[i]);
+		lcbp->lc_index[i] = 0;
 	}
-	ecbp->n = 0;
+	lcbp->n = 0;
 }
 
 /*
@@ -52,7 +52,7 @@ init_enhanced_counter_block (enhanced_counter_block_t *ecbp)
  * the index array.  Handles overlapping copies.
  */
 static void
-copy_enhanced_counters (enhanced_counter_t **src, enhanced_counter_t **dst,
+copy_line_counters (line_counter_t **src, line_counter_t **dst,
 	int count)
 {
 	if (dst < src) {
@@ -69,7 +69,7 @@ copy_enhanced_counters (enhanced_counter_t **src, enhanced_counter_t **dst,
  * a string of bytes and returns 0, <0 and >0 for equal, lt & gt.
  */
 static inline int
-compare_enhanced_counters (enhanced_counter_t *e1, enhanced_counter_t *e2)
+compare_line_counters (line_counter_t *e1, line_counter_t *e2)
 {
 	int result = e1->line_number - e2->line_number;
 	if (result) return result;
@@ -84,19 +84,19 @@ compare_enhanced_counters (enhanced_counter_t *e1, enhanced_counter_t *e2)
  * is being inserted.
  */
 static int 
-enhanced_counter_find_position (enhanced_counter_block_t *ecbp,
-        enhanced_counter_t *searched,
+line_counter_find_position (line_counter_block_t *lcbp,
+        line_counter_t *searched,
         int *insertion_point)
 {
 	register int mid, diff, lo, hi;
 
 	lo = mid = diff = 0;
-	hi = ecbp->n - 1;
+	hi = lcbp->n - 1;
 
 	/* binary search */
 	while (lo <= hi) {
 		mid = (hi+lo) >> 1;
-		diff = compare_enhanced_counters(searched, ecbp->ec_index[mid]);
+		diff = compare_line_counters(searched, lcbp->lc_index[mid]);
 		if (diff > 0) {
 			lo = mid + 1;
 		} else if (diff < 0) {
@@ -116,26 +116,26 @@ enhanced_counter_find_position (enhanced_counter_block_t *ecbp,
 }
 
 /*
- * Will insert the enhanced counter 'new_ecp' in its proper rank
+ * Will insert the enhanced counter 'new_lcp' in its proper rank
  * into the index for fast binary searching.  If an entry
  * already exists, returns that in 'found'.  Note that this function
  * will never fail with the given circumstances, ie the storage areas
  * are pre defined arrays so memory exhaustion does not happen.
  */
 void
-enhanced_counter_insert (enhanced_counter_block_t *ecbp,
-        enhanced_counter_t *new_ecp, enhanced_counter_t **found)
+line_counter_insert (line_counter_block_t *lcbp,
+        line_counter_t *new_lcp, line_counter_t **found)
 {
 	int insertion_point = 0;	/* shut the -Werror up */
 	int size, i;
-	enhanced_counter_t **source;
+	line_counter_t **source;
 
-	/* find the enhanced_counter_t in the index */
-	i = enhanced_counter_find_position(ecbp, new_ecp, &insertion_point);
+	/* find the line_counter_t in the index */
+	i = line_counter_find_position(lcbp, new_lcp, &insertion_point);
 
 	/* already in index and NOT considered an error */
 	if (i >= 0) {
-		*found = ecbp->ec_index[i];
+		*found = lcbp->lc_index[i];
 		return;
 	}
 
@@ -143,31 +143,31 @@ enhanced_counter_insert (enhanced_counter_block_t *ecbp,
 	*found = 0;
 
 	/* shift all of the pointers after "insertion_point" down by one */
-	source = &(ecbp->ec_index[insertion_point]);
-	if ((size = ecbp->n - insertion_point) > 0)
-		copy_enhanced_counters(source, (source+1), size);
+	source = &(lcbp->lc_index[insertion_point]);
+	if ((size = lcbp->n - insertion_point) > 0)
+		copy_line_counters(source, (source+1), size);
 
 	/* fill in the new node values */
-	ecbp->ec_index[insertion_point] = new_ecp;
+	lcbp->lc_index[insertion_point] = new_lcp;
 
 	/* increment element count */
-	ecbp->n++;
+	lcbp->n++;
 }
 
 /*
  * Given the function_name & line number, this function finds the corresponding
- * counter in the enhanced_counter_block_t.  If it cannot be found, this must be 
+ * counter in the line_counter_block_t.  If it cannot be found, this must be 
  * a new call, so it creates the entry.  It then increments the value.
  * If a new entry in the array is consumed, it advances the entry count (n).
  */
 int
-increment_enhanced_counter (enhanced_counter_block_t *ecbp,
+increment_line_counter (line_counter_block_t *lcbp,
 	char *function_name, int line_number)
 {
-	enhanced_counter_t *newone, *found;
+	line_counter_t *newone, *found;
 
 	/* MUST check this here, dont allow it to go thru past this point */
-	if (ecbp->n >= MAX_ENHANCED_COUNTERS) {
+	if (lcbp->n >= MAX_ENHANCED_COUNTERS) {
 		return ENOSPC;
 	}
 
@@ -178,10 +178,10 @@ increment_enhanced_counter (enhanced_counter_block_t *ecbp,
 	 * the next empty entry in the array and is used as a scratchpad
 	 * entry.
 	 */
-	newone = &ecbp->ec_array[ecbp->n];
+	newone = &lcbp->lc_array[lcbp->n];
 	newone->function_name = function_name;
 	newone->line_number = line_number;
-	enhanced_counter_insert(ecbp, newone, &found);
+	line_counter_insert(lcbp, newone, &found);
 
 	/* if the entry was already in the index object, just use that */
 	if (found) {
@@ -197,60 +197,60 @@ increment_enhanced_counter (enhanced_counter_block_t *ecbp,
 
 #ifdef STANDALONE_TESTING
 
-enhanced_counter_block_t ecb;
+line_counter_block_t lcb;
 long long int total_calls = 0;
 timer_obj_t tmr;
 
-#define TEST_EC(ecbp) \
+#define TEST_EC(lcbp) \
 	do { \
-		increment_enhanced_counter(ecbp, (char*) __FUNCTION__, (int) __LINE__); \
+		increment_line_counter(lcbp, (char*) __FUNCTION__, (int) __LINE__); \
 		total_calls++; \
 	} while (0)
 
 void worst_case_really_really_long_function_name_1 (void)
 {
 	int i;
-	for (i = 0; i < 123; i++) TEST_EC(&ecb);
+	for (i = 0; i < 123; i++) TEST_EC(&lcb);
 }
 
 void worst_case_really_really_long_function_name_2 (void)
 {
 	int i;
-	for (i = 0; i < 312; i++) TEST_EC(&ecb);
+	for (i = 0; i < 312; i++) TEST_EC(&lcb);
 }
 
 void worst_case_really_really_long_function_name_3 (void)
 {
 	int i;
-	for (i = 0; i < 28; i++) TEST_EC(&ecb);
+	for (i = 0; i < 28; i++) TEST_EC(&lcb);
 }
 
 void worst_case_really_really_long_function_name_4 (void)
 {
 	int i;
-	for (i = 0; i < 1000; i++) TEST_EC(&ecb);
+	for (i = 0; i < 1000; i++) TEST_EC(&lcb);
 }
 
 void worst_case_really_really_long_function_name_5 (void)
 {
 	int i;
-	for (i = 0; i < 428; i++) TEST_EC(&ecb);
+	for (i = 0; i < 428; i++) TEST_EC(&lcb);
 }
 
 void short_name (void)
 {
-	TEST_EC(&ecb);
+	TEST_EC(&lcb);
 }
 
-void dump_enhanced_counter_block (enhanced_counter_block_t *ecbp)
+void dump_line_counter_block (line_counter_block_t *lcbp)
 {
 	int i;
-	enhanced_counter_t *ecp;
+	line_counter_t *lcp;
 
-	for (i = 0; i < ecbp->n; i++) {
-		ecp = ecbp->ec_index[i];
+	for (i = 0; i < lcbp->n; i++) {
+		lcp = lcbp->lc_index[i];
 		printf("func %s line %d entered %lld times\n",
-			ecp->function_name, ecp->line_number, ecp->value);	
+			lcp->function_name, lcp->line_number, lcp->value);	
 
 	}
 }
@@ -261,7 +261,7 @@ int main (int argc, char *argv[])
 {
 	int i;
 
-	init_enhanced_counter_block(&ecb);
+	init_line_counter_block(&lcb);
 	timer_start(&tmr);
 	for (i = 0; i < ITERATIONS; i++) {
 		worst_case_really_really_long_function_name_5();
@@ -333,7 +333,7 @@ int main (int argc, char *argv[])
 	}
 	timer_end(&tmr);
 	timer_report(&tmr, total_calls, 0);
-	dump_enhanced_counter_block(&ecb);
+	dump_line_counter_block(&lcb);
 }
 
 #endif /* STANDALONE_TESTING */

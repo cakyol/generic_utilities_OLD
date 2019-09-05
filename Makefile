@@ -24,6 +24,7 @@ LIB_OBJS =	debug_framework.o \
 		queue_object.o \
 		ordered_list.o \
 		dl_list_object.o \
+		ez_sprintf.o \
 		chunk_manager.o \
 		index_object.o \
 		avl_tree_object.o \
@@ -128,9 +129,9 @@ test_event_manager:	test_event_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
 				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
 
-enhanced_counters:	enhanced_counters.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) enhanced_counters.c \
-				-o enhanced_counters $(LIBNAME) $(STATIC_LIBS)
+line_counters:	line_counters.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) line_counters.c \
+				-o line_counters $(LIBNAME) $(STATIC_LIBS)
 
 TESTS =		test_debug_framework \
 		test_lock_object \
@@ -153,7 +154,7 @@ TESTS =		test_debug_framework \
 		test_db_speed \
 		test_delay \
 		test_scheduler \
-		enhanced_counters \
+		line_counters \
 		\
 
 tests:		$(TESTS)
