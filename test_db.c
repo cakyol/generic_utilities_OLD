@@ -81,7 +81,7 @@ void add_del_attributes (object_manager_t *omp, int type, int instance)
     for (iter = 0; iter < ITER; iter++) {
         for (i = MAX_ATTRS; i > 1; i--) {
             for (av = 0; av < MAX_AV_COUNT; av++) {
-                om_om_object_attribute_add_simple_value(omp, type, instance, i, av);
+                om__object_attribute_add_simple_value(omp, type, instance, i, av);
                 sprintf(complex_value, "cav %d", av);
                 om_object_attribute_add_complex_value(omp, type, instance, i,
                         (byte*) complex_value, strlen(complex_value) + 1);

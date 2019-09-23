@@ -960,7 +960,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
 }
 
 static int
-__om_om_object_attribute_add_simple_value (object_t *obj, int attribute_id, 
+__om__object_attribute_add_simple_value (object_t *obj, int attribute_id, 
     long long int simple_value)
 {
     attribute_instance_t *aitp;
@@ -1175,7 +1175,7 @@ process_attribute_value_added_event (object_manager_t *omp,
         return -1;
     if (evrp->attribute_value_length == 0) {
         return
-            __om_om_object_attribute_add_simple_value(obj, evrp->attribute_id,
+            __om__object_attribute_add_simple_value(obj, evrp->attribute_id,
                     evrp->attribute_value_data);
     } else if (evrp->attribute_value_length > 0) {
         return
@@ -1493,7 +1493,7 @@ om_object_attribute_add (object_manager_t *omp,
 }
 
 PUBLIC int
-om_om_object_attribute_add_simple_value (object_manager_t *omp,
+om__object_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
@@ -1505,7 +1505,7 @@ om_om_object_attribute_add_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_om_object_attribute_add_simple_value(obj,
+        failed = __om__object_attribute_add_simple_value(obj,
                     attribute_id, simple_value);
     }
     WRITE_UNLOCK(omp);

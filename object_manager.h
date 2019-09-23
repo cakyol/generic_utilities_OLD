@@ -345,7 +345,7 @@ om_object_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 extern int
-om_om_object_attribute_add_simple_value (object_manager_t *omp,
+om__object_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
