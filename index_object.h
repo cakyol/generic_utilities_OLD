@@ -68,6 +68,7 @@ typedef struct index_obj_s {
     int expansion_count;
     int n;
     void **elements;
+    statistics_block_t stats;
 
 } index_obj_t;
 

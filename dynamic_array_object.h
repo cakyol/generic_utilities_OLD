@@ -78,6 +78,7 @@ typedef struct dynamic_array_s {
     int lowest, highest;
     unsigned long long int inserts, deletes;
     void **elements;
+    statistics_block_t stats;
 
 } dynamic_array_t;
 

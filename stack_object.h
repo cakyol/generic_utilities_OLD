@@ -49,6 +49,7 @@ typedef struct stack_obj_s {
     int expansion_count;
     int n;
     void **elements;
+    statistics_block_t stats;
 
 } stack_obj_t;
 

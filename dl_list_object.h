@@ -68,6 +68,7 @@ typedef struct dl_list_s {
     dl_list_element_t *head, *tail;
     object_comparer objects_match_function;
     int n;
+    statistics_block_t stats;
 
 } dl_list_t;
 

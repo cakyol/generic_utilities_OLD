@@ -102,6 +102,8 @@ struct ordered_list_s {
     /* number of elements in the list */
     int n;
 
+    statistics_block_t stats;
+
 };
 
 /*

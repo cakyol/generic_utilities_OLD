@@ -95,6 +95,7 @@ typedef struct radix_tree_s {
     int cannot_be_modified;
     int node_count;
     radix_tree_node_t radix_tree_root;
+    statistics_block_t stats;
 
 } radix_tree_t;
 

@@ -52,8 +52,27 @@ extern "C" {
  * if the error detections are fully turned on during compilations.
  */
 #ifndef SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING
-#define SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(x)	((void)(x))
+#define SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(x)    ((void)(x))
 #endif
+
+/*
+ * Typical statistics used for most insrt/search/delete data structures
+ */
+typedef struct statistics_block_s {
+
+    unsigned long long int insertion_successes;
+    unsigned long long int insertion_duplicates;
+    unsigned long long int insertion_failures;
+    unsigned long long int deletion_failures;
+
+} statistics_block_t;
+
+#define incr_insertion_successes(struct_ptr)        struct_ptr->stats.insertion_successes++
+#define incr_insertion_duplicates(struct_ptr)       struct_ptr->stats.insertion_duplicates++
+#define incr_insertion_failures(struct_ptr)         struct_ptr->stats.insertion_failures++
+#define incr_deletion_failures(struct_ptr)          struct_ptr->stats.deletion_failures++
+#define reset_stats(struct_ptr)                     memset(&struct_ptr->stats, 0, \
+                                                        sizeof(statistics_block_t))
 
 typedef unsigned char byte;
 

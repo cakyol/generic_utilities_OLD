@@ -60,6 +60,8 @@ typedef struct queue_obj_s {
     /* actual queue elements */
     void **elements;
 
+    statistics_block_t stats;
+
 } queue_obj_t;
 
 extern int
