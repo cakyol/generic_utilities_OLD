@@ -38,7 +38,7 @@ LIB_OBJS =	debug_framework.o \
 		### test_data_generator.o \
 		### utils_common.o \
 
-%.o:		%.c %.h 
+%.o:		%.c %.h common.h
 		$(CC) -c $(CFLAGS) $<
 
 utils_lib.a:	$(LIB_OBJS)

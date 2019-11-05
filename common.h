@@ -55,26 +55,47 @@ extern "C" {
 #define SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(x)    ((void)(x))
 #endif
 
+typedef unsigned char byte;
+
 /*
- * Typical statistics used for most insrt/search/delete data structures
+ * Typical statistics used for most insrt/search/delete
+ * type of data structures.  Mostly usable for debugging.
  */
 typedef struct statistics_block_s {
 
     unsigned long long int insertion_successes;
     unsigned long long int insertion_duplicates;
     unsigned long long int insertion_failures;
+    unsigned long long int search_successes;
+    unsigned long long int search_failures;
+    unsigned long long int deletion_successes;
     unsigned long long int deletion_failures;
 
 } statistics_block_t;
 
-#define incr_insertion_successes(struct_ptr)        struct_ptr->stats.insertion_successes++
-#define incr_insertion_duplicates(struct_ptr)       struct_ptr->stats.insertion_duplicates++
-#define incr_insertion_failures(struct_ptr)         struct_ptr->stats.insertion_failures++
-#define incr_deletion_failures(struct_ptr)          struct_ptr->stats.deletion_failures++
-#define reset_stats(struct_ptr)                     memset(&struct_ptr->stats, 0, \
-                                                        sizeof(statistics_block_t))
+#define incr_insertion_successes(struct_ptr) \
+    struct_ptr->stats.insertion_successes++
 
-typedef unsigned char byte;
+#define incr_insertion_duplicates(struct_ptr) \
+    struct_ptr->stats.insertion_duplicates++
+
+#define incr_insertion_failures(struct_ptr) \
+    struct_ptr->stats.insertion_failures++
+
+#define incr_search_successes(struct_ptr) \
+    struct_ptr->stats.search_successes++
+
+#define incr_search_failures(struct_ptr) \
+    struct_ptr->stats.search_failures++
+
+#define incr_deletion_successes(struct_ptr) \
+    struct_ptr->stats.deletion_successes++
+
+#define incr_deletion_failures(struct_ptr) \
+    struct_ptr->stats.deletion_failures++
+
+#define reset_stats(struct_ptr) \
+    memset(&struct_ptr->stats, 0, sizeof(statistics_block_t))
 
 typedef int
 (*one_parameter_function_pointer)(void *arg1);

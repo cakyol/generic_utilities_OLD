@@ -252,19 +252,24 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
      * so any kind of access which may change the tree is
      * not allowed
      */
-    if (tree->cannot_be_modified) return EBUSY;
+    if (tree->cannot_be_modified) {
+        incr_insertion_failures(tree);
+        return EBUSY;
+    }
 
     found = avl_lookup_engine(tree, data_to_be_inserted,
                 &parent, &unbalanced, &is_left);
 
     if (found) {
         safe_pointer_set(present_data, found->user_data);
+        incr_insertion_duplicates(tree);
         return 0;
     }
 
     /* get a new node */
     node = new_avl_node(tree, data_to_be_inserted);
     if (NULL == node) {
+        incr_insertion_failures(tree);
         return ENOMEM;
     }
 
@@ -362,6 +367,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
             break;
         }
     }
+    incr_insertion_successes(tree);
     return 0;
 }
 
@@ -378,7 +384,10 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     int is_left;
 
     /* being traversed, cannot access */
-    if (tree->cannot_be_modified) return EBUSY;
+    if (tree->cannot_be_modified) {
+        incr_deletion_failures(tree);
+        return EBUSY;
+    }
 
     /* find the matching node first */
     node = avl_lookup_engine(tree, data_to_be_removed,
@@ -387,6 +396,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     /* not there */
     if (!node) {
         safe_pointer_set(actual_data_removed, NULL);
+        incr_deletion_failures(tree);
         return ENODATA;
     }
 
@@ -538,6 +548,7 @@ END_OF_DELETE:
     } else {
         assert(tree->root_node != NULL);
     }
+    incr_deletion_successes(tree);
     return 0;
 }
 
@@ -635,6 +646,7 @@ avl_tree_init (avl_tree_t *tree,
     MEM_MONITOR_SETUP(tree);
     LOCK_SETUP(tree);
 
+    reset_stats(tree);
     tree->cmpf = cmpf;
     tree->n = 0;
     tree->root_node = NULL;
@@ -677,9 +689,11 @@ avl_tree_search (avl_tree_t *tree,
                 &parent, &unbalanced, &is_left);
     if (node) {
         safe_pointer_set(present_data, node->user_data);
+        incr_search_successes(tree);
         failed = 0;
     } else {
         safe_pointer_set(present_data, NULL);
+        incr_search_failures(tree);
         failed = ENODATA;
     }
     READ_UNLOCK(tree);
