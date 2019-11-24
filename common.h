@@ -58,8 +58,11 @@ extern "C" {
 typedef unsigned char byte;
 
 /*
- * Typical statistics used for most insrt/search/delete
+ * Typical statistics used for most insert/search/delete
  * type of data structures.  Mostly usable for debugging.
+ * Not every field is used in all objects.  For example,
+ * in the queue object, "search*' counters are not used,
+ * since they do not make sense.  They will stay as 0.
  */
 typedef struct statistics_block_s {
 
@@ -73,25 +76,25 @@ typedef struct statistics_block_s {
 
 } statistics_block_t;
 
-#define incr_insertion_successes(struct_ptr) \
+#define insertion_succeeded(struct_ptr) \
     struct_ptr->stats.insertion_successes++
 
-#define incr_insertion_duplicates(struct_ptr) \
+#define insertion_duplicated(struct_ptr) \
     struct_ptr->stats.insertion_duplicates++
 
-#define incr_insertion_failures(struct_ptr) \
+#define insertion_failed(struct_ptr) \
     struct_ptr->stats.insertion_failures++
 
-#define incr_search_successes(struct_ptr) \
+#define search_succeeded(struct_ptr) \
     struct_ptr->stats.search_successes++
 
-#define incr_search_failures(struct_ptr) \
+#define search_failed(struct_ptr) \
     struct_ptr->stats.search_failures++
 
-#define incr_deletion_successes(struct_ptr) \
+#define deletion_succeeded(struct_ptr) \
     struct_ptr->stats.deletion_successes++
 
-#define incr_deletion_failures(struct_ptr) \
+#define deletion_failed(struct_ptr) \
     struct_ptr->stats.deletion_failures++
 
 #define reset_stats(struct_ptr) \

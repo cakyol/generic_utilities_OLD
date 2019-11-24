@@ -80,6 +80,7 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
         if (qobj->write_idx >= qobj->maximum_size) {
             qobj->write_idx = 0;
         }
+        insertion_succeeded(qobj);
         return 0;
     }
 
@@ -91,6 +92,7 @@ thread_unsafe_queue_obj_queue (queue_obj_t *qobj,
     }
 
     /* no way */
+    insertion_failed(qobj);
     return failed;
 }
 
@@ -104,9 +106,11 @@ thread_unsafe_queue_obj_dequeue (queue_obj_t *qobj,
         if (qobj->read_idx >= qobj->maximum_size) {
             qobj->read_idx = 0;
         }
+        deletion_succeeded(qobj);
         return 0;
     }
     *returned_data = NULL;
+    deletion_failed(qobj);
     return ENODATA;
 }
 
@@ -132,6 +136,7 @@ queue_obj_init (queue_obj_t *qobj,
     qobj->expansion_count = 0;
     qobj->n = 0;
     qobj->read_idx = qobj->write_idx = 0;
+    reset_stats(qobj);
 
     /* allocate its queue element storage */
     qobj->elements = (void**) MEM_MONITOR_ALLOC(qobj,

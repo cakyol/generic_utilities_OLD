@@ -253,7 +253,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
      * not allowed
      */
     if (tree->cannot_be_modified) {
-        incr_insertion_failures(tree);
+        insertion_failed(tree);
         return EBUSY;
     }
 
@@ -262,14 +262,14 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
 
     if (found) {
         safe_pointer_set(present_data, found->user_data);
-        incr_insertion_duplicates(tree);
+        insertion_duplicated(tree);
         return 0;
     }
 
     /* get a new node */
     node = new_avl_node(tree, data_to_be_inserted);
     if (NULL == node) {
-        incr_insertion_failures(tree);
+        insertion_failed(tree);
         return ENOMEM;
     }
 
@@ -367,7 +367,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
             break;
         }
     }
-    incr_insertion_successes(tree);
+    insertion_succeeded(tree);
     return 0;
 }
 
@@ -385,7 +385,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
 
     /* being traversed, cannot access */
     if (tree->cannot_be_modified) {
-        incr_deletion_failures(tree);
+        deletion_failed(tree);
         return EBUSY;
     }
 
@@ -396,7 +396,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     /* not there */
     if (!node) {
         safe_pointer_set(actual_data_removed, NULL);
-        incr_deletion_failures(tree);
+        deletion_failed(tree);
         return ENODATA;
     }
 
@@ -548,7 +548,7 @@ END_OF_DELETE:
     } else {
         assert(tree->root_node != NULL);
     }
-    incr_deletion_successes(tree);
+    deletion_succeeded(tree);
     return 0;
 }
 
@@ -689,11 +689,11 @@ avl_tree_search (avl_tree_t *tree,
                 &parent, &unbalanced, &is_left);
     if (node) {
         safe_pointer_set(present_data, node->user_data);
-        incr_search_successes(tree);
+        search_succeeded(tree);
         failed = 0;
     } else {
         safe_pointer_set(present_data, NULL);
-        incr_search_failures(tree);
+        search_failed(tree);
         failed = ENODATA;
     }
     READ_UNLOCK(tree);
