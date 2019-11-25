@@ -108,8 +108,11 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     /* assume no entry */
     safe_pointer_set(present_data, NULL);
 
-    /* being traversed, no access */
-    if (idx->cannot_be_modified) return EBUSY;
+    /* being traversed, cannot be changed */
+    if (idx->cannot_be_modified) {
+        insertion_failed(idx);
+        return EBUSY;
+    }
 
     /*
     ** see if element is already there and if not,
@@ -120,6 +123,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     /* key/data already in index */
     if (i >= 0) {
         safe_pointer_set(present_data, idx->elements[i]);
+        insertion_duplicated(idx);
         return 0;
     }
 
@@ -128,11 +132,13 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
         /* cannot expand, not allowed */
         if (idx->expansion_size <= 0) {
+            insertion_failed(idx);
             return ENOSPC;
         }
 
         /* tried to expand but failed */
         if (index_resize(idx, idx->maximum_size + idx->expansion_size)) {
+            insertion_failed(idx);
             return ENOMEM;
         }
 
@@ -154,6 +160,8 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     /* increment element count */
     idx->n++;
 
+    insertion_succeeded(idx);
+
     return 0;
 }
 
@@ -165,16 +173,17 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
     int i, dummy;
 
     safe_pointer_set(found, NULL);
-    if (idx->cannot_be_modified) return EBUSY;
 
     i = index_find_position(idx, search_key, &dummy);
 
     /* not found */
     if (i < 0) {
+        search_failed(idx);
         return ENODATA;
     }
 
     safe_pointer_set(found, idx->elements[i]);
+    search_succeeded(idx);
     return 0;
 }
 
@@ -194,6 +203,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
     /* not in table */
     if (i < 0) {
+        deletion_failed(idx);
         return ENODATA;
     }
 
@@ -205,6 +215,8 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
         void **source = &idx->elements[i+1];
         copy_index_elements(source, (source - 1), size);
     }
+
+    deletion_succeeded(idx);
 
     return 0;
 }
