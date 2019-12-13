@@ -15,7 +15,7 @@ INCLUDES =	-I.
 
 LIBNAME =	utils_lib.a
 
-LIB_OBJS =	debug_framework.o \
+LIB_OBJS =	debug.o \
 		timer_object.o \
 		mem_monitor_object.o \
 		lock_object.o \
@@ -44,10 +44,6 @@ LIB_OBJS =	debug_framework.o \
 utils_lib.a:	$(LIB_OBJS)
 		ar -r $(LIBNAME) $(LIB_OBJS)
 		ranlib $(LIBNAME)
-
-test_debug_framework:	test_debug_framework.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_debug_framework.c \
-				-o test_debug_framework $(LIBNAME) $(STATIC_LIBS)
 
 test_lock_object:	test_lock_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_lock_object.c \
@@ -130,8 +126,7 @@ test_event_manager:	test_event_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
 				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
 
-TESTS =		test_debug_framework \
-		test_lock_object \
+TESTS =		test_lock_object \
 		test_lock_speed \
 		test_stack_object \
 		test_bitlist \
