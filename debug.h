@@ -104,7 +104,7 @@ extern module_debug_block_t *module_debug_blocks;
 /*****************************************************************************/
 
 /* initialize the debug framework.  This MUST be called first */
-extern int debug_module_init(int n_module, int n_levels);
+extern int debug_init(int n_modules);
 
 /* set a printable name for the specified module */
 extern void set_module_name(int module, char *module_name);

@@ -63,15 +63,15 @@ const char **level_strings = 0;
 module_debug_block_t *module_debug_blocks = 0;
 
 extern int
-debug_module_init (int n_module, int n_levels)
+debug_init (int n_modules)
 {
     int m;
     char default_module_name [MODULE_NAME_LENGTH];
 
-    level_strings = malloc(n_levels * sizeof(char*));
+    level_strings = malloc(NUM_DEBUG_LEVELS * sizeof(char*));
     if (0 == level_strings) return ENOMEM;
 
-    module_debug_blocks = malloc(n_module * sizeof(module_debug_block_t));
+    module_debug_blocks = malloc(n_modules * sizeof(module_debug_block_t));
     if (0 == module_debug_blocks) {
         free(level_strings);
         return ENOMEM;
@@ -82,7 +82,7 @@ debug_module_init (int n_module, int n_levels)
     level_strings[INFORM_DEBUG_LEVEL] = "INFORMATION";
     level_strings[TRACE_DEBUG_LEVEL] = "TRACE";
 
-    for (m = 0; m < n_module; m++) {
+    for (m = 0; m < n_modules; m++) {
 
         /* set to default module name */
         sprintf(default_module_name, "MODULE_%d", m);

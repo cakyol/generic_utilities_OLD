@@ -45,6 +45,10 @@ utils_lib.a:	$(LIB_OBJS)
 		ar -r $(LIBNAME) $(LIB_OBJS)
 		ranlib $(LIBNAME)
 
+test_debug:	test_debug.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_debug.c \
+				-o test_debug $(LIBNAME) $(STATIC_LIBS)
+
 test_lock_object:	test_lock_object.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_lock_object.c \
 				-o test_lock_object $(LIBNAME) $(STATIC_LIBS)
@@ -126,7 +130,8 @@ test_event_manager:	test_event_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
 				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
 
-TESTS =		test_lock_object \
+TESTS =		test_debug \
+		test_lock_object \
 		test_lock_speed \
 		test_stack_object \
 		test_bitlist \
@@ -140,7 +145,6 @@ TESTS =		test_lock_object \
 		test_dynamic_array \
 		test_radix_tree \
 		test_radix_tree2 \
-		test_event_manager \
 		test_db \
 		test_db_load \
 		test_db_speed \

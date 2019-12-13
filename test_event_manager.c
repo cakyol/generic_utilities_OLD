@@ -1,5 +1,5 @@
 
-#include "debug_framework.h"
+#include "debug.h"
 #include "event_manager.h"
 
 #define LOW_OBJECT      15
@@ -17,7 +17,7 @@ int main (int argc, char *argv[])
 {
     int i;
 
-    debugger_initialize(NULL);
+    debug_init(NULL);
 
     if (event_manager_init(&em, 0, 0)) {
         FATAL_ERROR(EVENT_MGR_MODULE, "event_manager_init failed");
