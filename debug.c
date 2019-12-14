@@ -78,9 +78,9 @@ debug_init (int n_modules)
     }
 
     level_strings[ERROR_DEBUG_LEVEL] = "ERROR";
-    level_strings[WARNING_DEBUG_LEVEL] = "WARNING";
-    level_strings[INFORM_DEBUG_LEVEL] = "INFORMATION";
-    level_strings[TRACE_DEBUG_LEVEL] = "TRACE";
+    level_strings[WARNING_DEBUG_LEVEL] = " WARNING";
+    level_strings[INFORM_DEBUG_LEVEL] = "  INFORMATION";
+    level_strings[TRACE_DEBUG_LEVEL] = "   TRACE";
 
     for (m = 0; m < n_modules; m++) {
 

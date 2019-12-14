@@ -50,7 +50,10 @@ extern "C" {
 /*
  * Debug levels, lowest number is the highest priority
  */
-#define ERROR_DEBUG_LEVEL           0   /* *ALWAYS* gets reported */
+
+/* This ALWAYS gets reported AND MUST be ALWAYS 0 */
+#define ERROR_DEBUG_LEVEL           0
+
 #define WARNING_DEBUG_LEVEL         1
 #define INFORM_DEBUG_LEVEL          2
 #define TRACE_DEBUG_LEVEL           3
@@ -82,9 +85,9 @@ extern module_debug_block_t *module_debug_blocks;
  * be reported regardless, and it should be.
  */
 #define REPORT(m, l, file, line, args...) \
-    if (l <= module_debug_blocks[m].level) { \
+    if ((!(l)) || ((l) <= module_debug_blocks[m].level)) { \
         module_debug_block_t *mdb = &module_debug_blocks[m]; \
-        mdb->reporting_fn("%s in %s (%s:%d): ", \
+        mdb->reporting_fn("%s:%s:%s:%d: ", \
             level_strings[l], mdb->module_name, file, line); \
         mdb->reporting_fn(args); \
     }
