@@ -38,8 +38,17 @@
 void
 set_module_name (int module, char *module_name)
 {
+    char *name;
+
+    if (module_name) {
+        name = module_name;
+    } else {
+        char default_module_name [MODULE_NAME_LENGTH];
+        sprintf(default_module_name, "module_%d", module);
+        name = &default_module_name[0];
+    }
     strncpy(&module_debug_blocks[module].module_name[0],
-        module_name, MODULE_NAME_LENGTH);
+        name, MODULE_NAME_LENGTH);
     module_debug_blocks[module].module_name[MODULE_NAME_LENGTH - 1] = 0;
 }
 
@@ -66,7 +75,6 @@ extern int
 debug_init (int n_modules)
 {
     int m;
-    char default_module_name [MODULE_NAME_LENGTH];
 
     level_strings = malloc(NUM_DEBUG_LEVELS * sizeof(char*));
     if (0 == level_strings) return ENOMEM;
@@ -85,14 +93,13 @@ debug_init (int n_modules)
     for (m = 0; m < n_modules; m++) {
 
         /* set to default module name */
-        sprintf(default_module_name, "MODULE_%d", m);
-        set_module_name(m, default_module_name);
+        set_module_name(m, 0);
 
         /* set to error level */
         module_debug_blocks[m].level = ERROR_DEBUG_LEVEL;
 
         /* set to default printing function */
-        module_debug_blocks[m].reporting_fn = printf;
+        set_module_debug_reporting_function(m, 0);
     }
 
     return 0;

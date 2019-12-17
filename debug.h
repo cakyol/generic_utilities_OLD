@@ -106,16 +106,25 @@ extern module_debug_block_t *module_debug_blocks;
 
 /*****************************************************************************/
 
-/* initialize the debug framework.  This MUST be called first */
+/*
+ * Initialize the debug framework.  This MUST be called first.
+ * Specify how many modules are available with 'n_modules'.
+ */
 extern int debug_init(int n_modules);
 
-/* set a printable name for the specified module */
+/*
+ * Set a printable name for the specified module.
+ * If null is passed, default name will be assigned.
+ */
 extern void set_module_name(int module, char *module_name);
 
 /* set the reporting level for the specified module */
 extern void set_module_debug_level(int module, int level);
 
-/* set the 'reporting function' for the specified module */
+/*
+ * Set the 'reporting function' for the specified module.
+ * If null function is passed, it will default to printf.
+ */
 extern void set_module_debug_reporting_function(int module,
     debug_reporting_function_pointer fptr);
 

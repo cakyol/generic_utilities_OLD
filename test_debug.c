@@ -9,7 +9,6 @@ int main (int argc, char *argv[])
     int i;
 
     debug_init(1);
-    set_module_name(0, "THE_MODULE");
     for (i = 0; i < 5; i++) {
 
         set_module_debug_level(0, ERROR_DEBUG_LEVEL);
