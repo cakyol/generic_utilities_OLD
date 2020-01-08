@@ -52,17 +52,21 @@ extern "C" {
  */
 
 /* This ALWAYS gets reported AND MUST be ALWAYS 0 */
-#define ERROR_DEBUG_LEVEL           0
+#define ERROR_LEVEL             0
 
-#define WARNING_DEBUG_LEVEL         1
-#define INFORM_DEBUG_LEVEL          2
-#define TRACE_DEBUG_LEVEL           3
-#define NUM_DEBUG_LEVELS            (TRACE_DEBUG_LEVEL + 1)
+#define WARNING_LEVEL           1
+#define INFORM_LEVEL            2
+#define TRACE_LEVEL             3
+#define NUM_DEBUG_LEVELS        (TRACE_LEVEL + 1)
+
+#define MIN_DEBUG_LEVEL         ERROR_LEVEL
+#define MAX_DEBUG_LEVEL         TRACE_LEVEL
 
 /* like printf */
 typedef int (*debug_reporting_function_pointer)(const char *format, ...);
 
 #define MODULE_NAME_LENGTH          48
+
 typedef struct module_debug_block_s {
 
     /* name of the module to print if needed */
@@ -76,33 +80,35 @@ typedef struct module_debug_block_s {
 
 } module_debug_block_t;
 
+extern int _n_modules;
 extern const char **level_strings;
 extern module_debug_block_t *module_debug_blocks;
 
 /*
  * Generic debug/reporting call.
- * Note that ERROR_DEBUG_LEVEL will ALWAYS
+ * Note that ERROR_LEVEL will ALWAYS
  * be reported regardless, and it should be.
  */
 #define REPORT(m, l, file, line, args...) \
-    if ((!(l)) || ((l) <= module_debug_blocks[m].level)) { \
-        module_debug_block_t *mdb = &module_debug_blocks[m]; \
-        mdb->reporting_fn("%s:%s:%s:%d: ", \
-            level_strings[l], mdb->module_name, file, line); \
-        mdb->reporting_fn(args); \
-    }
+    if (((!(l)) || ((l) <= module_debug_blocks[m].level)) && \
+        ((m) <= _n_modules)) { \
+            module_debug_block_t *mdb = &module_debug_blocks[m]; \
+            mdb->reporting_fn("%s:%s:%s:%d: ", \
+                level_strings[l], mdb->module_name, file, line); \
+            mdb->reporting_fn(args); \
+        }
 
 #define ERROR(module, args...) \
-    REPORT(module, ERROR_DEBUG_LEVEL, __FILE__, __LINE__, ## args)
+    REPORT(module, ERROR_LEVEL, __FILE__, __LINE__, ## args)
 
-#define WARNING(module, args...) \
-    REPORT(module, WARNING_DEBUG_LEVEL, __FILE__, __LINE__, ## args)
+#define WARN(module, args...) \
+    REPORT(module, WARNING_LEVEL, __FILE__, __LINE__, ## args)
 
 #define INFORM(module, args...) \
-    REPORT(module, INFORM_DEBUG_LEVEL, __FILE__, __LINE__, ## args)
+    REPORT(module, INFORM_LEVEL, __FILE__, __LINE__, ## args)
 
 #define TRACE(module, args...) \
-    REPORT(module, TRACE_DEBUG_LEVEL, __FILE__, __LINE__, ## args)
+    REPORT(module, TRACE_LEVEL, __FILE__, __LINE__, ## args)
 
 /*****************************************************************************/
 
@@ -116,16 +122,19 @@ extern int debug_init(int n_modules);
  * Set a printable name for the specified module.
  * If null is passed, default name will be assigned.
  */
-extern void set_module_name(int module, char *module_name);
+extern int set_module_name(int module, char *module_name);
 
-/* set the reporting level for the specified module */
-extern void set_module_debug_level(int module, int level);
+/*
+ * set the reporting level for the specified module.
+ * If level < 0, it will be set to ERROR_LEVEL.
+ */
+extern int set_module_debug_level(int module, int level);
 
 /*
  * Set the 'reporting function' for the specified module.
  * If null function is passed, it will default to printf.
  */
-extern void set_module_debug_reporting_function(int module,
+extern int set_module_debug_reporting_function(int module,
     debug_reporting_function_pointer fptr);
 
 #ifdef __cplusplus

@@ -35,11 +35,29 @@
 
 #include "debug.h"
 
-void
+int _n_modules = 0;
+const char **level_strings = 0;
+module_debug_block_t *module_debug_blocks = 0;
+
+static inline int
+invalid_module_number (int m)
+{
+    return ((m < 0) || (m >= _n_modules));
+}
+
+static inline int
+invalid_debug_level (int lev)
+{
+    return ((lev < MIN_DEBUG_LEVEL) || (lev > MAX_DEBUG_LEVEL));
+}
+
+int
 set_module_name (int module, char *module_name)
 {
     char *name;
 
+    if (invalid_module_number(module))
+        return EINVAL;
     if (module_name) {
         name = module_name;
     } else {
@@ -50,45 +68,61 @@ set_module_name (int module, char *module_name)
     strncpy(&module_debug_blocks[module].module_name[0],
         name, MODULE_NAME_LENGTH);
     module_debug_blocks[module].module_name[MODULE_NAME_LENGTH - 1] = 0;
+    return 0;
 }
 
-void
+int
 set_module_debug_level (int module, int level)
 {
+    if (invalid_module_number(module))
+        return EINVAL;
+    if (invalid_debug_level(level))
+        return EINVAL;
+    if (level < 0) level = ERROR_LEVEL;
     module_debug_blocks[module].level = level;
+    return 0;
 }
 
-void
+int
 set_module_debug_reporting_function (int module,
     debug_reporting_function_pointer fptr)
 {
-    if (0 == fptr) fptr = printf;
+    if (invalid_module_number(module))
+        return EINVAL;
+    if (0 == fptr)
+        fptr = printf;
     module_debug_blocks[module].reporting_fn = fptr;
+    return 0;
 }
 
 /*****************************************************************************/
-
-const char **level_strings = 0;
-module_debug_block_t *module_debug_blocks = 0;
 
 extern int
 debug_init (int n_modules)
 {
     int m;
 
+    if (n_modules <= 0)
+        return EINVAL;
+
     level_strings = malloc(NUM_DEBUG_LEVELS * sizeof(char*));
-    if (0 == level_strings) return ENOMEM;
+    if (0 == level_strings)
+        return ENOMEM;
 
     module_debug_blocks = malloc(n_modules * sizeof(module_debug_block_t));
     if (0 == module_debug_blocks) {
         free(level_strings);
+        level_strings = 0;
         return ENOMEM;
     }
+    
+    /* set this now, things succeeded */
+    _n_modules = n_modules;
 
-    level_strings[ERROR_DEBUG_LEVEL] = "ERROR";
-    level_strings[WARNING_DEBUG_LEVEL] = " WARNING";
-    level_strings[INFORM_DEBUG_LEVEL] = "  INFORMATION";
-    level_strings[TRACE_DEBUG_LEVEL] = "   TRACE";
+    level_strings[ERROR_LEVEL] = "ERROR";
+    level_strings[WARNING_LEVEL] = " WARNING";
+    level_strings[INFORM_LEVEL] = "  INFORMATION";
+    level_strings[TRACE_LEVEL] = "   TRACE";
 
     for (m = 0; m < n_modules; m++) {
 
@@ -96,7 +130,7 @@ debug_init (int n_modules)
         set_module_name(m, 0);
 
         /* set to error level */
-        module_debug_blocks[m].level = ERROR_DEBUG_LEVEL;
+        module_debug_blocks[m].level = ERROR_LEVEL;
 
         /* set to default printing function */
         set_module_debug_reporting_function(m, 0);
