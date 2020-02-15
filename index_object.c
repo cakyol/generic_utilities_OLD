@@ -109,7 +109,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     safe_pointer_set(present_data, NULL);
 
     /* being traversed, cannot be changed */
-    if (idx->cannot_be_modified) {
+    if (idx->should_not_be_modified) {
         insertion_failed(idx);
         return EBUSY;
     }
@@ -196,7 +196,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
     safe_pointer_set(actual_data_removed, NULL);
 
-    if (idx->cannot_be_modified) return EBUSY;
+    if (idx->should_not_be_modified) return EBUSY;
 
     /* first see if it is there */
     i = index_find_position(idx, data_to_be_removed, &dummy);
@@ -239,7 +239,7 @@ index_obj_init (index_obj_t *idx,
 
     MEM_MONITOR_SETUP(idx);
     LOCK_SETUP(idx);
-    idx->cannot_be_modified = 0;
+    idx->should_not_be_modified = 0;
     idx->initial_size = idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
     idx->expansion_count = 0;
@@ -332,8 +332,8 @@ index_obj_traverse (index_obj_t *idx,
     int i;
     int failed = 0;
 
-    if (idx->cannot_be_modified) return EBUSY;
-    idx->cannot_be_modified = 1;
+    if (idx->should_not_be_modified) return EBUSY;
+    idx->should_not_be_modified = 1;
 
     READ_LOCK(idx);
     for (i = 0; i < idx->n; i++) {
@@ -345,7 +345,7 @@ index_obj_traverse (index_obj_t *idx,
     }
     READ_UNLOCK(idx);
 
-    idx->cannot_be_modified = 0;
+    idx->should_not_be_modified = 0;
 
     return failed;
 }

@@ -238,7 +238,7 @@ typedef struct event_manager_s {
      * it has to be ensured that the callbacks can NOT cause changes and
      * corrupt the lists.
      */
-    int cannot_be_modified;
+    int should_not_be_modified;
 
     /*
      * list of registrants interested in object events (object creation

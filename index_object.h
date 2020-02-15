@@ -60,7 +60,7 @@ typedef struct index_obj_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
-    int cannot_be_modified;
+    int should_not_be_modified;
     object_comparer cmpf;
     int initial_size;
     int maximum_size;

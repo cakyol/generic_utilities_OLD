@@ -185,7 +185,7 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     if (NULL == data_to_be_inserted) return EINVAL;
 
     /* being traversed, cannot access */
-    if (ntp->cannot_be_modified) return EBUSY;
+    if (ntp->should_not_be_modified) return EBUSY;
 
     node = radix_tree_node_insert(ntp, key, key_length);
     if (node) {
@@ -237,7 +237,7 @@ thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
     safe_pointer_set(removed_data, NULL);
 
     /* being traversed, cannot access */
-    if (ntp->cannot_be_modified) return EBUSY;
+    if (ntp->should_not_be_modified) return EBUSY;
 
     node = radix_tree_node_find(ntp, key, key_length);
     if (node && node->user_data) {
@@ -335,10 +335,10 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
      * changes nodes (and restores) them.  So a recursive traveral cannot 
      * be allowed.
      */
-    if (ntp->cannot_be_modified) return;
+    if (ntp->should_not_be_modified) return;
 
     /* start traversal */
-    ntp->cannot_be_modified = 1;
+    ntp->should_not_be_modified = 1;
 
     key = malloc(8192);
     if (NULL == key) return;
@@ -377,7 +377,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
     READ_UNLOCK(ntp);
 
     /* ok traversal finished */
-    ntp->cannot_be_modified = 0;
+    ntp->should_not_be_modified = 0;
 
     free(key);
 }

@@ -53,8 +53,8 @@ dl_list_new_element (dl_list_t *list, void *object)
     dl_list_element_t *elem;
 
     elem = MEM_MONITOR_ALLOC(list, sizeof(dl_list_element_t));
-    if (NULL == elem) return NULL;
-    elem->next = elem->prev = NULL;
+    if (0 == elem) return 0;
+    elem->next = elem->prev = 0;
     elem->object = object;
     return elem;
 }
@@ -93,21 +93,24 @@ thread_unsafe_dl_list_append_element (dl_list_t *list,
     list->n++;
 }
 
-static void
+static int
 thread_unsafe_dl_list_delete_element (dl_list_t *list,
         dl_list_element_t *elem)
 {
-    if (elem->next == NULL) {
-        if (elem->prev == NULL) {
-            list->head = list->tail = NULL;
+    if (list->should_not_be_modified)
+        return EBUSY;
+
+    if (elem->next == 0) {
+        if (elem->prev == 0) {
+            list->head = list->tail = 0;
         } else {
-            elem->prev->next = NULL;
+            elem->prev->next = 0;
             list->tail = elem->prev;
         }
     } else {
-        if (elem->prev == NULL) {
+        if (elem->prev == 0) {
             list->head = elem->next;
-            elem->next->prev = NULL;
+            elem->next->prev = 0;
         } else {
             elem->prev->next = elem->next;
             elem->next->prev = elem->prev;
@@ -115,88 +118,53 @@ thread_unsafe_dl_list_delete_element (dl_list_t *list,
     }
     MEM_MONITOR_FREE(list, elem);
     list->n--;
-}
-
-/*
- * if an equality function for the list is defined, we use that
- * to determine whether the two user objects are considered to
- * be the same.  Otherwise we test only whether the actual object
- * pointers are the same.
- */
-static inline int
-objects_are_equal (dl_list_t *list, void *obj1, void *obj2)
-{
-    if (list->objects_match_function) {
-        return
-            list->objects_match_function(obj1, obj2);
-    }
-    return
-        (obj1 == obj2);
-}
-
-static int
-thread_unsafe_dl_list_find_element (dl_list_t *list, void *object,
-        dl_list_element_t **found_element)
-{
-    dl_list_element_t *elem;
-
-    *found_element = NULL;
-    elem = list->head;
-    while (elem) {
-        if (objects_are_equal(list, object, elem->object)) {
-            *found_element = elem;
-            return 0;
-        }
-        elem = elem->next;
-    }
-    return ENODATA;
+    return 0;
 }
 
 static int 
 thread_unsafe_dl_list_prepend_object (dl_list_t *list, void *object)
 {
-    int err = ENOMEM;
     dl_list_element_t *elem;
     
+    if (list->should_not_be_modified)
+        return EBUSY;
+
     elem = dl_list_new_element(list, object);
     if (elem) {
         thread_unsafe_dl_list_prepend_element(list, elem);
-        err = 0;
+        return 0;
     }
-    return err;
+    return ENOMEM;
 }
 
 static int
 thread_unsafe_dl_list_append_object (dl_list_t *list, void *object)
 {
-    int err = ENOMEM;
     dl_list_element_t *elem;
     
+    if (list->should_not_be_modified)
+        return EBUSY;
+
     elem = dl_list_new_element(list, object);
     if (elem) {
         thread_unsafe_dl_list_append_element(list, elem);
-        err = 0;
+        return 0;
     }
-    return err;
+    return ENOMEM;
 }
 
-/***************************** Non static functions *****************************/
+/************************** Public functions **************************/
 
 int
 dl_list_init (dl_list_t *list,
         int make_it_thread_safe,
-        object_comparer objects_match_function,
         mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
-
-    list->head = list->tail = NULL;
+    list->head = list->tail = 0;
     list->n = 0;
-    list->objects_match_function = objects_match_function;
-
     WRITE_UNLOCK(list);
-
     return 0;
 }
 
@@ -223,52 +191,49 @@ dl_list_append_object (dl_list_t *list, void *object)
 }
 
 int
-dl_list_find_object (dl_list_t *list, void *object,
-        dl_list_element_t **found_element)
+dl_list_delete_element (dl_list_t *list, dl_list_element_t *elem)
 {
-    int err;
-
-    READ_LOCK(list);
-    err = thread_unsafe_dl_list_find_element(list, object, found_element);
-    WRITE_UNLOCK(list);
-    return err;
-}
-
-void
-dl_list_iterate (dl_list_t *list, object_comparer iterator,
-        void *extra_arg, int stop_if_fails)
-{
-    dl_list_element_t *elem;
-        
-    READ_LOCK(list);
-    elem = list->head;
-    while (elem) {
-        if (iterator(elem->object, extra_arg) && stop_if_fails) break;
-        elem = elem->next;
-    }
-    READ_UNLOCK(list);
-}
-
-int
-dl_list_delete_object (dl_list_t *list, void *object)
-{
-    int failed = ENODATA;
-    dl_list_element_t *elem;
+    int failed;
 
     WRITE_LOCK(list);
-    if (thread_unsafe_dl_list_find_element(list, object, &elem) == 0) {
-        thread_unsafe_dl_list_delete_element(list, elem);
-        failed = 0;
-    }
+    failed = thread_unsafe_dl_list_delete_element(list, elem);
     WRITE_UNLOCK(list);
     return failed;
+}
+
+/*
+ * Note that by incrementing & decrementing 'should_not_be_modified' we
+ * allow traversing to be done within traversing.  As long as the list
+ * is not modified (which 'should_not_be_modified' ensures), it IS
+ * possible for multiple threads to traverse and even recursive traversals
+ * within the same thread is possible.
+ */
+void
+dl_list_traverse (dl_list_t *list,
+    traverse_function_pointer tfn,
+    void *p0, void *p1, void *p2, void *p3)
+{
+    dl_list_element_t *iterator;
+
+    READ_LOCK(list);
+    list->should_not_be_modified++;
+    iterator = list->head;
+    while (iterator) {
+        if (tfn(list, iterator, iterator->object, p0, p1, p2, p3)) {
+            break;
+        }
+        iterator = iterator->next;
+    }
+    list->should_not_be_modified--;
+    READ_UNLOCK(list);
 }
 
 void
 dl_list_destroy (dl_list_t *list)
 {
     WRITE_LOCK(list);
-    while (list->head) thread_unsafe_dl_list_delete_element(list, list->head);
+    while (list->head)
+        thread_unsafe_dl_list_delete_element(list, list->head);
     assert(list->n == 0);
     assert(list->head == NULL);
     assert(list->tail == NULL);

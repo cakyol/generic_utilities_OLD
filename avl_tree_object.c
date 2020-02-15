@@ -252,7 +252,7 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
      * so any kind of access which may change the tree is
      * not allowed
      */
-    if (tree->cannot_be_modified) {
+    if (tree->should_not_be_modified) {
         insertion_failed(tree);
         return EBUSY;
     }
@@ -384,7 +384,7 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     int is_left;
 
     /* being traversed, cannot access */
-    if (tree->cannot_be_modified) {
+    if (tree->should_not_be_modified) {
         deletion_failed(tree);
         return EBUSY;
     }
@@ -650,7 +650,7 @@ avl_tree_init (avl_tree_t *tree,
     tree->cmpf = cmpf;
     tree->n = 0;
     tree->root_node = NULL;
-    tree->cannot_be_modified = 0;
+    tree->should_not_be_modified = 0;
 
     WRITE_UNLOCK(tree);
 
@@ -729,11 +729,11 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
     avl_node_t *root, *current;
 
     READ_LOCK(tree);
-    tree->cannot_be_modified = 1;
+    tree->should_not_be_modified = 1;
     storage_area = malloc((tree->n + 1) * sizeof(void*));
     if (NULL == storage_area) {
         *returned_count = 0;
-        tree->cannot_be_modified = 0;
+        tree->should_not_be_modified = 0;
         READ_UNLOCK(tree);
         return NULL;
     }
@@ -760,7 +760,7 @@ avl_tree_get_all (avl_tree_t *tree, int *returned_count)
         }
     }
     *returned_count = index;
-    tree->cannot_be_modified = 0;
+    tree->should_not_be_modified = 0;
     READ_UNLOCK(tree);
 
     return storage_area;
@@ -776,10 +776,10 @@ avl_tree_traverse (avl_tree_t *tree,
     int failed;
 
     READ_LOCK(tree);
-    tree->cannot_be_modified = 1;
+    tree->should_not_be_modified = 1;
     failed = thread_unsafe_morris_traverse(tree, tree->root_node,
                 tfn, p0, p1, p2, p3);
-    tree->cannot_be_modified = 0;
+    tree->should_not_be_modified = 0;
     READ_UNLOCK(tree);
     return failed;
 }
@@ -793,14 +793,14 @@ avl_tree_destroy (avl_tree_t *tree,
     int old_count, deleted;
 
     WRITE_LOCK(tree);
-    tree->cannot_be_modified = 1;
+    tree->should_not_be_modified = 1;
     old_count = tree->n;
     deleted = thread_unsafe_iterative_destroy(tree, dh_fptr, extra_arg);
     assert(tree->n == 0);
     assert(old_count == deleted);
     tree->root_node = NULL;
     tree->cmpf = NULL;
-    tree->cannot_be_modified = 0;
+    tree->should_not_be_modified = 0;
     WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
     memset(tree, 0, sizeof(avl_tree_t));

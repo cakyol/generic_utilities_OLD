@@ -305,7 +305,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
     ordered_list_t *list;
 
     /* if we are traversing lists, block any potential changes */
-    if (emp->cannot_be_modified) return EBUSY;
+    if (emp->should_not_be_modified) return EBUSY;
 
     failed = get_relevant_structures(emp, event_type, object_type,
                 register_it, &list, &contp, &idxp);
@@ -393,7 +393,7 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
      * starting to traverse lists, lock the lists against any changes
      * which the callback functions may attempt.
      */
-    emp->cannot_be_modified = 1;
+    emp->should_not_be_modified = 1;
 
     /*
      * First, notify the event to the registrants who registered
@@ -412,7 +412,7 @@ thread_unsafe_announce_event (event_manager_t *emp, event_record_t *erp)
     notify_all_registrants(list, erp);
 
     /* ok traversal complete, modifications to lists can now happen */
-    emp->cannot_be_modified = 0;
+    emp->should_not_be_modified = 0;
 }
 
 /*****************************************************************************/
@@ -434,7 +434,7 @@ event_manager_init (event_manager_t *emp,
     LOCK_SETUP(emp);
 
     /* until initialisation is finished, dont allow registrations */
-    emp->cannot_be_modified = 1;
+    emp->should_not_be_modified = 1;
 
     failed = ordered_list_init(&emp->object_event_registrants_for_all_objects, 
             0, compare_f_and_args, emp->mem_mon_p);
@@ -471,7 +471,7 @@ event_manager_init (event_manager_t *emp,
 #endif /* !CONSECUTIVE_OBJECT_TYPES_USED */
 
     /* ok we are cleared to use the object now */
-    emp->cannot_be_modified = 0;
+    emp->should_not_be_modified = 0;
 
     WRITE_UNLOCK(emp);
     return 0;

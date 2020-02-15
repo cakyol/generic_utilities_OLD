@@ -55,7 +55,7 @@ typedef struct avl_tree_s {
 
     avl_node_t *root_node;
     object_comparer cmpf;
-    int cannot_be_modified;
+    int should_not_be_modified;
     int n;
     statistics_block_t stats;
 
