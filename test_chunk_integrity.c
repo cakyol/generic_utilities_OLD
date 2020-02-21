@@ -41,11 +41,11 @@ validate_chunk (void *chunk, int starting_value)
 
 int main (int argc, char *argv[])
 {
-    int i, j, trimmed_chunks;
+    int i, j;
     unsigned long long iter = 0;
 
     int rc = chunk_manager_init(&cmgr, 0, 
-                CHUNK_SIZE, MAX_CHUNKS/64, 1024, NULL);
+                CHUNK_SIZE, MAX_CHUNKS/64, 1024, NULL, 1, NULL);
     if (rc != 0) {
         printf("chunk_manager_init failed for %d chunks\n",
             MAX_CHUNKS);
@@ -82,10 +82,8 @@ int main (int argc, char *argv[])
     }
     timer_end(&tp);
     timer_report(&tp, iter, NULL);
-    trimmed_chunks = chunk_manager_trim(&cmgr);
-    printf("chunk manager grew %llu times and trimmed %d chunks\n",
-            cmgr.grow_count, trimmed_chunks);
-    assert(0 == chunk_manager_destroy(&cmgr));
+    chunk_manager_trim(&cmgr);
+    chunk_manager_destroy(&cmgr);
     return 0;
 } 
 

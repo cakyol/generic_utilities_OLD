@@ -4,11 +4,7 @@
 
 #define CHUNK_SIZE              256
 #define MAX_CHUNKS              (10 * 1024 * 1024)
-#ifdef USE_MALLOC
-#define LOOP                    150
-#else
-#define LOOP                    500
-#endif
+#define LOOP                    15
 
 unsigned char *chunks [MAX_CHUNKS];
 chunk_manager_t cmgr;
@@ -23,7 +19,7 @@ int main (int argc, char *argv[])
     printf("initializing chunk object .. ");
     fflush(stdout);
     int rc = chunk_manager_init(&cmgr, 
-                0, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL);
+                0, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL, 0, NULL);
     if (rc != 0) {
         printf("chunk_manager_init failed for %d chunks\n",
             MAX_CHUNKS);
@@ -56,7 +52,7 @@ int main (int argc, char *argv[])
 
         /* now delete them */
         //printf("deleting..\n");
-        for (i = 0; i < MAX_CHUNKS; i++) {
+        for (i = MAX_CHUNKS - 1; i >= 0; i--) {
             if (NULL != chunks[i]) {
 #ifdef USE_MALLOC
                 free(chunks[i]);
@@ -71,20 +67,13 @@ int main (int argc, char *argv[])
     timer_end(&tp);
     timer_report(&tp, iter, NULL);
 #ifndef USE_MALLOC
-    assert(MAX_CHUNKS+1 == chunk_manager_trim(&cmgr));
-    assert(0 == chunk_manager_trim(&cmgr));
+    chunk_manager_trim(&cmgr);
+    chunk_manager_trim(&cmgr);
 
     /* allocate more again just to se if it works after a trim */
     void *ch1 = chunk_manager_alloc(&cmgr);
     void *ch2 = chunk_manager_alloc(&cmgr);
     assert(ch1 && ch2);
-    assert(EBUSY == chunk_manager_destroy(&cmgr));
-    chunk_manager_free(&cmgr, ch1);
-    chunk_manager_free(&cmgr, ch2);
-    int total = cmgr.total_chunk_count;
-    assert(total == chunk_manager_trim(&cmgr));
-    assert(0 == chunk_manager_trim(&cmgr));
-    assert(0 == chunk_manager_destroy(&cmgr));
 #endif
     return 0;
 } 
