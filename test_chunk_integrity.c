@@ -4,7 +4,7 @@
 
 #define CHUNK_SIZE              128
 #define MAX_CHUNKS              (2*1024*1024)
-#define LOOP                    10
+#define LOOP                    50
 
 unsigned char *chunks [MAX_CHUNKS];
 chunk_manager_t cmgr;
@@ -45,7 +45,7 @@ int main (int argc, char *argv[])
     unsigned long long iter = 0;
 
     int rc = chunk_manager_init(&cmgr, 0, 
-                CHUNK_SIZE, MAX_CHUNKS/64, 1024, NULL, 1, NULL);
+                CHUNK_SIZE, MAX_CHUNKS/64, 1024, NULL, NULL);
     if (rc != 0) {
         printf("chunk_manager_init failed for %d chunks\n",
             MAX_CHUNKS);

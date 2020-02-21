@@ -201,7 +201,7 @@ bitlist_init (bitlist_t *bl,
     LOCK_SETUP(bl);
 
     bl->the_bits = 
-        (unsigned int*) MEM_MONITOR_ALLOC(bl, (size_in_ints * BYTES_PER_INT));
+        (unsigned int*) MEM_MONITOR_ZALLOC(bl, (size_in_ints * BYTES_PER_INT));
     if (0 == bl->the_bits) {
         failed = ENOMEM;
         goto done;

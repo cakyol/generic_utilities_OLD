@@ -26,7 +26,8 @@ extern "C" {
  * Make sure this is 8 bytes aligned or it crashes in 64 bit systems.
  */
 void *
-mem_monitor_allocate (mem_monitor_t *memp, int size)
+mem_monitor_allocate (mem_monitor_t *memp,
+        int size, int initialize_to_zero)
 {
     int total_size = size + sizeof(unsigned long long int);
     unsigned long long int *block = 
@@ -34,8 +35,8 @@ mem_monitor_allocate (mem_monitor_t *memp, int size)
 
     if (block) {
 
-        /* MUST do this, a lot of code depends on this being zeroed out */
-        memset(block, 0, total_size);
+        if (initialize_to_zero)
+            memset(block, 0, total_size);
 
         *block = total_size;
         memp->bytes_used += total_size;
@@ -66,7 +67,7 @@ mem_monitor_reallocate (mem_monitor_t *memp, void *ptr, int newsize)
 
     if (NULL == ptr)
         return 
-            mem_monitor_allocate(memp, newsize);
+            mem_monitor_allocate(memp, newsize, 1);
     block--;
     oldsize = *block;
     newsize += sizeof(unsigned long long int);

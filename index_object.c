@@ -52,7 +52,7 @@ index_resize (index_obj_t *idx, int new_size)
 {
     void **new_elements;
 
-    new_elements = MEM_MONITOR_ALLOC(idx, new_size * sizeof(void*));
+    new_elements = MEM_MONITOR_ZALLOC(idx, new_size * sizeof(void*));
     if (NULL == new_elements) return ENOMEM;
     copy_index_elements(idx->elements, new_elements, idx->n);
     MEM_MONITOR_FREE(idx, idx->elements);
@@ -245,7 +245,7 @@ index_obj_init (index_obj_t *idx,
     idx->expansion_count = 0;
     idx->cmpf = cmpf;
     idx->n = 0;
-    idx->elements = MEM_MONITOR_ALLOC(idx, sizeof(void*) * maximum_size);
+    idx->elements = MEM_MONITOR_ZALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
         failed = EINVAL;
     }
@@ -310,7 +310,7 @@ index_obj_get_all (index_obj_t *idx, int *returned_count)
     void **storage_area;
 
     READ_LOCK(idx);
-    storage_area = MEM_MONITOR_ALLOC(idx, (idx->n + 1) * sizeof(void*));
+    storage_area = MEM_MONITOR_ZALLOC(idx, (idx->n + 1) * sizeof(void*));
     if (NULL == storage_area) {
         *returned_count = 0;
         READ_UNLOCK(idx);

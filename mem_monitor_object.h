@@ -38,7 +38,8 @@ typedef struct mem_monitor_s {
 } mem_monitor_t;
 
 extern void *
-mem_monitor_allocate (mem_monitor_t *mem, int size);
+mem_monitor_allocate (mem_monitor_t *mem,
+        int size, int initialize_to_zero);
 
 extern void *
 mem_monitor_reallocate (mem_monitor_t *mem, void *ptr, int newsize);
@@ -59,7 +60,10 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
     } while (0)
 
 #define MEM_MONITOR_ALLOC(objp, size) \
-    mem_monitor_allocate(objp->mem_mon_p, size)
+    mem_monitor_allocate(objp->mem_mon_p, size, 0)
+
+#define MEM_MONITOR_ZALLOC(objp, size) \
+    mem_monitor_allocate(objp->mem_mon_p, size, 1)
 
 #define MEM_REALLOC(objp, oldp, newsize) \
     mem_monitor_reallocate(objp->mem_mon_p, oldp, newsize)

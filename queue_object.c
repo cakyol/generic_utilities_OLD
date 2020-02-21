@@ -44,7 +44,7 @@ thread_unsafe_queue_expand (queue_obj_t *qobj)
 
     /* expand the elements */
     new_size = qobj->maximum_size + qobj->expansion_increment;
-    new_elements = MEM_MONITOR_ALLOC(qobj, (new_size * sizeof(void*)));
+    new_elements = MEM_MONITOR_ZALLOC(qobj, (new_size * sizeof(void*)));
     if (NULL == new_elements) return ENOMEM;
 
     /* copy all unread events/data to new queue elements array */
@@ -139,7 +139,7 @@ queue_obj_init (queue_obj_t *qobj,
     reset_stats(qobj);
 
     /* allocate its queue element storage */
-    qobj->elements = (void**) MEM_MONITOR_ALLOC(qobj,
+    qobj->elements = (void**) MEM_MONITOR_ZALLOC(qobj,
             (maximum_size * sizeof(void*)));
     if (NULL == qobj->elements) {
         failed = ENOMEM;

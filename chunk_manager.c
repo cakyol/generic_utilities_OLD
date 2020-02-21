@@ -33,10 +33,12 @@ extern "C" {
 /*
  * adds a chunk (chp) to the end of the list.
  */
-static void
+static inline void
 cmgr_append_chunk_to_list (chunk_list_t *list, chunk_header_t *chp)
 {
+    chp->next = 0;
     if (list->n <= 0) {
+        chp->prev = 0;
         list->head = list->tail = chp;
     } else {
         chp->prev = list->tail;
@@ -49,7 +51,7 @@ cmgr_append_chunk_to_list (chunk_list_t *list, chunk_header_t *chp)
 /*
  * removes the chunk (chp) out of the list.
  */
-static void
+static inline void
 cmgr_remove_chunk_from_list (chunk_list_t *list, chunk_header_t *chp)
 {
     if (chp->next == 0) {
@@ -68,24 +70,19 @@ cmgr_remove_chunk_from_list (chunk_list_t *list, chunk_header_t *chp)
             chp->next->prev = chp->prev;
         }
     }
-
-    /* make sure chp is kept clean in case it is reused */
-    chp->next = chp->prev = 0;
-
     list->n--;
 }
 
 /*
  * creates a new fresh chunk & adds it to the end of the free list
  */
-static int
+static inline int
 cmgr_add_new_chunk (chunk_manager_t *cmgr)
 {
     chunk_header_t *chp;
 
     chp = MEM_MONITOR_ALLOC(cmgr, (cmgr->chunk_size + sizeof(chunk_header_t)));
     if (0 == chp) return ENOMEM;
-    chp->next = chp->prev = 0;
     cmgr_append_chunk_to_list(&cmgr->free_chunks, chp);
     return 0;
 }
@@ -102,6 +99,8 @@ cmgr_destroy_list (chunk_manager_t *cmgr, chunk_list_t *list)
         MEM_MONITOR_FREE(cmgr, chp);
         chp = nxt;
     }
+    assert(list->head == 0);
+    assert(list->tail == 0);
     assert(list->n == 0);
 }
 
@@ -118,7 +117,6 @@ chunk_manager_init (chunk_manager_t *cmgr,
         int make_it_thread_safe,
         int chunk_size, int expansion,
         int initial_size, int *actual_chunks_available,
-        int may_be_traversed,
         mem_monitor_t *parent_mem_monitor)
 {
     int failed = 0;
@@ -129,7 +127,6 @@ chunk_manager_init (chunk_manager_t *cmgr,
     cmgr->chunk_size = chunk_size;
     cmgr->expansion = expansion;
     cmgr->should_not_be_modified = 0;
-    cmgr->may_be_traversed = may_be_traversed;
     cmgr->free_chunks.head = cmgr->free_chunks.tail = 0;
     cmgr->used_chunks.head = cmgr->used_chunks.tail = 0;
     while (initial_size-- > 0) {
@@ -150,7 +147,9 @@ chunk_manager_alloc (chunk_manager_t *cmgr)
         return 0;
 
     WRITE_LOCK(cmgr);
+
 try_again:
+
     if (cmgr->free_chunks.n > 0) {
         chp = cmgr->free_chunks.head;
 

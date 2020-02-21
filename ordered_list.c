@@ -43,7 +43,7 @@ ordered_list_new_node (ordered_list_t *listp, void *user_data)
     ordered_list_node_t *n;
 
     n = (ordered_list_node_t*) 
-        MEM_MONITOR_ALLOC(listp, sizeof(ordered_list_node_t));
+        MEM_MONITOR_ZALLOC(listp, sizeof(ordered_list_node_t));
     if (n) {
         n->list = listp;
         n->user_data = user_data;
@@ -277,7 +277,7 @@ ordered_list_init (ordered_list_t *listp,
     LOCK_SETUP(listp);
 
     last_node = (ordered_list_node_t*) 
-                    MEM_MONITOR_ALLOC(listp, sizeof(ordered_list_node_t));
+                    MEM_MONITOR_ZALLOC(listp, sizeof(ordered_list_node_t));
     if (last_node) {
         last_node->list = listp;
         last_node->next = NULL;

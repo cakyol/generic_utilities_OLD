@@ -52,7 +52,7 @@ dl_list_new_element (dl_list_t *list, void *object)
 {
     dl_list_element_t *elem;
 
-    elem = MEM_MONITOR_ALLOC(list, sizeof(dl_list_element_t));
+    elem = MEM_MONITOR_ZALLOC(list, sizeof(dl_list_element_t));
     if (0 == elem) return 0;
     elem->next = elem->prev = 0;
     elem->object = object;

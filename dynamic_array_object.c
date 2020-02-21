@@ -53,7 +53,7 @@ dynamic_array_expand (dynamic_array_t *datp, int index)
     }
 
     new_elements = 
-        (void**) MEM_MONITOR_ALLOC(datp, new_size * sizeof(void*));
+        (void**) MEM_MONITOR_ZALLOC(datp, new_size * sizeof(void*));
     if (NULL == new_elements)
         return ENOMEM;
     for (i = 0; i < new_size; i++) new_elements[i] = NULL;
@@ -117,7 +117,7 @@ dynamic_array_shrink (dynamic_array_t *datp)
     /* allocate the new smaller array */
     new_size = datp->size - start_unused_entries - end_unused_entries;
     new_elements = (void**)
-        MEM_MONITOR_ALLOC(datp, new_size * sizeof(void*));
+        MEM_MONITOR_ZALLOC(datp, new_size * sizeof(void*));
     if (NULL == new_elements) return;
 
     /* copy the valid data from the old into the new array */
@@ -185,7 +185,7 @@ dynamic_array_init (dynamic_array_t *datp,
     MEM_MONITOR_SETUP(datp);
     LOCK_SETUP(datp);
     datp->elements = 
-        MEM_MONITOR_ALLOC(datp, (initial_size * sizeof(void**)));
+        MEM_MONITOR_ZALLOC(datp, (initial_size * sizeof(void**)));
     if (NULL == datp->elements)
         return ENOMEM;
     for (i = 0; i < initial_size; i++) datp->elements[i] = NULL;

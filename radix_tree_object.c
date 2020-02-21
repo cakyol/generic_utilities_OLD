@@ -47,7 +47,7 @@ radix_tree_new_node (radix_tree_t *ntp, int value)
 {
     radix_tree_node_t *node;
 
-    node = (radix_tree_node_t*) MEM_MONITOR_ALLOC(ntp, sizeof(radix_tree_node_t));
+    node = (radix_tree_node_t*) MEM_MONITOR_ZALLOC(ntp, sizeof(radix_tree_node_t));
     if (node) {
         node->value = value;
     }

@@ -120,7 +120,7 @@ lock_obj_destroy (lock_obj_t *lck);
         int __failed__; \
         obj->lock = 0; \
         if (make_it_thread_safe) { \
-            obj->lock = MEM_MONITOR_ALLOC(obj, sizeof(lock_obj_t)); \
+            obj->lock = MEM_MONITOR_ZALLOC(obj, sizeof(lock_obj_t)); \
             if (0 == obj->lock) return ENOMEM; \
             __failed__ = lock_obj_init(obj->lock); \
             if (__failed__) return __failed__; \

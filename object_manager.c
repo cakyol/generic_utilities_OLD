@@ -312,7 +312,7 @@ create_simple_attribute_value (mem_monitor_t *memp, long long int value)
     attribute_value_t *avtp;
 
     if (memp) {
-        avtp = mem_monitor_allocate(memp, sizeof(attribute_value_t));
+        avtp = mem_monitor_allocate(memp, sizeof(attribute_value_t), 1);
     } else {
         avtp = malloc(sizeof(attribute_value_t));
     }
@@ -369,7 +369,7 @@ create_complex_attribute_value (mem_monitor_t *memp,
 
     /* allocate enuf space */
     if (memp) {
-        avtp = mem_monitor_allocate(memp, size);
+        avtp = mem_monitor_allocate(memp, size, 1);
     } else {
         avtp = malloc(size);
     }
@@ -855,7 +855,7 @@ om_object_create_engine (object_manager_t *omp,
     }
 
     /* allocate the object & fill in some basics */
-    obj = MEM_MONITOR_ALLOC(omp, sizeof(object_t));
+    obj = MEM_MONITOR_ZALLOC(omp, sizeof(object_t));
     assert(obj != NULL);
     obj->omp = omp;
     if (parent) {
@@ -919,7 +919,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
     }
     
     /* create the new attribute */
-    aitp = MEM_MONITOR_ALLOC(obj->omp, sizeof(attribute_instance_t));
+    aitp = MEM_MONITOR_ZALLOC(obj->omp, sizeof(attribute_instance_t));
     if (NULL == aitp) return NULL;
 
     /* add it to object */
@@ -932,7 +932,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
 #else
 
     /* create the new attribute  */
-    aitp = MEM_MONITOR_ALLOC(obj->omp, sizeof(attribute_instance_t));
+    aitp = MEM_MONITOR_ZALLOC(obj->omp, sizeof(attribute_instance_t));
     if (NULL == aitp) return NULL;
 
     /* if already there, just free up the new one & return */

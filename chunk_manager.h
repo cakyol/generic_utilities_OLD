@@ -71,12 +71,11 @@ struct chunk_list_s {
 
 struct chunk_manager_s {
 
-    LOCK_VARIABLES;
     MEM_MON_VARIABLES;
+    LOCK_VARIABLES;
     int chunk_size;
     int expansion;
     int should_not_be_modified;
-    int may_be_traversed;
     chunk_list_t free_chunks;
     chunk_list_t used_chunks;
     chunk_header_t *iterator;
@@ -87,7 +86,6 @@ chunk_manager_init (chunk_manager_t *cmgr,
         int make_it_thread_safe,
         int chunk_size, int expansion,
         int initial_size, int *actual_chunks_available,
-        int may_be_traversed,
         mem_monitor_t *parent_mem_monitor);
 
 void *

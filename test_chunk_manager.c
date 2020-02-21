@@ -19,7 +19,7 @@ int main (int argc, char *argv[])
     printf("initializing chunk object .. ");
     fflush(stdout);
     int rc = chunk_manager_init(&cmgr, 
-                0, CHUNK_SIZE, MAX_CHUNKS+1, 0, NULL, 0, NULL);
+                0, CHUNK_SIZE, 20, MAX_CHUNKS+1, NULL, NULL);
     if (rc != 0) {
         printf("chunk_manager_init failed for %d chunks\n",
             MAX_CHUNKS);

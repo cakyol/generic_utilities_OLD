@@ -99,7 +99,7 @@ stack_obj_init (stack_obj_t *stk,
     stk->expansion_size = expansion_size;
     stk->expansion_count = 0;
     stk->n = 0;
-    stk->elements = MEM_MONITOR_ALLOC(stk, maximum_size * sizeof(void*));
+    stk->elements = MEM_MONITOR_ZALLOC(stk, maximum_size * sizeof(void*));
     if (NULL == stk->elements) {
         failed = ENOMEM;
     }

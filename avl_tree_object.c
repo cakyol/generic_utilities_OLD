@@ -170,7 +170,7 @@ free_avl_node (avl_tree_t *tree, avl_node_t *node)
 static inline avl_node_t *
 new_avl_node (avl_tree_t *tree, void *user_data)
 {
-    avl_node_t *node = MEM_MONITOR_ALLOC(tree, sizeof(avl_node_t));
+    avl_node_t *node = MEM_MONITOR_ZALLOC(tree, sizeof(avl_node_t));
 
     if (node) {
         node->parent = node->left = node->right = NULL;

@@ -54,7 +54,7 @@ create_f_and_arg (event_manager_t *emp,
 {
     f_and_arg_t *new_one;
 
-    new_one = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_t));
+    new_one = MEM_MONITOR_ZALLOC(emp, sizeof(f_and_arg_t));
     if (new_one) {
         new_one->fptr = fptr;
         new_one->extra_arg = extra_arg;
@@ -135,7 +135,7 @@ create_f_and_arg_container (event_manager_t *emp,
     int failed;
     f_and_arg_container_t *fargcp;
 
-    fargcp = MEM_MONITOR_ALLOC(emp, sizeof(f_and_arg_container_t));
+    fargcp = MEM_MONITOR_ZALLOC(emp, sizeof(f_and_arg_container_t));
     if (fargcp) {
         failed = ordered_list_init(&fargcp->list_of_f_and_args, 0,
                     compare_f_and_args, emp->mem_mon_p);
