@@ -77,7 +77,17 @@ struct chunk_manager_s {
     int expansion;
     int should_not_be_modified;
     chunk_list_t free_chunks;
+
+    /*
+     * The 'used_list' is maintained for a very useful purpose.
+     * Whatever data structure the chunks are used for, they can be
+     * traversed easily by simply traversing this list one chunk
+     * at a time.  Since it is much easier to traverse a linked
+     * list, it is very convenient.
+     */
     chunk_list_t used_chunks;
+
+    /* used for traversing */
     chunk_header_t *iterator;
 };
 

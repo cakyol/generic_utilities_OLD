@@ -110,20 +110,20 @@ cmgr_destroy_list (chunk_manager_t *cmgr, chunk_list_t *list)
  * Initializes the chunk manager to specified parameters.
  * Returns 0 on success or non zero upon error.
  * How many actual chunks have been initialised is returned
- * in 'actual_chunks_available'.
+ * in 'actual_chunks_created'.
  */
 int
 chunk_manager_init (chunk_manager_t *cmgr,
         int make_it_thread_safe,
         int chunk_size, int expansion,
-        int initial_size, int *actual_chunks_available,
+        int initial_size, int *actual_chunks_created,
         mem_monitor_t *parent_mem_monitor)
 {
     int failed = 0;
 
     MEM_MONITOR_SETUP(cmgr);
     LOCK_SETUP(cmgr);
-    safe_pointer_set(actual_chunks_available, 0);
+    safe_pointer_set(actual_chunks_created, 0);
     cmgr->chunk_size = chunk_size;
     cmgr->expansion = expansion;
     cmgr->should_not_be_modified = 0;
@@ -132,7 +132,7 @@ chunk_manager_init (chunk_manager_t *cmgr,
     while (initial_size-- > 0) {
         if ((failed = cmgr_add_new_chunk(cmgr))) break;
     }
-    safe_pointer_set(actual_chunks_available, cmgr->free_chunks.n);
+    safe_pointer_set(actual_chunks_created, cmgr->free_chunks.n);
     WRITE_UNLOCK(cmgr);
     return failed;
 }
