@@ -41,6 +41,7 @@ int main (int argc, char *argv[])
     Data *datp;
     void *removed;
     int iter;
+    long long int count;
 
     /* create the index first */
     if (index_obj_init(&index, 
@@ -73,8 +74,9 @@ printf("FILLING INITIAL DATA\n");
 
     printf ("\n\n\n");
 printf("SEARCHING DATA\n");
+    count = 0;
     timer_start(&timr);
-    for (iter = 0; iter < ITER; iter++) {
+    for (iter = 0; iter < 10*ITER; iter++) {
         for (i = 0; i < MAX_SZ; i++) {
             searched.first = searched.second = i;
             ip1 = &searched;
@@ -90,20 +92,23 @@ printf("SEARCHING DATA\n");
                 printf("index_search could not find (%d, %d)\n",
                     searched.first, searched.second);
             }
+            count++;
         }
     }
     timer_end(&timr);
-    timer_report(&timr, ITER * MAX_SZ, NULL);
+    timer_report(&timr, count, NULL);
 
     printf ("\n\n\n");
 printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
+    count = 0;
     timer_start(&timr);
     ip1 = &hidata;
-    for (i = 0; i < BIG_ITER; i++) {
+    for (i = 0; i < 3*BIG_ITER; i++) {
         if (index_obj_insert(&index, ip1, &exists) != 0) {
             printf("could not insert hidata %d %d",
                 hidata.first, hidata.second);
         }
+        count++;
         if (NULL != exists) {
             fprintf(stderr, "hidata should NOT exist but it does\n");
         }
@@ -111,6 +116,7 @@ printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
             printf("could not remove hidata %d %d",
                 hidata.first, hidata.second);
         }
+        count++;
         datp = removed;
         if ((datp->first != hidata.first) || (datp->second != hidata.second)) {
             fprintf(stderr, "removed data does not match: (%d, %d) != (%d, %d)\n",
@@ -118,7 +124,7 @@ printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
         }
     }
     timer_end(&timr);
-    timer_report(&timr, BIG_ITER * 2, NULL);
+    timer_report(&timr, count, NULL);
 
     printf ("\n\n\n");
 printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);

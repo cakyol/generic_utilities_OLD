@@ -35,6 +35,7 @@ LIB_OBJS =	debug.o \
 		scheduler.o \
 		event_manager.o \
 		object_manager.o \
+		tlv_manager.o \
 		### test_data_generator.o \
 		### utils_common.o \
 
