@@ -51,9 +51,13 @@ extern "C" {
  * This supresses the compiler error messages for unused variables,
  * if the error detections are fully turned on during compilations.
  */
-#ifndef SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING
-#define SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(x)    ((void)(x))
+#ifndef SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING
+#define SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(x)    ((void)(x))
 #endif
+
+#ifndef NULL
+#define NULL    0
+#endif /* NULL */
 
 typedef unsigned char byte;
 

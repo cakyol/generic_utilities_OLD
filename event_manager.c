@@ -209,8 +209,8 @@ get_relevant_structures (event_manager_t *emp,
     index_obj_t *idxp;
     f_and_arg_container_t *found;
 
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(idxp);
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(found);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(idxp);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(found);
 
     /* initially nothing is known */
     safe_pointer_set(list_returned, NULL);
@@ -428,7 +428,7 @@ event_manager_init (event_manager_t *emp,
 {
     int failed, i;
 
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(i);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(i);
 
     MEM_MONITOR_SETUP(emp);
     LOCK_SETUP(emp);
@@ -564,7 +564,7 @@ event_manager_destroy (event_manager_t *emp)
 {
     int i;
 
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(i);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(i);
 
     WRITE_LOCK(emp);
     ordered_list_destroy(&emp->object_event_registrants_for_all_objects,

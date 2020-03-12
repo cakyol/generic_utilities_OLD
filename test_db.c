@@ -26,9 +26,9 @@ void notify_event (event_record_t *evrp, void *arg2)
     object_manager_t *dbp = (object_manager_t*) arg2;
     int event = evrp->event_type;
 
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(evrp);
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(dbp);
-    SUPPRESS_COMPILER_UNUSED_VARIABLE_WARNING(event);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(evrp);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(dbp);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(event);
 
     calls++;
     //return;

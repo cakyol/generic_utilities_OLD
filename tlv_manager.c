@@ -46,9 +46,8 @@ tlvm_reset (tlvm_t *tlvmp)
 {
     tlvmp->idx = 0;
     tlvmp->remaining_size = tlvmp->buf_size;
-    if (tlvmp->tlvs)
-        free(tlvmp->tlvs);
-    tlvmp->tlvs = 0;
+    if (tlvmp->tlvs) free(tlvmp->tlvs);
+    tlvmp->tlvs = NULL;
     tlvmp->n_tlvs = 0;
 }
 
@@ -67,27 +66,34 @@ int
 tlvm_append (tlvm_t *tlvmp,
     int type, int length, byte *value)
 {
-    int size, len;
+    int size, len, idx;
 
-    len = length;
+    /* total number of bytes needed in the buffer */
     size = length + sizeof(type) + sizeof(length);
     if (size > tlvmp->remaining_size) {
         return ENOMEM;
     }
 
-    /* encode type */
+    idx = tlvmp->idx;
+    len = length;
+
+    /* encode type and write it into the buffer */
     type = htonl(type);
-    memcpy(&tlvmp[tlvmp->idx], &type, sizeof(type));
-    tlvmp->idx += sizeof(type);
+    memcpy(&tlvmp->buffer[idx], &type, sizeof(type));
+    idx += sizeof(type);
 
-    /* encode length */
+    /* encode length and write it into the buffer */
     length = htonl(length);
-    memcpy(&tlvmp[tlvmp->idx], &length, sizeof(length));
-    tlvmp->idx += sizeof(length);
+    memcpy(&tlvmp->buffer[idx], &length, sizeof(length));
+    idx += sizeof(length);
 
-    /* copy rest of the data */
-    memcpy(&tlvmp[tlvmp->idx], value, len);
-    tlvmp->idx += len;
+    /* copy the value into the buffer */
+    memcpy(&tlvmp[idx], value, len);
+    idx += len;
+
+    /* update the write index & counters */
+    tlvmp->idx = idx;
+    tlvmp->remaining_size -= size;
 
     return 0;
 }
@@ -98,4 +104,66 @@ tlvm_append_tlv (tlvm_t *tlvmp, one_tlv_t *tlv)
     return
         tlvm_append(tlvmp, tlv->type, tlv->length, tlv->value);
 }
+
+int
+tlvm_parse (tlvm_t *tlvmp)
+{
+    byte *bptr, *end;
+    one_tlv_t *tlvp, *new_tlvs;
+    int type, length;
+
+    bptr = &tlvmp->buffer[0];
+    end = bptr + tlvmp->buf_size;
+    tlvm_reset(tlvmp);
+    while (bptr <= end) {
+
+        /* get type */
+        memcpy(&type, bptr, sizeof(type));
+        type = ntohl(type);
+        bptr += sizeof(type);
+
+        /* get length */
+        memcpy(&length, bptr, sizeof(length));
+        length = ntohl(length);
+        bptr += sizeof(length);
+
+        /*
+         * add this newly parsed tlv to the end of the tlvs array by
+         * expanding the array by one extra tlv structure using realloc.
+         * If no more space left to expand the array, free up everything
+         * which was parsed up to now and give up.  It is all or nothing.
+         */
+        new_tlvs = realloc(tlvmp->tlvs, (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
+        if (NULL == new_tlvs) {
+            tlvm_reset(tlvmp);
+            return ENOMEM;
+        }
+        tlvmp->tlvs = new_tlvs;
+        tlvp = &tlvmp->tlvs[tlvmp->n_tlvs];
+        tlvp->type = type;
+        tlvp->length = length;
+        tlvp->value = bptr;
+
+        /* get ready to parse the next tlv */
+        bptr += length;
+
+        /* one more tlv parsed */
+        tlvmp->n_tlvs++;
+    }
+    return 0;
+}
+
+void
+tlvm_destroy (tlvm_t *tlvmp)
+{
+    tlvmp->buffer = NULL;
+    tlvmp->buf_size = 0;
+    tlvm_reset(tlvmp);
+}
+
+
+
+
+
+
 
