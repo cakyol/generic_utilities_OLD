@@ -39,6 +39,12 @@
 #include "common.h"
 
 /*
+ * max allowed length in bytes of the value part of a tlv.
+ * Parsing will fail if any tlv value exceeds this many bytes.
+ */
+#define MAX_TLV_VALUE_BYTES     512
+
+/*
  * representation of a single tlv (serialized form)
  */
 typedef struct one_tlv_s {
@@ -85,8 +91,14 @@ typedef struct tlvm_s {
      * one points to the specific tlv.  The array will be malloced
      * and re-alloced if it grows.  Therefore, do NOT store
      * the pointers into the array since they MAY change.
+     * If everything "seemed" ok during the parsing, then the
+     * field 'parse_complete' will be set to non zero.  If there
+     * was ANY issue during the parse, it will be set to zero
+     * and parsing will be terminated indicating only partial
+     * extraction has been made.
      */
     int n_tlvs;
+    int parse_complete;
     one_tlv_t *tlvs;
 
 } tlvm_t;

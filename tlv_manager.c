@@ -47,8 +47,9 @@ tlvm_reset (tlvm_t *tlvmp)
     tlvmp->idx = 0;
     tlvmp->remaining_size = tlvmp->buf_size;
     if (tlvmp->tlvs) free(tlvmp->tlvs);
-    tlvmp->tlvs = NULL;
     tlvmp->n_tlvs = 0;
+    tlvmp->parse_complete = 0;
+    tlvmp->tlvs = NULL;
 }
 
 void
@@ -117,14 +118,25 @@ tlvm_parse (tlvm_t *tlvmp)
     tlvm_reset(tlvmp);
     while (bptr <= end) {
 
-        /* get type */
+        /*
+         * get type, while checking it does not 
+         * go past the end of the buffer.
+         */
+        if ((bptr + sizeof(type)) >= end) return E2BIG;
         memcpy(&type, bptr, sizeof(type));
         type = ntohl(type);
         bptr += sizeof(type);
 
-        /* get length */
+        /*
+         * get length, while checking it does not
+         * go past the end of the buffer.
+         */
+        if (bptr + sizeof(length) >= end) return E2BIG;
         memcpy(&length, bptr, sizeof(length));
         length = ntohl(length);
+
+        /* check validity of length */
+        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return EINVAL;
         bptr += sizeof(length);
 
         /*
@@ -134,10 +146,7 @@ tlvm_parse (tlvm_t *tlvmp)
          * which was parsed up to now and give up.  It is all or nothing.
          */
         new_tlvs = realloc(tlvmp->tlvs, (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
-        if (NULL == new_tlvs) {
-            tlvm_reset(tlvmp);
-            return ENOMEM;
-        }
+        if (NULL == new_tlvs) return ENOMEM;
         tlvmp->tlvs = new_tlvs;
         tlvp = &tlvmp->tlvs[tlvmp->n_tlvs];
         tlvp->type = type;
@@ -150,6 +159,7 @@ tlvm_parse (tlvm_t *tlvmp)
         /* one more tlv parsed */
         tlvmp->n_tlvs++;
     }
+    tlvmp->parse_complete = 1;
     return 0;
 }
 
