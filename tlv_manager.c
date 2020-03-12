@@ -46,9 +46,9 @@ tlvm_reset (tlvm_t *tlvmp)
 {
     tlvmp->idx = 0;
     tlvmp->remaining_size = tlvmp->buf_size;
-    if (tlvmp->tlvs) free(tlvmp->tlvs);
     tlvmp->n_tlvs = 0;
     tlvmp->parse_complete = 0;
+    if (tlvmp->tlvs) free(tlvmp->tlvs);
     tlvmp->tlvs = NULL;
 }
 
@@ -59,7 +59,7 @@ tlvm_init (tlvm_t *tlvmp,
 {
     tlvmp->buffer = externally_supplied_buffer;
     tlvmp->buf_size = externally_supplied_buffer_size;
-    tlvmp->tlvs = 0;
+    tlvmp->tlvs = NULL;
     tlvm_reset(tlvmp);
 }
 
@@ -69,11 +69,9 @@ tlvm_append (tlvm_t *tlvmp,
 {
     int size, len, idx;
 
-    /* total number of bytes needed in the buffer */
+    /* minimum total number of bytes needed in the buffer */
     size = length + sizeof(type) + sizeof(length);
-    if (size > tlvmp->remaining_size) {
-        return ENOMEM;
-    }
+    if (size > tlvmp->remaining_size) return ENOMEM;
 
     idx = tlvmp->idx;
     len = length;
@@ -140,10 +138,14 @@ tlvm_parse (tlvm_t *tlvmp)
         bptr += sizeof(length);
 
         /*
-         * add this newly parsed tlv to the end of the tlvs array by
+         * Add this newly parsed tlv to the end of the tlvs array by
          * expanding the array by one extra tlv structure using realloc.
-         * If no more space left to expand the array, free up everything
-         * which was parsed up to now and give up.  It is all or nothing.
+         * If no more space left to expand the array, it stops parsing
+         * and leaves the tlvs parsed so far intact but does not set
+         * 'parse_complete' as an indication that something went wrong
+         * during parsing.  The function return value is 0 if all the
+         * tlvs are parsed successfuly or an errno if parsing terminated
+         * prematurely as a result of an error.
          */
         new_tlvs = realloc(tlvmp->tlvs, (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
         if (NULL == new_tlvs) return ENOMEM;
