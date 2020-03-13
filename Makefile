@@ -131,6 +131,10 @@ test_event_manager:	test_event_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
 				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
 
+test_tlvm:		test_tlvm.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_tlvm.c \
+				-o test_tlvm $(LIBNAME) $(STATIC_LIBS)
+
 TESTS =		test_debug \
 		test_lock_object \
 		test_lock_speed \
@@ -151,6 +155,7 @@ TESTS =		test_debug \
 		test_db_speed \
 		test_delay \
 		test_scheduler \
+		test_tlvm \
 		\
 
 tests:		$(TESTS)

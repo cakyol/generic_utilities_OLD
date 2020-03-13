@@ -74,7 +74,6 @@ tlvm_append (tlvm_t *tlvmp,
     if (size > tlvmp->remaining_size) return ENOMEM;
 
     idx = tlvmp->idx;
-    len = length;
 
     /* encode type and write it into the buffer */
     type = htonl(type);
@@ -82,12 +81,13 @@ tlvm_append (tlvm_t *tlvmp,
     idx += sizeof(type);
 
     /* encode length and write it into the buffer */
+    len = length;
     length = htonl(length);
     memcpy(&tlvmp->buffer[idx], &length, sizeof(length));
     idx += sizeof(length);
 
     /* copy the value into the buffer */
-    memcpy(&tlvmp[idx], value, len);
+    memcpy(&tlvmp->buffer[idx], value, len);
     idx += len;
 
     /* update the write index & counters */
