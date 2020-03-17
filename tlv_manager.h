@@ -33,6 +33,18 @@
 *******************************************************************************
 ******************************************************************************/
 
+/******************************************************************************
+ *
+ * This is an object which assists creation & parsing of tlvs.
+ * The tlv manager can be 'attached' to a buffer and it proceeds
+ * from there.  It can either parse already existing list of tlvs
+ * in the buffer OR it can assemble and build a list of tlvs into
+ * the buffer.  When the tlv manager is initialised, the buffer 
+ * to be 'associated' with is specified as a parameter.  All further
+ * tlv operations take place on that buffer thereafter.
+ *
+ */
+
 #ifndef __TLV_MANAGER_H__
 #define __TLV_MANAGER_H__
 

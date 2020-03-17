@@ -1,7 +1,7 @@
 
 #include "tlv_manager.h"
 
-#define BUFSIZE 10000
+#define BUFSIZE 100000
 byte buffer [BUFSIZE];
 
 #define DATASIZE 11
@@ -33,8 +33,14 @@ int main (int argc, char *argv[])
 
     printf(".... now parsing .. ");
     fflush(stdout);
+
+    /* cheat so that parse does not complete fully */
+    tlvm.buf_size -= 113;
     tlvm_parse(&tlvm);
     printf("done\n");
+    if (!tlvm.parse_complete) {
+        printf("\n***** PARSE DID NOT COMPLETELY FINISH *****\n");
+    }
     fflush(stdout);
 
     printf(".... now verifying .. ");

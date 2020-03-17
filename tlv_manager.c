@@ -41,6 +41,19 @@
 #include <arpa/inet.h>
 #include "tlv_manager.h"
 
+/*
+ * does NOT handle overlapping regions
+ */
+static inline void
+byte_copy (void *src, void *dst, int size)
+{
+    int i;
+
+    for (i = 0; i < size; i++) {
+        ((byte*) dst)[i] = ((byte*) src)[i];
+    }
+}
+
 void
 tlvm_reset (tlvm_t *tlvmp)
 {
@@ -71,28 +84,29 @@ tlvm_append (tlvm_t *tlvmp,
 
     /* minimum total number of bytes needed in the buffer */
     size = length + sizeof(type) + sizeof(length);
-    if (size > tlvmp->remaining_size) return ENOMEM;
+    if (size > tlvmp->remaining_size) return ENOSPC;
 
     idx = tlvmp->idx;
 
     /* encode type and write it into the buffer */
     type = htonl(type);
-    memcpy(&tlvmp->buffer[idx], &type, sizeof(type));
+    byte_copy(&type, &tlvmp->buffer[idx], sizeof(type));
     idx += sizeof(type);
 
     /* encode length and write it into the buffer */
     len = length;
     length = htonl(length);
-    memcpy(&tlvmp->buffer[idx], &length, sizeof(length));
+    byte_copy(&length, &tlvmp->buffer[idx], sizeof(length));
     idx += sizeof(length);
 
     /* copy the value into the buffer */
-    memcpy(&tlvmp->buffer[idx], value, len);
+    byte_copy(value, &tlvmp->buffer[idx], len);
     idx += len;
 
     /* update the write index & counters */
     tlvmp->idx = idx;
     tlvmp->remaining_size -= size;
+    tlvmp->n_tlvs++;
 
     return 0;
 }
@@ -120,7 +134,7 @@ tlvm_parse (tlvm_t *tlvmp)
          * get type, while checking it does not 
          * go past the end of the buffer.
          */
-        if ((bptr + sizeof(type)) >= end) return E2BIG;
+        if ((bptr + sizeof(type)) >= end) return ENOMEM;
         memcpy(&type, bptr, sizeof(type));
         type = ntohl(type);
         bptr += sizeof(type);
@@ -129,12 +143,12 @@ tlvm_parse (tlvm_t *tlvmp)
          * get length, while checking it does not
          * go past the end of the buffer.
          */
-        if (bptr + sizeof(length) >= end) return E2BIG;
+        if (bptr + sizeof(length) >= end) return ENOMEM;
         memcpy(&length, bptr, sizeof(length));
         length = ntohl(length);
 
         /* check validity of length */
-        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return EINVAL;
+        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return ENOMEM;
         bptr += sizeof(length);
 
         /*
