@@ -14,32 +14,36 @@ int main (int argc, char *argv[])
     int rc, tlv;
     one_tlv_t *tlvp;
 
-    tlvm_init(&tlvm, &buffer[0], BUFSIZE);
+    tlvm_attach(&tlvm, &buffer[0], BUFSIZE);
 
     printf("adding tlvs .. ");
     fflush(stdout);
-    for (i = 0; 1; i++) {
+    max = 0;
+    for (i = 0; i < 500; i++) {
         for (j = 0; j < DATASIZE; j++) data[j] = i;
         printf("adding tlv type %d .. ", i);
         fflush(stdout);
         rc = tlvm_append(&tlvm, i, DATASIZE, &data[0]);
-        printf ("done\n");
         if (rc) {
-            max = i;
+            printf("FAILED\n");
             break;
+        } else {
+            printf("done\n");
         }
+        max++;
     }
-    printf(" %d of them added\n", max);
+    printf("\n%d tlvs added\n", max);
 
     printf(".... now parsing .. ");
     fflush(stdout);
 
     /* cheat so that parse does not complete fully */
-    tlvm.buf_size -= 113;
-    tlvm_parse(&tlvm);
+    // tlvm.buf_size -= 113;
+
+    rc = tlvm_parse(&tlvm);
     printf("done\n");
-    if (!tlvm.parse_complete) {
-        printf("\n***** PARSE DID NOT COMPLETELY FINISH *****\n");
+    if (rc || !tlvm.parse_complete) {
+        printf("\n***** PARSE DID NOT COMPLETELY FINISH (%d) *****\n", rc);
     }
     fflush(stdout);
 

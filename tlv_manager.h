@@ -116,13 +116,13 @@ typedef struct tlvm_s {
 } tlvm_t;
 
 /*
- * initializes a tlv manager object to a buffer which is externally 
- * provided with the given size.  This can be a buffer which may
- * be written into if a tlv list is being created or an existing
- * list of tlvs to be parsed.
+ * "attaches/associates" a tlv manager object to a buffer which is
+ * externally provided with the given size.  This can be a buffer
+ * which may be written into if a tlv list is being created or an
+ * existing list of tlvs to be parsed.
  */
 extern void
-tlvm_init (tlvm_t *tlvmp,
+tlvm_attach (tlvm_t *tlvmp,
 	byte *externally_supplied_buffer,
     int externally_supplied_buffer_size);
 
@@ -147,6 +147,9 @@ tlvm_parse (tlvm_t *tlvmp);
 
 extern void
 tlvm_reset (tlvm_t *tlvmp);
+
+extern void
+tlvm_detach (tlvm_t *tlvmp);
 
 #endif /* __TLV_MANAGER_H__ */
 

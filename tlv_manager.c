@@ -42,6 +42,11 @@
 #include "tlv_manager.h"
 
 /*
+ * end of tlv list is marked with this type.
+ */
+#define TLV_END_TYPE        (-1)
+
+/*
  * does NOT handle overlapping regions
  */
 static inline void
@@ -66,7 +71,7 @@ tlvm_reset (tlvm_t *tlvmp)
 }
 
 void
-tlvm_init (tlvm_t *tlvmp,
+tlvm_attach (tlvm_t *tlvmp,
 	byte *externally_supplied_buffer,
     int externally_supplied_buffer_size)
 {
@@ -80,10 +85,13 @@ int
 tlvm_append (tlvm_t *tlvmp,
     int type, int length, byte *value)
 {
-    int size, len, idx;
+    int end_type, size, len, idx;
 
-    /* minimum total number of bytes needed in the buffer */
-    size = length + sizeof(type) + sizeof(length);
+    /*
+     * minimum total number of bytes needed in the buffer
+     * INLUDING the end of tlvs type
+     */
+    size = length + sizeof(type) + sizeof(length) + sizeof(end_type);
     if (size > tlvmp->remaining_size) return ENOSPC;
 
     idx = tlvmp->idx;
@@ -103,9 +111,18 @@ tlvm_append (tlvm_t *tlvmp,
     byte_copy(value, &tlvmp->buffer[idx], len);
     idx += len;
 
+    /* append the end tyype */
+    end_type = htonl(TLV_END_TYPE);
+    byte_copy(&end_type, &tlvmp->buffer[idx], sizeof(end_type));
+
     /* update the write index & counters */
     tlvmp->idx = idx;
-    tlvmp->remaining_size -= size;
+
+    /*
+     * the end of tlv gets overwritten next time another tlv is appended,
+     * so it does not really take up any room.
+     */
+    tlvmp->remaining_size -= (size - sizeof(end_type));
     tlvmp->n_tlvs++;
 
     return 0;
@@ -128,7 +145,7 @@ tlvm_parse (tlvm_t *tlvmp)
     bptr = &tlvmp->buffer[0];
     end = bptr + tlvmp->buf_size;
     tlvm_reset(tlvmp);
-    while (bptr <= end) {
+    while (bptr < end) {
 
         /*
          * get type, while checking it does not 
@@ -137,6 +154,7 @@ tlvm_parse (tlvm_t *tlvmp)
         if ((bptr + sizeof(type)) >= end) return ENOMEM;
         memcpy(&type, bptr, sizeof(type));
         type = ntohl(type);
+        if (type < 0) break;
         bptr += sizeof(type);
 
         /*
@@ -148,7 +166,7 @@ tlvm_parse (tlvm_t *tlvmp)
         length = ntohl(length);
 
         /* check validity of length */
-        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return ENOMEM;
+        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return EINVAL;
         bptr += sizeof(length);
 
         /*
@@ -180,7 +198,7 @@ tlvm_parse (tlvm_t *tlvmp)
 }
 
 void
-tlvm_destroy (tlvm_t *tlvmp)
+tlvm_detach (tlvm_t *tlvmp)
 {
     tlvmp->buffer = NULL;
     tlvmp->buf_size = 0;
