@@ -46,19 +46,6 @@
  */
 #define TLV_END_TYPE        (-1)
 
-/*
- * does NOT handle overlapping regions
- */
-static inline void
-byte_copy (void *src, void *dst, int size)
-{
-    int i;
-
-    for (i = 0; i < size; i++) {
-        ((byte*) dst)[i] = ((byte*) src)[i];
-    }
-}
-
 void
 tlvm_reset (tlvm_t *tlvmp)
 {
@@ -98,17 +85,17 @@ tlvm_append (tlvm_t *tlvmp,
 
     /* encode type and write it into the buffer */
     type = htonl(type);
-    byte_copy(&type, &tlvmp->buffer[idx], sizeof(type));
+    copy_bytes(&type, &tlvmp->buffer[idx], sizeof(type));
     idx += sizeof(type);
 
     /* encode length and write it into the buffer */
     len = length;
     length = htonl(length);
-    byte_copy(&length, &tlvmp->buffer[idx], sizeof(length));
+    copy_bytes(&length, &tlvmp->buffer[idx], sizeof(length));
     idx += sizeof(length);
 
     /* copy the value into the buffer */
-    byte_copy(value, &tlvmp->buffer[idx], len);
+    memmove(&tlvmp->buffer[idx], value, len);
     idx += len;
 
     /*
@@ -116,7 +103,7 @@ tlvm_append (tlvm_t *tlvmp,
      * be overwritten by a consecutive call to tlvm_append again.
      */
     end_type = htonl(TLV_END_TYPE);
-    byte_copy(&end_type, &tlvmp->buffer[idx], sizeof(end_type));
+    copy_bytes(&end_type, &tlvmp->buffer[idx], sizeof(end_type));
 
     /* update the write index & counters */
     tlvmp->idx = idx;

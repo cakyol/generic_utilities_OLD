@@ -47,6 +47,10 @@
 extern "C" {
 #endif
 
+#ifndef PUBLIC
+#define PUBLIC
+#endif /* PUBLIC */
+
 /*
  * This supresses the compiler error messages for unused variables,
  * if the error detections are fully turned on during compilations.
@@ -57,9 +61,42 @@ extern "C" {
 
 #ifndef NULL
 #define NULL    0
-#endif /* NULL */
+#endif
 
 typedef unsigned char byte;
+
+/*
+ * Handles overlapping copies
+ */
+static inline void
+copy_bytes (void *src, void *dst, int count)
+{
+    byte *bsrc = (byte*) src;
+    byte *bdst = (byte*) dst;
+
+    if (dst < src) {
+        while (count-- > 0) *bdst++ = *bsrc++;
+    } else {
+        bsrc += count;
+        bdst += count;
+        while (count-- > 0) *(--bdst) = *(--bsrc);
+    }
+}
+
+/*
+ * Handles overlapping copies
+ */
+static inline void
+copy_pointers (void **src, void **dst, int count)
+{
+    if (dst < src)
+        while (count-- > 0) *dst++ = *src++;
+    else {
+        src += count;
+        dst += count;
+        while (count-- > 0) *(--dst) = *(--src);
+    }
+}
 
 /*
  * Typical statistics used for most insert/search/delete
