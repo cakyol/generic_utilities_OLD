@@ -19,7 +19,7 @@ int main (int argc, char *argv[])
     printf("adding tlvs .. ");
     fflush(stdout);
     max = 0;
-    for (i = 0; i < 500; i++) {
+    for (i = 0; 1; i++) {
         for (j = 0; j < DATASIZE; j++) data[j] = i;
         printf("adding tlv type %d .. ", i);
         fflush(stdout);

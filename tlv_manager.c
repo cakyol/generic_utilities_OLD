@@ -89,7 +89,7 @@ tlvm_append (tlvm_t *tlvmp,
 
     /*
      * minimum total number of bytes needed in the buffer
-     * INLUDING the end of tlvs type
+     * INCLUDING the end of tlvs type
      */
     size = length + sizeof(type) + sizeof(length) + sizeof(end_type);
     if (size > tlvmp->remaining_size) return ENOSPC;
@@ -111,7 +111,10 @@ tlvm_append (tlvm_t *tlvmp,
     byte_copy(value, &tlvmp->buffer[idx], len);
     idx += len;
 
-    /* append the end tyype */
+    /*
+     * append the end type, but do NOT increment index since it may
+     * be overwritten by a consecutive call to tlvm_append again.
+     */
     end_type = htonl(TLV_END_TYPE);
     byte_copy(&end_type, &tlvmp->buffer[idx], sizeof(end_type));
 
@@ -151,17 +154,21 @@ tlvm_parse (tlvm_t *tlvmp)
          * get type, while checking it does not 
          * go past the end of the buffer.
          */
-        if ((bptr + sizeof(type)) >= end) return ENOMEM;
+        if ((bptr + sizeof(type)) >= end) return ENOSPC;
         memcpy(&type, bptr, sizeof(type));
         type = ntohl(type);
+
+        /* end of tlv list reached ? */
         if (type < 0) break;
+
+        /* no, so continue */
         bptr += sizeof(type);
 
         /*
          * get length, while checking it does not
          * go past the end of the buffer.
          */
-        if (bptr + sizeof(length) >= end) return ENOMEM;
+        if (bptr + sizeof(length) >= end) return ENOSPC;
         memcpy(&length, bptr, sizeof(length));
         length = ntohl(length);
 
@@ -180,7 +187,7 @@ tlvm_parse (tlvm_t *tlvmp)
          * prematurely as a result of an error.
          */
         new_tlvs = realloc(tlvmp->tlvs, (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
-        if (NULL == new_tlvs) return ENOMEM;
+        if (NULL == new_tlvs) return ENOSPC;
         tlvmp->tlvs = new_tlvs;
         tlvp = &tlvmp->tlvs[tlvmp->n_tlvs];
         tlvp->type = type;

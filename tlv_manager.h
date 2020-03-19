@@ -43,6 +43,10 @@
  * to be 'associated' with is specified as a parameter.  All further
  * tlv operations take place on that buffer thereafter.
  *
+ * Note that the tlv manager always terminates a tlv by a type value
+ * less than 0 (-1 in this specific case).  Every time a tlv is added,
+ * this tlv end marker is also appended.
+ *
  */
 
 #ifndef __TLV_MANAGER_H__
@@ -53,8 +57,9 @@
 /*
  * max allowed length in bytes of the value part of a tlv.
  * Parsing will fail if any tlv value exceeds this many bytes.
+ * Change this based on your system.
  */
-#define MAX_TLV_VALUE_BYTES     512
+#define MAX_TLV_VALUE_BYTES     1024
 
 /*
  * representation of a single tlv (serialized form)
@@ -107,7 +112,7 @@ typedef struct tlvm_s {
      * field 'parse_complete' will be set to non zero.  If there
      * was ANY issue during the parse, it will be set to zero
      * and parsing will be terminated indicating only partial
-     * extraction has been made.
+     * extraction/parsing has been made.
      */
     int n_tlvs;
     int parse_complete;
@@ -130,6 +135,8 @@ tlvm_attach (tlvm_t *tlvmp,
  * append a tlv to the managed tlv buffer.
  * Note that the 'length' is ONLY the length of the data (value).
  * 0 is returned for no error or an errno if fails.
+ * When this succeeds, a tlv end marker is always inserted into
+ * the buffer.  This is a type of -1.
  */
 extern int
 tlvm_append (tlvm_t *tlvmp,
