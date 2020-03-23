@@ -10,8 +10,8 @@ byte data[DATASIZE];
 int main (int argc, char *argv[])
 {
     tlvm_t tlvm;
-    int i, j, max;
-    int rc, tlv;
+    int i, j;
+    int max, rc, tlv;
     one_tlv_t *tlvp;
 
     tlvm_attach(&tlvm, &buffer[0], BUFSIZE);
@@ -23,7 +23,7 @@ int main (int argc, char *argv[])
         for (j = 0; j < DATASIZE; j++) data[j] = i;
         printf("adding tlv type %d .. ", i);
         fflush(stdout);
-        rc = tlvm_append(&tlvm, i, DATASIZE, &data[0]);
+        rc = tlvm_append(&tlvm, (unsigned int) i, DATASIZE, &data[0]);
         if (rc) {
             printf("FAILED\n");
             break;
@@ -59,7 +59,7 @@ int main (int argc, char *argv[])
     for (i = 0, tlv = 0; i < max; i++, tlv++) {
         for (j = 0; j < DATASIZE; j++) data[j] = i;
         tlvp = &tlvm.tlvs[tlv];
-        if (tlvp->type != i) {
+        if (tlvp->type != (unsigned int) i) {
             printf("tlv %d ERROR: mismatched type: %d, should be %d\n",
                 tlv, tlvp->type, i);
         }

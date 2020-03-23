@@ -44,7 +44,7 @@
 /*
  * end of tlv list is marked with this type.
  */
-#define TLV_END_TYPE        (-1)
+#define TLV_END_TYPE        (0xFFFFFFFF)
 
 void
 tlvm_reset (tlvm_t *tlvmp)
@@ -70,9 +70,10 @@ tlvm_attach (tlvm_t *tlvmp,
 
 int
 tlvm_append (tlvm_t *tlvmp,
-    int type, int length, byte *value)
+    unsigned int type, unsigned int length, byte *value)
 {
-    int end_type, size, len, idx;
+    unsigned int end_type;
+        int size, len, idx;
 
     /*
      * minimum total number of bytes needed in the buffer
@@ -130,7 +131,7 @@ tlvm_parse (tlvm_t *tlvmp)
 {
     byte *bptr, *end;
     one_tlv_t *tlvp, *new_tlvs;
-    int type, length;
+    unsigned int type, length;
 
     bptr = &tlvmp->buffer[0];
     end = bptr + tlvmp->buf_size;
@@ -146,7 +147,7 @@ tlvm_parse (tlvm_t *tlvmp)
         type = ntohl(type);
 
         /* end of tlv list reached ? */
-        if (type < 0) break;
+        if (TLV_END_TYPE == type) break;
 
         /* no, so continue */
         bptr += sizeof(type);

@@ -66,8 +66,10 @@
  */
 typedef struct one_tlv_s {
 
-    int type;
-    int length;     /* length of the 'value' only */
+    /* 0xFFFFFFFF denotes end of tlv list */
+    unsigned int type;
+
+    unsigned int length;        /* length of the 'value' only */
     byte *value;
 
 } one_tlv_t;
@@ -140,7 +142,7 @@ tlvm_attach (tlvm_t *tlvmp,
  */
 extern int
 tlvm_append (tlvm_t *tlvmp,
-    int type, int length, byte *value);
+    unsigned int type, unsigned int length, byte *value);
 
 extern int
 tlvm_append_tlv (tlvm_t *tlvmp, one_tlv_t *tlv);
