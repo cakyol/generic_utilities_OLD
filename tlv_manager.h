@@ -117,7 +117,6 @@ typedef struct tlvm_s {
      * extraction/parsing has been made.
      */
     int n_tlvs;
-    int parse_complete;
     one_tlv_t *tlvs;
 
 } tlvm_t;

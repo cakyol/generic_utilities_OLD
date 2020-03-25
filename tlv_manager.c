@@ -52,11 +52,16 @@ tlvm_reset (tlvm_t *tlvmp)
     tlvmp->idx = 0;
     tlvmp->remaining_size = tlvmp->buf_size;
     tlvmp->n_tlvs = 0;
-    tlvmp->parse_complete = 0;
     if (tlvmp->tlvs) free(tlvmp->tlvs);
     tlvmp->tlvs = NULL;
 }
 
+/*
+ * Attach/associate the tlv manager with the external buffer that
+ * it is supposed to manage.  This can be an empty buffer into
+ * which a new tlv list will be built or an already assembled tlv
+ * list which may need parsing.
+ */
 void
 tlvm_attach (tlvm_t *tlvmp,
 	byte *externally_supplied_buffer,
@@ -77,19 +82,19 @@ tlvm_append (tlvm_t *tlvmp,
 
     /*
      * minimum total number of bytes needed in the buffer
-     * INCLUDING the end of tlvs type
+     * INCLUDING the end type.
      */
     size = length + sizeof(type) + sizeof(length) + sizeof(end_type);
     if (size > tlvmp->remaining_size) return ENOSPC;
 
     idx = tlvmp->idx;
 
-    /* encode type and write it into the buffer */
+    /* encode the type and write it into the buffer */
     type = htonl(type);
     copy_bytes(&type, &tlvmp->buffer[idx], sizeof(type));
     idx += sizeof(type);
 
-    /* encode length and write it into the buffer */
+    /* encode the length and write it into the buffer */
     len = length;
     length = htonl(length);
     copy_bytes(&length, &tlvmp->buffer[idx], sizeof(length));
@@ -100,8 +105,8 @@ tlvm_append (tlvm_t *tlvmp,
     idx += len;
 
     /*
-     * append the end type, but do NOT increment index since it may
-     * be overwritten by a consecutive call to tlvm_append again.
+     * always append the end type as if this
+     * was the last tlv in the list.
      */
     end_type = htonl(TLV_END_TYPE);
     copy_bytes(&end_type, &tlvmp->buffer[idx], sizeof(end_type));
@@ -110,8 +115,8 @@ tlvm_append (tlvm_t *tlvmp,
     tlvmp->idx = idx;
 
     /*
-     * the end of tlv gets overwritten next time another tlv is appended,
-     * so it does not really take up any room.
+     * do NOT include the end tlv length since it will get ignored and
+     * be overwritten if another tlv gets appended again.
      */
     tlvmp->remaining_size -= (size - sizeof(end_type));
     tlvmp->n_tlvs++;
@@ -143,7 +148,7 @@ tlvm_parse (tlvm_t *tlvmp)
          * go past the end of the buffer.
          */
         if ((bptr + sizeof(type)) >= end) return ENOSPC;
-        memcpy(&type, bptr, sizeof(type));
+        copy_bytes(bptr, &type, sizeof(type));
         type = ntohl(type);
 
         /* end of tlv list reached ? */
@@ -157,7 +162,7 @@ tlvm_parse (tlvm_t *tlvmp)
          * go past the end of the buffer.
          */
         if (bptr + sizeof(length) >= end) return ENOSPC;
-        memcpy(&length, bptr, sizeof(length));
+        copy_bytes(bptr, &length, sizeof(length));
         length = ntohl(length);
 
         /* check validity of length */
@@ -168,14 +173,13 @@ tlvm_parse (tlvm_t *tlvmp)
          * Add this newly parsed tlv to the end of the tlvs array by
          * expanding the array by one extra tlv structure using realloc.
          * If no more space left to expand the array, it stops parsing
-         * and leaves the tlvs parsed so far intact but does not set
-         * 'parse_complete' as an indication that something went wrong
-         * during parsing.  The function return value is 0 if all the
+         * and leaves the tlvs parsed so far intact and returns.
+         * The function return value is 0 if all the
          * tlvs are parsed successfuly or an errno if parsing terminated
-         * prematurely as a result of an error.
+         * prematurely as a result of any kind of error.
          */
         new_tlvs = realloc(tlvmp->tlvs, (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
-        if (NULL == new_tlvs) return ENOSPC;
+        if (NULL == new_tlvs) return ENOMEM;
         tlvmp->tlvs = new_tlvs;
         tlvp = &tlvmp->tlvs[tlvmp->n_tlvs];
         tlvp->type = type;
@@ -188,7 +192,6 @@ tlvm_parse (tlvm_t *tlvmp)
         /* one more tlv parsed */
         tlvmp->n_tlvs++;
     }
-    tlvmp->parse_complete = 1;
     return 0;
 }
 

@@ -1,18 +1,54 @@
 
 #include "tlv_manager.h"
 
-#define BUFSIZE 100000
+#define BUFSIZE 1000000
 byte buffer [BUFSIZE];
 
 #define DATASIZE 11
 byte data[DATASIZE];
 
+int tlvs_verify (tlvm_t *tlvmp)
+{
+    int i, j, tlv;
+    one_tlv_t *tlvp;
+
+    for (i = 0, tlv = 0; i < tlvmp->n_tlvs; i++, tlv++) {
+        for (j = 0; j < DATASIZE; j++) data[j] = i;
+        tlvp = &tlvmp->tlvs[tlv];
+        if (tlvp->type != (unsigned int) i) {
+            printf("tlv %d ERROR: mismatched type: %d, should be %d",
+                tlv, tlvp->type, i);
+            return -1;
+        }
+        if (tlvp->length != DATASIZE) {
+            printf("tlv %d ERROR: mismatched length: %d, should be %d",
+                tlv, tlvp->length, DATASIZE);
+            return -1;
+        }
+        for (j = 0; j < DATASIZE; j++) {
+            if (tlvp->value[j] != data[j]) {
+                printf("tlv %d ERROR: mismatched data %d "
+                    "at index %d, should be %d",
+                    tlv, tlvp->value[j], j, data[j]);
+                return -1;
+            }
+        }
+    }
+    return 0;
+}
+
 int main (int argc, char *argv[])
 {
     tlvm_t tlvm;
     int i, j;
-    int max, rc, tlv;
+    int max, rc;
+    int iter;
+
+    int tlv;
     one_tlv_t *tlvp;
+
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(tlv);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(tlvp);
 
     tlvm_attach(&tlvm, &buffer[0], BUFSIZE);
 
@@ -21,59 +57,41 @@ int main (int argc, char *argv[])
     max = 0;
     for (i = 0; 1; i++) {
         for (j = 0; j < DATASIZE; j++) data[j] = i;
-        printf("adding tlv type %d .. ", i);
         fflush(stdout);
         rc = tlvm_append(&tlvm, (unsigned int) i, DATASIZE, &data[0]);
         if (rc) {
-            printf("FAILED\n");
             break;
-        } else {
-            printf("done\n");
         }
         max++;
     }
-    printf("\n%d tlvs added\n", max);
+    printf("%d of them are added\n", max);
 
-    printf(".... now parsing .. ");
-    fflush(stdout);
+    for (iter = 0; iter < 3; iter++) {
 
-    /* cheat so that parse does not complete fully */
-    // tlvm.buf_size -= 113;
-
-    rc = tlvm_parse(&tlvm);
-    printf("done\n");
-    if (rc || !tlvm.parse_complete) {
-        printf("\n***** PARSE DID NOT COMPLETELY FINISH (%d) *****\n", rc);
-    }
-    fflush(stdout);
-
-    printf(".... now verifying .. ");
-    fflush(stdout);
-
-    if (max != tlvm.n_tlvs) {
-        printf("ERROR: %d tlvs parsed, should be %d\n",
-            tlvm.n_tlvs, max);
-        return -1;
-    }
-
-    for (i = 0, tlv = 0; i < max; i++, tlv++) {
-        for (j = 0; j < DATASIZE; j++) data[j] = i;
-        tlvp = &tlvm.tlvs[tlv];
-        if (tlvp->type != (unsigned int) i) {
-            printf("tlv %d ERROR: mismatched type: %d, should be %d\n",
-                tlv, tlvp->type, i);
+        if (iter == 0) {
+            printf("parsing SHOULD succeed .. ");
+        } else if (iter == 1) {
+            printf("parsing SHOULD FAIL .. ");
+            tlvm.buf_size -= 113;
+        } if (iter == 2) {
+            printf("parsing SHOULD succeed .. ");
+            tlvm.buf_size += 113;
         }
-        if (tlvp->length != DATASIZE) {
-            printf("tlv %d ERROR: mismatched length: %d, should be %d\n",
-                tlv, tlvp->length, DATASIZE);
+        fflush(stdout);
+
+        rc = tlvm_parse(&tlvm);
+        if (max != tlvm.n_tlvs) {
+            printf("FAILED: %d, %d .. ", tlvm.n_tlvs, max);
+        } else {
+            printf("OK: %d, %d .. ", tlvm.n_tlvs, max);
         }
-        for (j = 0; j < DATASIZE; j++) {
-            if (tlvp->value[j] != data[j]) {
-                printf("tlv %d ERROR: mismatched data %d "
-                    "at index %d, should be %d\n",
-                tlv, tlvp->value[j], j, data[j]);
-            }
+        if (tlvs_verify(&tlvm)) {
+            printf("verification FAILED\n");
+        } else {
+            printf("verified\n");
         }
+        fflush(stdout);
+
     }
     return 0;
 }
