@@ -43,9 +43,9 @@
  * to be 'associated' with is specified as a parameter.  All further
  * tlv operations take place on that buffer thereafter.
  *
- * Note that the tlv manager always terminates a tlv by a type value
- * less than 0 (-1 in this specific case).  Every time a tlv is added,
- * this tlv end marker is also appended.
+ * Note that the tlv manager always terminates a tlv by a type of
+ * of 0xFFFFFFFF.  Parsing will stop as soon as this 'type' is 
+ * encountered.
  *
  */
 
