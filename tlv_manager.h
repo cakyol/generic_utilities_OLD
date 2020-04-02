@@ -78,7 +78,7 @@ typedef struct one_tlv_s {
  * tlv manager "assist" structure.
  * Depending on whether this is being used to create a list of
  * tlvs, or being used to parse an existing list of tlvs, appropriate
- * filelds are used in appropriate ways.
+ * fields are used in appropriate ways.
  */
 typedef struct tlvm_s {
 
@@ -110,11 +110,6 @@ typedef struct tlvm_s {
      * one points to the specific tlv.  The array will be malloced
      * and re-alloced if it grows.  Therefore, do NOT store
      * the pointers into the array since they MAY change.
-     * If everything "seemed" ok during the parsing, then the
-     * field 'parse_complete' will be set to non zero.  If there
-     * was ANY issue during the parse, it will be set to zero
-     * and parsing will be terminated indicating only partial
-     * extraction/parsing has been made.
      */
     int n_tlvs;
     one_tlv_t *tlvs;
@@ -137,7 +132,7 @@ tlvm_attach (tlvm_t *tlvmp,
  * Note that the 'length' is ONLY the length of the data (value).
  * 0 is returned for no error or an errno if fails.
  * When this succeeds, a tlv end marker is always inserted into
- * the buffer.  This is a type of -1.
+ * the buffer.  This is a type of all FFs
  */
 extern int
 tlvm_append (tlvm_t *tlvmp,
@@ -155,6 +150,9 @@ tlvm_parse (tlvm_t *tlvmp);
 
 extern void
 tlvm_reset (tlvm_t *tlvmp);
+
+extern int
+tlvm_reset_to_append (tlvm_t *tlvmp);
 
 extern void
 tlvm_detach (tlvm_t *tlvmp);

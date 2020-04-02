@@ -46,7 +46,83 @@
  */
 #define TLV_END_TYPE        (0xFFFFFFFF)
 
-void
+/*
+ * This function parses the existing tlvs in a list in the buffer
+ * and creates an array structure of tlvs for easier access.
+ * If 'store_the_tlvs' is 0, it will simply parse, update the n_tlvs,
+ * remaining_size etc, so that it reaches the end.  User can call
+ * tlv_append to continue adding to the list of tlvs in this 
+ * situation.
+ */
+static int
+tlvm_parse_engine (tlvm_t *tlvmp, int store_the_tlvs)
+{
+    byte *bptr, *past_the_end;
+    one_tlv_t *tlvp, *new_tlvs;
+    unsigned int type, length;
+
+    bptr = &tlvmp->buffer[0];
+    past_the_end = bptr + tlvmp->buf_size;
+    tlvm_reset(tlvmp);
+    while (bptr < past_the_end) {
+
+        /*
+         * get type, while checking it does not 
+         * go past the end of the buffer.
+         */
+        if ((bptr + sizeof(type)) >= past_the_end) return ENOSPC;
+        copy_bytes(bptr, &type, sizeof(type));
+        type = ntohl(type);
+
+        /* end of tlv list reached ? */
+        if (TLV_END_TYPE == type) break;
+
+        /* no, so continue */
+        bptr += sizeof(type);
+
+        /*
+         * get length, while checking it does not
+         * go past the end of the buffer.
+         */
+        if (bptr + sizeof(length) >= past_the_end) return ENOSPC;
+        copy_bytes(bptr, &length, sizeof(length));
+        length = ntohl(length);
+
+        /* check validity of length */
+        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return EINVAL;
+        bptr += sizeof(length);
+
+        /*
+         * Add this newly parsed tlv to the end of the tlvs array by
+         * expanding the array by one extra tlv structure using realloc.
+         * If no more space left to expand the array, it stops parsing
+         * and leaves the tlvs parsed so far intact and returns.
+         * The function return value is 0 if all the
+         * tlvs are parsed successfuly or an errno if parsing terminated
+         * prematurely as a result of any kind of error.
+         */
+        if (store_the_tlvs) {
+            new_tlvs = realloc(tlvmp->tlvs,
+                        (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
+            if (NULL == new_tlvs) return ENOMEM;
+            tlvmp->tlvs = new_tlvs;
+            tlvp = &tlvmp->tlvs[tlvmp->n_tlvs];
+            tlvp->type = type;
+            tlvp->length = length;
+            tlvp->value = bptr;
+        }
+
+        /* get ready to parse the next tlv */
+        bptr += length;
+
+        /* one more tlv parsed */
+        tlvmp->n_tlvs++;
+    }
+    tlvmp->remaining_size = past_the_end - bptr;
+    return 0;
+}
+
+PUBLIC void
 tlvm_reset (tlvm_t *tlvmp)
 {
     tlvmp->idx = 0;
@@ -62,7 +138,7 @@ tlvm_reset (tlvm_t *tlvmp)
  * which a new tlv list will be built or an already assembled tlv
  * list which may need parsing.
  */
-void
+PUBLIC void
 tlvm_attach (tlvm_t *tlvmp,
 	byte *externally_supplied_buffer,
     int externally_supplied_buffer_size)
@@ -73,7 +149,7 @@ tlvm_attach (tlvm_t *tlvmp,
     tlvm_reset(tlvmp);
 }
 
-int
+PUBLIC int
 tlvm_append (tlvm_t *tlvmp,
     unsigned int type, unsigned int length, byte *value)
 {
@@ -124,78 +200,26 @@ tlvm_append (tlvm_t *tlvmp,
     return 0;
 }
 
-int
+PUBLIC int
+tlvm_parse (tlvm_t *tlvmp)
+{
+    return tlvm_parse_engine(tlvmp, 1);
+}
+
+PUBLIC int
+tlvm_reset_to_append (tlvm_t *tlvmp)
+{
+    return tlvm_parse_engine(tlvmp, 0);
+}
+
+PUBLIC int
 tlvm_append_tlv (tlvm_t *tlvmp, one_tlv_t *tlv)
 {
     return
         tlvm_append(tlvmp, tlv->type, tlv->length, tlv->value);
 }
 
-int
-tlvm_parse (tlvm_t *tlvmp)
-{
-    byte *bptr, *end;
-    one_tlv_t *tlvp, *new_tlvs;
-    unsigned int type, length;
-
-    bptr = &tlvmp->buffer[0];
-    end = bptr + tlvmp->buf_size;
-    tlvm_reset(tlvmp);
-    while (bptr < end) {
-
-        /*
-         * get type, while checking it does not 
-         * go past the end of the buffer.
-         */
-        if ((bptr + sizeof(type)) >= end) return ENOSPC;
-        copy_bytes(bptr, &type, sizeof(type));
-        type = ntohl(type);
-
-        /* end of tlv list reached ? */
-        if (TLV_END_TYPE == type) break;
-
-        /* no, so continue */
-        bptr += sizeof(type);
-
-        /*
-         * get length, while checking it does not
-         * go past the end of the buffer.
-         */
-        if (bptr + sizeof(length) >= end) return ENOSPC;
-        copy_bytes(bptr, &length, sizeof(length));
-        length = ntohl(length);
-
-        /* check validity of length */
-        if ((length <= 0) || (length > MAX_TLV_VALUE_BYTES)) return EINVAL;
-        bptr += sizeof(length);
-
-        /*
-         * Add this newly parsed tlv to the end of the tlvs array by
-         * expanding the array by one extra tlv structure using realloc.
-         * If no more space left to expand the array, it stops parsing
-         * and leaves the tlvs parsed so far intact and returns.
-         * The function return value is 0 if all the
-         * tlvs are parsed successfuly or an errno if parsing terminated
-         * prematurely as a result of any kind of error.
-         */
-        new_tlvs = realloc(tlvmp->tlvs, (tlvmp->n_tlvs+1) * sizeof(one_tlv_t));
-        if (NULL == new_tlvs) return ENOMEM;
-        tlvmp->tlvs = new_tlvs;
-        tlvp = &tlvmp->tlvs[tlvmp->n_tlvs];
-        tlvp->type = type;
-        tlvp->length = length;
-        tlvp->value = bptr;
-
-        /* get ready to parse the next tlv */
-        bptr += length;
-
-        /* one more tlv parsed */
-        tlvmp->n_tlvs++;
-    }
-    return 0;
-}
-
-void
+PUBLIC void
 tlvm_detach (tlvm_t *tlvmp)
 {
     tlvmp->buffer = NULL;
