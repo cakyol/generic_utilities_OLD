@@ -15,7 +15,7 @@ INCLUDES =	-I.
 
 LIBNAME =	utils_lib.a
 
-LIB_OBJS =	debug.o \
+LIB_OBJS =	debug_framework.o \
 		timer_object.o \
 		mem_monitor_object.o \
 		lock_object.o \

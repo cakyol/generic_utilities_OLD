@@ -39,92 +39,167 @@
 extern "C" {
 #endif
 
-unsigned char function_trace_on = 0;
-unsigned int function_trace_indent = 0;
-const char *function_entered = "ENTERED";
-const char *function_exited = "EXITED";
-lock_obj_t debugger_lock;
-char function_trace_string [128] = { 0 };
+int n_modules = 0;
+lock_obj_t debugger_lock = { 0 };
+byte *module_debug_levels = 0;
 
-const char *debug_string = "DEBUG";
-const char *info_string = "INFO";
-const char *warning_string = "WARNING";
-const char *error_string = "ERROR";
-const char *fatal_error_string = "FATAL";
+static debug_reporting_function user_specified_drf = 0;
+static module_name_t *module_names = 0;
+
+static const char *level_strings [] = { 
+    [TRACE_DEBUG_LEVEL] = "TRACE",
+    [INFORM_DEBUG_LEVEL] = "INFORMATION",
+    [WARNING_DEBUG_LEVEL] = "WARNING",
+    [ERROR_DEBUG_LEVEL] = "ERROR",
+    [FATAL_ERROR_DEBUG_LEVEL] = "FATAL_ERROR" };
+
+/*
+ * We use a global static message buffer for sprintf
+ * when a user specified printing function is required.
+ * This can be global even for multi threaded apps since
+ * the debug macros are protected by locks.
+ */
+#define DEBUG_MESSAGE_BUFFER_SIZE      2048
+static char *static_msg_buffer = 0;
 
 static void
-default_debug_reporting_function (const char *msg)
-{
-    fprintf(stderr, "%s", msg);
-}
+set_default_module_name (int m)
+{ sprintf(&module_names[m].module_name[0], "MODULE_%d", m); }
 
-debug_reporting_function_pointer debug_reporter =
-    default_debug_reporting_function;
-
-void
-debugger_set_reporting_function (debug_reporting_function_pointer fn)
+int
+debug_framework_initialize (debug_reporting_function fn, int n_m)
 {
-    if (fn) {
-        debug_reporter = fn;
-    } else {
-        debug_reporter = default_debug_reporting_function;
-    }
-}
+    int m;
 
-void
-debugger_initialize (debug_reporting_function_pointer fn)
-{
     lock_obj_init(&debugger_lock);
-    debugger_set_reporting_function(fn);
+    set_debug_reporting_function(fn);
+    if (n_m <= 0) return EINVAL;
+    
+    n_modules = n_m;
+    module_names = malloc(n_modules * sizeof(module_name_t));
+    if (0 == module_names) {
+        n_modules = 0;
+        return ENOMEM;
+    }
+    for (m = 0; m < n_modules; m++) set_default_module_name(m);
+
+#ifdef INCLUDE_DEBUGGING_CODE
+    module_debug_levels = malloc(n_modules * sizeof(byte));
+    if (0 == module_debug_levels) {
+        free(module_names);
+        module_names = 0;
+        n_modules = 0;
+        return ENOMEM;
+    }
+    for (m = 0; m < n_modules; m++)
+        module_debug_levels[m] = ERROR_DEBUG_LEVEL;
+#endif /* INCLUDE_DEBUGGING_CODE */
+
+    return 0;
+
 }
 
 /*
- * We use a global message buffer to save stack space and protect
- * it with a lock for multi threaded applications.
+ * If 'fn' is null, the default function is used.
+ * The static message buffer is used only when a user specified
+ * non null debug printing function is used.  Otherwise it is not
+ * needed and released to save memory.
  */
-#define DEBUG_MESSAGE_BUFFER_SIZE      1024
-static char msg_buffer [DEBUG_MESSAGE_BUFFER_SIZE];
-
 void
-_process_debug_message_ (char *module_name, const char *level,
-    const char *file_name, const char *function_name, int line_number,
+set_debug_reporting_function (debug_reporting_function fn)
+{
+    if (fn) {
+
+        /*
+         * allocate static message buffer if never allocated before.
+         * If allocation fails, force it back to the default.
+         */
+        if (0 == static_msg_buffer) {
+            static_msg_buffer = malloc(DEBUG_MESSAGE_BUFFER_SIZE);
+            if (0 == static_msg_buffer) fn = 0;
+        }
+
+    } else {
+
+        /*
+         * we are going back to the default print function.  We dont
+         * need the static message buffer if it was allocated before.
+         */
+        if (static_msg_buffer) {
+            free(static_msg_buffer);
+            static_msg_buffer = 0;
+        }
+    }
+
+    user_specified_drf = fn;
+}
+
+int
+set_module_name (int m, char *name)
+{
+    if (invalid_module_number(m)) return EINVAL;
+    if (name && name[0]) {
+        strncpy(&module_names[m].module_name[0], name, MODULE_NAME_LEN-2);
+    } else {
+        set_default_module_name(m);
+    }
+    return 0;
+}
+
+/*
+ * When this function is called, both the module number
+ * and level are already verified (thru the macros calling it)
+ * so range check does not need to be done again.
+ */
+void
+_process_debug_message_ (int module, int level,
+    const char *file_name, const char *function_name,
+    int line_number,
     char *fmt, ...)
 {
     va_list args;
     int index, size_left, len;
 
+    va_start(args, fmt);
+
+    /*
+     * if an external reporting function has not been 
+     * defined, then simply use fprintf(stderr, ...);
+     */
+    if (0 == user_specified_drf) {
+        fprintf(stderr, "%s: %s: %s(%d): %s: ",
+            level_strings[level], module_names[module].module_name,
+            file_name, line_number, function_name);
+        vfprintf(stderr, fmt, args);
+        fflush(stderr);
+        return;
+    }
+
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
     len = index = 0;
 
-    /*
-     * align the error messages to be
-     * printed also with the proper indentation.
-     */
-    len += snprintf(&msg_buffer[index], size_left,
-                "%*s: %s <%s: %s(%d)> ",
-        function_trace_indent - 1 + (int) strlen(level), level,
-        module_name ? module_name : "",
-        file_name, function_name, line_number);
+    len += snprintf(&static_msg_buffer[index], size_left,
+                "%s: %s: %s(%d): %s: ",
+        level_strings[level], module_names[module].module_name,
+        file_name, line_number, function_name);
 
     size_left -= len;
     index += len;
 
-    va_start(args, fmt);
-    len += vsnprintf(&msg_buffer[index], size_left, fmt, args);
+    len += vsnprintf(&static_msg_buffer[index], size_left, fmt, args);
     va_end(args);
 
-    /* add a newline and terminate with a null */
-    msg_buffer[len] = '\n';
-    msg_buffer[len + 1] = 0;
+    /* terminate with a null */
+    static_msg_buffer[len] = 0;
 
     /* precaution */
-    msg_buffer[DEBUG_MESSAGE_BUFFER_SIZE - 1] = 0;
+    static_msg_buffer[DEBUG_MESSAGE_BUFFER_SIZE - 1] = 0;
 
     /*
      * do the actual printing/reporting operation here using
      * the currently registered debug printing function
      */
-    debug_reporter(msg_buffer);
+    user_specified_drf(static_msg_buffer);
 }
 
 #ifdef __cplusplus

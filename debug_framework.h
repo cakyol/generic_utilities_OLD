@@ -59,7 +59,7 @@
 ** stderr.  If reporting function is redefined by the user, it should NOT
 ** call any debug/error messages itelf otherwise a deadlock will result.
 **
-** To activate this in the source code, #include 'INCLUDE_ALL_DEBUGGING_CODE'.
+** To activate this in the source code, #include 'INCLUDE_DEBUGGING_CODE'.
 ** Otherwise, all debug statements will compile to nothing meaning they will
 ** NOT impose ANY overhead to the code.
 **
@@ -87,203 +87,133 @@ extern "C" {
 #include "lock_object.h"
 
 /*
+ * Debug levels, the higher the number, the higher the priority.
+ * (Must fit into an unsigned byte).
+ * ERROR_LEVEL always gets reported.
+ * Critical errors will also always report AND crash the system.
+ */
+#define TRACE_DEBUG_LEVEL               0
+#define INFORM_DEBUG_LEVEL              1
+#define WARNING_DEBUG_LEVEL             2
+#define ERROR_DEBUG_LEVEL               3
+#define FATAL_ERROR_DEBUG_LEVEL         4
+#define MAX_DEBUG_LEVEL                 FATAL_ERROR_DEBUG_LEVEL
+
+#define MODULE_NAME_LEN                 48
+typedef struct module_name_s {
+    char module_name [MODULE_NAME_LEN];
+} module_name_t;
+
+/* like printf */
+typedef int (*debug_reporting_function)(const char *format, ...);
+
+extern int n_modules;
+extern byte *module_debug_levels;
+extern lock_obj_t debugger_lock;
+
+/*
  * If you do NOT want debugging code to be generated/executed,
  * then UN define this.
  */
-#define INCLUDE_ALL_DEBUGGING_CODE
+#define INCLUDE_DEBUGGING_CODE
 
-/*
- * This is a debug flag which contains the level for which debug
- * messages for it can be processed.  Every module can have its 
- * own debug flag.  The user defines his/her modules.
- */
-typedef unsigned char module_debug_flag_t;
+#ifdef INCLUDE_DEBUGGING_CODE
 
-/*
- * By default, all outputs from this debug framework go to stderr.
- * If you want to perform different operations, define your own
- * handling function.
- *
- * The function takes one char* parameter, which is the fully 
- * formatted, newline & NULL terminated string.  It returns
- * nothing.
- *
- * Your function should NOT change the string.
- */
-typedef void (*debug_reporting_function_pointer)(const char *msg);
+    static inline
+    int invalid_module_number (int m)
+    { return (m < 0) || (m >= n_modules); }
 
-/*
- * Always call this to initialize the debugger subsystem
- */
-extern void
-debugger_initialize (debug_reporting_function_pointer fn);
+    static inline
+    int invalid_debug_level (int l)
+    { return  (l < TRACE_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
 
-/*
- * User can redefine the reporting function by setting a new function
- * using this call.  Passing NULL will set it back to the default.
- */
-extern void
-debugger_set_reporting_function (debug_reporting_function_pointer fn);
+    static inline void
+    set_module_debug_level (byte m, byte l)
+    {
+        if (invalid_module_number(m)) return;
+        if (invalid_debug_level(l)) return;
+        module_debug_levels[m] = l;
+    }
 
-#ifdef INCLUDE_ALL_DEBUGGING_CODE
-
-    /* Turn off function entry/exit tracing */
-    #define DISABLE_FUNCTION_TRACING() \
-        (function_trace_on = 0)
-
-    /* Turn on function entry/exit tracing */
-    #define ENABLE_FUNCTION_TRACING() \
-        (function_trace_on = 1)
-
-    /* Turn off all debugging for this module */
-    #define DISABLE_ALL_DEBUG_MESSAGES(module_debug_flag) \
-        (module_debug_flag = 0)
-
-    /* Turn on all debugging from lowest level up */
-    #define ENABLE_DEBUG_MESSAGES(module_debug_flag) \
-        (module_debug_flag = DEBUG_LEVEL)
-
-    /* Turn on all debug messages information level & up */
-    #define ENABLE_INFO_MESSAGES(module_debug_flag) \
-        (module_debug_flag = INFORMATION_LEVEL)
-
-    /* Turn on all debug messages warning level & up */
-    #define ENABLE_WARNING_MESSAGES(module_debug_flag) \
-        (module_debug_flag = WARNING_LEVEL)
-
-    /* function entered notification */
-    #define ENTER_FUNCTION() \
+    #define TRACE(m, fmt, args...) \
         do { \
-            if (function_trace_on) { \
-                grab_write_lock(&debugger_lock); \
-                sprintf(function_trace_string, "%*s(%d) %s (line %d)\n", \
-                    function_trace_indent+7, function_entered, \
-                    function_trace_indent, __FUNCTION__, __LINE__); \
-                function_trace_indent++; \
-                debug_reporter(function_trace_string); \
-                release_write_lock(&debugger_lock); \
-            } \
-        } while (0)
-
-    /* function exit notification */
-    #define EXIT_FUNCTION(value) \
-        do { \
-            if (function_trace_on) { \
-                grab_write_lock(&debugger_lock); \
-                function_trace_indent--; \
-                sprintf(function_trace_string, "%*s(%d) %s (line %d)\n", \
-                    function_trace_indent+6, function_exited, \
-                    function_trace_indent, __FUNCTION__, __LINE__); \
-                debug_reporter(function_trace_string); \
-                release_write_lock(&debugger_lock); \
-            } \
-            return (value); \
-        } while (0)
-
-    #define DEBUG(module_name, module_debug_flag, fmt, args...) \
-        do { \
-            if (module_debug_flag & DEBUG_LEVEL_MASK) { \
-                grab_write_lock(&debugger_lock); \
-                _process_debug_message_(module_name, debug_string, \
+            if (invalid_module_number(m)) break; \
+            if (module_debug_levels[m] > TRACE_DEBUG_LEVEL) break; \
+            grab_write_lock(&debugger_lock); \
+            _process_debug_message_(m, TRACE_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-                release_write_lock(&debugger_lock); \
-            } \
+            release_write_lock(&debugger_lock); \
         } while (0)
     
-    #define INFO(module_name, module_debug_flag, fmt, args...) \
+    #define INFORMATION(m, fmt, args...) \
         do { \
-            if (module_debug_flag & INFORMATION_LEVEL_MASK) { \
-                grab_write_lock(&debugger_lock); \
-                _process_debug_message_(module_name, info_string, \
+            if (invalid_module_number(m)) break; \
+            if (module_debug_levels[m] > INFORM_DEBUG_LEVEL) break; \
+            grab_write_lock(&debugger_lock); \
+            _process_debug_message_(m, INFORM_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-                release_write_lock(&debugger_lock); \
-            } \
+            release_write_lock(&debugger_lock); \
         } while (0)
     
-    #define WARNING(module_name, module_debug_flag, fmt, args...) \
+    #define WARNING(m, fmt, args...) \
         do { \
-            if (module_debug_flag & WARNING_LEVEL_MASK) { \
-                grab_write_lock(&debugger_lock); \
-                _process_debug_message_(module_name, warning_string, \
+            if (invalid_module_number(m)) break; \
+            if (module_debug_levels[m] > WARNING_DEBUG_LEVEL) break; \
+            grab_write_lock(&debugger_lock); \
+            _process_debug_message_(m, WARNING_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-                release_write_lock(&debugger_lock); \
-            } \
+            release_write_lock(&debugger_lock); \
         } while (0)
     
-#else /* ! INCLUDE_ALL_DEBUGGING_CODE */
+#else /* ! INCLUDE_DEBUGGING_CODE */
 
-    #define DISABLE_FUNCTION_TRACING()
-    #define ENABLE_FUNCTION_TRACING()
+    #define set_module_debug_level(m, l)
+    #define TRACE(m, fmt, args...)
+    #define INFORMATION(m, fmt, args...)
+    #define WARNING(m, fmt, args...)
 
-    #define DISABLE_ALL_DEBUG_MESSAGES(module_debug_flag)
-    #define ENABLE_DEBUG_MESSAGES(module_debug_flag)
-    #define ENABLE_INFO_MESSAGES(module_debug_flag)
-    #define ENABLE_WARNING_MESSAGES(module_debug_flag)
-    
-    #define ENTER_FUNCTION()
-    #define EXIT_FUNCTION(value)   return(value)
- 
-    #define DEBUG(module_name, module_debug_flag, fmt, args...)
-    #define INFO(module_name, module_debug_flag, fmt, args...)
-    #define WARNING(module_name, module_debug_flag, fmt, args...)
+#endif /* ! INCLUDE_DEBUGGING_CODE */
 
-#endif /* ! INCLUDE_ALL_DEBUGGING_CODE */
+/*
+ * These are always needed regardless since ERROR & FATAL_ERROR
+ * will need some sort of debug infra support.
+ */
 
 /* errors are ALWAYS reported */
-#define ERROR(module_name, fmt, args...) \
+#define ERROR(m, fmt, args...) \
     do { \
+        if (invalid_module_number(m)) break; \
         grab_write_lock(&debugger_lock); \
-        _process_debug_message_(module_name, error_string, \
+        _process_debug_message_(m, ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
         release_write_lock(&debugger_lock); \
     } while (0)
 
 /* fatal errors are ALWAYS reported */
-#define FATAL_ERROR(module_name, fmt, args...) \
+#define FATAL_ERROR(m, fmt, args...) \
     do { \
+        if (invalid_module_number(m)) break; \
         grab_write_lock(&debugger_lock); \
-        _process_debug_message_(module_name, fatal_error_string, \
+        _process_debug_message_(m, FATAL_ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
         release_write_lock(&debugger_lock); \
         assert(0); \
     } while (0)
 
-/*****************************************************************************
- *****************************************************************************
- *****************************************************************************
- *****************************************************************************
- *
- * DO NOT TOUCH OR USE ANYTHING BELOW HERE
- *
- *****************************************************************************
- *****************************************************************************
- *****************************************************************************
- ****************************************************************************/
+extern int
+debug_framework_initialize (debug_reporting_function fn, int n_m);
 
-extern lock_obj_t debugger_lock;
-extern unsigned char function_trace_on;
-extern unsigned int function_trace_indent;
-extern const char *function_entered, *function_exited;
-extern char function_trace_string [];
-extern debug_reporting_function_pointer debug_reporter;
+extern void 
+set_debug_reporting_function (debug_reporting_function fn);
 
-#define DEBUG_LEVEL             (0b00000001)
-#define DEBUG_LEVEL_MASK        (0b00000001)
+extern int
+set_module_name (int module, char *name);
 
-#define INFORMATION_LEVEL       (0b00000010)
-#define INFORMATION_LEVEL_MASK  (0b00000011)
-
-#define WARNING_LEVEL           (0b00000100)
-#define WARNING_LEVEL_MASK      (0b00000111)
-
-extern const char *debug_string;
-extern const char *info_string;
-extern const char *warning_string;
-extern const char *error_string;
-extern const char *fatal_error_string;
-
+/*
+ * PRIVATE, DO NOT USE.  HERE ONLY TO PASS COMPILATIONS.
+ */
 extern void
-_process_debug_message_ (char *module_name, const char *level,
+_process_debug_message_ (int module, int level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...);
 
