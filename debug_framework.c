@@ -167,7 +167,7 @@ _process_debug_message_ (int module, int level,
      * defined, then simply use fprintf(stderr, ...);
      */
     if (0 == user_specified_drf) {
-        fprintf(stderr, "%s: %s: %s(%d): %s: ",
+        fprintf(stderr, "%s: %s: %s(%d): <%s>: ",
             level_strings[level], module_names[module].module_name,
             file_name, line_number, function_name);
         vfprintf(stderr, fmt, args);
@@ -179,7 +179,7 @@ _process_debug_message_ (int module, int level,
     len = index = 0;
 
     len += snprintf(&static_msg_buffer[index], size_left,
-                "%s: %s: %s(%d): %s: ",
+                "%s: %s: %s(%d): <%s>: ",
         level_strings[level], module_names[module].module_name,
         file_name, line_number, function_name);
 

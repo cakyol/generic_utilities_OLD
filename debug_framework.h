@@ -46,18 +46,24 @@
 ** fatal error in that specific order.  If a specific level is set for a
 ** module, lower level debugs will not be reported.  For example, if module
 ** 'my_module' flag is set to the warning level, debugs and informations
-** will not be reported.  The exception to this is that errors & fatal
+** will not be reported.  The EXCEPTION to this is that errors & fatal
 ** errors will ALWAYS be reported.
 **
 ** Note that fatal error call will crash the system with an assert call.
 ** It should be used only as a last resort.
 **
+** This framework is thread safe.  This means an error report will be
+** completely printed and finished before another thread can be
+** executed which may have the potential to screw up the writing of
+** the message.
+**
 ** Note the word used as 'reporting' rather than 'printing' a message.  This
-** is because the user can decide what to do exactly with the message.
-** Typically that will be printing but it does not have to be.  It can be 
-** redefined by the user.  By default however, the message is printed to
-** stderr.  If reporting function is redefined by the user, it should NOT
-** call any debug/error messages itelf otherwise a deadlock will result.
+** is because the user can override the default printing function (which is
+** simply writing to stderr) by a specified one and can do whatever in that
+** specific function.  Typically that will be some sort of printing but it 
+** can be anything defined by the user.  Note that another debug/error
+** cannot be called inside the user defined function or deadlock will
+** result.
 **
 ** To activate this in the source code, #include 'INCLUDE_DEBUGGING_CODE'.
 ** Otherwise, all debug statements will compile to nothing meaning they will
@@ -111,6 +117,10 @@ extern int n_modules;
 extern byte *module_debug_levels;
 extern lock_obj_t debugger_lock;
 
+static inline
+int invalid_module_number (int m)
+{ return (m < 0) || (m >= n_modules); }
+
 /*
  * If you do NOT want debugging code to be generated/executed,
  * then UN define this.
@@ -118,10 +128,6 @@ extern lock_obj_t debugger_lock;
 #define INCLUDE_DEBUGGING_CODE
 
 #ifdef INCLUDE_DEBUGGING_CODE
-
-    static inline
-    int invalid_module_number (int m)
-    { return (m < 0) || (m >= n_modules); }
 
     static inline
     int invalid_debug_level (int l)
@@ -201,7 +207,7 @@ extern lock_obj_t debugger_lock;
     } while (0)
 
 extern int
-debug_framework_initialize (debug_reporting_function fn, int n_m);
+debug_framework_initialize (debug_reporting_function fn, int num_modules);
 
 extern void 
 set_debug_reporting_function (debug_reporting_function fn);
@@ -209,8 +215,10 @@ set_debug_reporting_function (debug_reporting_function fn);
 extern int
 set_module_name (int module, char *name);
 
+/**************************************************************************/
+
 /*
- * PRIVATE, DO NOT USE.  HERE ONLY TO PASS COMPILATIONS.
+ * PRIVATE, DO NOT USE.  DEFINED ONLY TO PASS COMPILATIONS.
  */
 extern void
 _process_debug_message_ (int module, int level,
