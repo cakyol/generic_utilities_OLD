@@ -134,7 +134,7 @@ int invalid_module_number (int m)
     { return  (l < TRACE_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
 
     static inline void
-    set_module_debug_level (byte m, byte l)
+    debug_set_module_level (int m, byte l)
     {
         if (invalid_module_number(m)) return;
         if (invalid_debug_level(l)) return;
@@ -173,7 +173,7 @@ int invalid_module_number (int m)
     
 #else /* ! INCLUDE_DEBUGGING_CODE */
 
-    #define set_module_debug_level(m, l)
+    #define debug_set_module_level(m, l)
     #define TRACE(m, fmt, args...)
     #define INFORMATION(m, fmt, args...)
     #define WARNING(m, fmt, args...)
@@ -207,13 +207,13 @@ int invalid_module_number (int m)
     } while (0)
 
 extern int
-debug_framework_initialize (debug_reporting_function fn, int num_modules);
+debug_initialize (debug_reporting_function fn, int num_modules);
 
 extern void 
-set_debug_reporting_function (debug_reporting_function fn);
+debug_set_reporting_function (debug_reporting_function fn);
 
 extern int
-set_module_name (int module, char *name);
+debug_set_module_name (int module, char *name);
 
 /**************************************************************************/
 

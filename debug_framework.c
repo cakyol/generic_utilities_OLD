@@ -63,16 +63,16 @@ static const char *level_strings [] = {
 static char *static_msg_buffer = 0;
 
 static void
-set_default_module_name (int m)
+debug_set_default_module_name (int m)
 { sprintf(&module_names[m].module_name[0], "MODULE_%d", m); }
 
 int
-debug_framework_initialize (debug_reporting_function fn, int n_m)
+debug_initialize (debug_reporting_function fn, int n_m)
 {
     int m;
 
     lock_obj_init(&debugger_lock);
-    set_debug_reporting_function(fn);
+    debug_set_reporting_function(fn);
     if (n_m <= 0) return EINVAL;
     
     n_modules = n_m;
@@ -81,7 +81,7 @@ debug_framework_initialize (debug_reporting_function fn, int n_m)
         n_modules = 0;
         return ENOMEM;
     }
-    for (m = 0; m < n_modules; m++) set_default_module_name(m);
+    for (m = 0; m < n_modules; m++) debug_set_default_module_name(m);
 
 #ifdef INCLUDE_DEBUGGING_CODE
     module_debug_levels = malloc(n_modules * sizeof(byte));
@@ -106,7 +106,7 @@ debug_framework_initialize (debug_reporting_function fn, int n_m)
  * needed and released to save memory.
  */
 void
-set_debug_reporting_function (debug_reporting_function fn)
+debug_set_reporting_function (debug_reporting_function fn)
 {
     if (fn) {
 
@@ -135,13 +135,13 @@ set_debug_reporting_function (debug_reporting_function fn)
 }
 
 int
-set_module_name (int m, char *name)
+debug_set_module_name (int m, char *name)
 {
     if (invalid_module_number(m)) return EINVAL;
     if (name && name[0]) {
         strncpy(&module_names[m].module_name[0], name, MODULE_NAME_LEN-2);
     } else {
-        set_default_module_name(m);
+        debug_set_default_module_name(m);
     }
     return 0;
 }

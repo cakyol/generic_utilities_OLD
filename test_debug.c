@@ -15,45 +15,45 @@ int main (int argc, char *argv[])
 {
     int i;
 
-    debug_framework_initialize(0, 1);
-    for (i = 0; i < 100; i++) set_module_name(i, "SHITHEAD");
+    debug_initialize(0, 1);
+    for (i = 0; i < 100; i++) debug_set_module_name(i, "SHITHEAD");
     for (i = 0; i < 5; i++) {
 
         if (i & 1)
-            set_debug_reporting_function(print_error);
+            debug_set_reporting_function(print_error);
         else
-            set_debug_reporting_function(0);
+           debug_set_reporting_function(0);
 
-        set_module_debug_level(0, ERROR_DEBUG_LEVEL);
-        set_module_name(0, "SHITHEAD");
+        debug_set_module_level(0, ERROR_DEBUG_LEVEL);
+        debug_set_module_name(0, "SHITHEAD");
         TRACE(0, "%s\n", incorrect);
         INFORMATION(0, "%s\n", incorrect);
         WARNING(0, "%s\n", incorrect);
         ERROR(0, "%s\n", correct);
         
-        set_module_debug_level(0, TRACE_DEBUG_LEVEL);
-        set_module_name(0, 0);
+        debug_set_module_level(0, TRACE_DEBUG_LEVEL);
+        debug_set_module_name(0, 0);
         TRACE(0, "%s\n", correct);
         INFORMATION(0, "%s\n", correct);
         WARNING(0, "%s\n", correct);
         ERROR(0, "%s\n", correct);
 
-        set_module_debug_level(0, INFORM_DEBUG_LEVEL);
-        set_module_name(0, "SHITHEAD");
+        debug_set_module_level(0, INFORM_DEBUG_LEVEL);
+        debug_set_module_name(0, "SHITHEAD");
         TRACE(0, "%s\n", incorrect);
         INFORMATION(0, "%s\n", correct);
         WARNING(0, "%s\n", correct);
         ERROR(0, "%s\n", correct);
 
-        set_module_debug_level(0, WARNING_DEBUG_LEVEL);
-        set_module_name(0, 0);
+        debug_set_module_level(0, WARNING_DEBUG_LEVEL);
+        debug_set_module_name(0, 0);
         TRACE(0, "%s\n", incorrect);
         INFORMATION(0, "%s\n", incorrect);
         WARNING(0, "%s\n", correct);
         ERROR(0, "%s\n", correct);
 
-        set_module_debug_level(0, ERROR_DEBUG_LEVEL);
-        set_module_name(0, "SHITHEAD");
+        debug_set_module_level(0, ERROR_DEBUG_LEVEL);
+        debug_set_module_name(0, "SHITHEAD");
         TRACE(0, "%s\n", incorrect);
         INFORMATION(0, "%s\n", incorrect);
         WARNING(0, "%s\n", incorrect);
