@@ -15,7 +15,7 @@ int main (int argc, char *argv[])
 {
     int i;
 
-    debug_initialize(0, 1);
+    debug_initialize(0, 0, 1);
     for (i = 0; i < 100; i++) debug_set_module_name(i, "SHITHEAD");
     for (i = 0; i < 5; i++) {
 

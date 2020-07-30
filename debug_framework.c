@@ -40,10 +40,11 @@ extern "C" {
 #endif
 
 int n_modules = 0;
-lock_obj_t debugger_lock = { 0 };
 byte *module_debug_levels = 0;
+lock_obj_t *p_debugger_lock = 0;
 
 static debug_reporting_function user_specified_drf = 0;
+static lock_obj_t debugger_lock = { 0 };
 static module_name_t *module_names = 0;
 
 static const char *level_strings [] = { 
@@ -67,11 +68,17 @@ debug_set_default_module_name (int m)
 { sprintf(&module_names[m].module_name[0], "MODULE_%d", m); }
 
 int
-debug_initialize (debug_reporting_function fn, int n_m)
+debug_initialize (int make_it_thread_safe,
+    debug_reporting_function fn, int n_m)
 {
     int m;
 
     lock_obj_init(&debugger_lock);
+    if (make_it_thread_safe) {
+        p_debugger_lock = &debugger_lock;
+    } else {
+        p_debugger_lock = 0;
+    }
     debug_set_reporting_function(fn);
     if (n_m <= 0) return EINVAL;
     

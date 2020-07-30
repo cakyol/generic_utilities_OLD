@@ -115,11 +115,19 @@ typedef int (*debug_reporting_function)(const char *format, ...);
 
 extern int n_modules;
 extern byte *module_debug_levels;
-extern lock_obj_t debugger_lock;
+extern lock_obj_t *p_debugger_lock;
 
 static inline
 int invalid_module_number (int m)
 { return (m < 0) || (m >= n_modules); }
+
+static inline 
+void GRAB_WRITE_LOCK (lock_obj_t *lck)
+{ if (lck) grab_write_lock(lck); }
+
+static inline void
+RELEASE_WRITE_LOCK (lock_obj_t *lck)
+{ if (lck) release_write_lock(lck); }
 
 /*
  * If you do NOT want debugging code to be generated/executed,
@@ -145,30 +153,30 @@ int invalid_module_number (int m)
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > TRACE_DEBUG_LEVEL) break; \
-            grab_write_lock(&debugger_lock); \
+            GRAB_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, TRACE_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            release_write_lock(&debugger_lock); \
+            RELEASE_WRITE_LOCK(p_debugger_lock); \
         } while (0)
     
     #define INFORMATION(m, fmt, args...) \
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > INFORM_DEBUG_LEVEL) break; \
-            grab_write_lock(&debugger_lock); \
+            GRAB_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, INFORM_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            release_write_lock(&debugger_lock); \
+            RELEASE_WRITE_LOCK(p_debugger_lock); \
         } while (0)
     
     #define WARNING(m, fmt, args...) \
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > WARNING_DEBUG_LEVEL) break; \
-            grab_write_lock(&debugger_lock); \
+            GRAB_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, WARNING_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            release_write_lock(&debugger_lock); \
+            RELEASE_WRITE_LOCK(p_debugger_lock); \
         } while (0)
     
 #else /* ! INCLUDE_DEBUGGING_CODE */
@@ -189,25 +197,26 @@ int invalid_module_number (int m)
 #define ERROR(m, fmt, args...) \
     do { \
         if (invalid_module_number(m)) break; \
-        grab_write_lock(&debugger_lock); \
+        GRAB_WRITE_LOCK(p_debugger_lock); \
         _process_debug_message_(m, ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        release_write_lock(&debugger_lock); \
+        RELEASE_WRITE_LOCK(p_debugger_lock); \
     } while (0)
 
 /* fatal errors are ALWAYS reported */
 #define FATAL_ERROR(m, fmt, args...) \
     do { \
         if (invalid_module_number(m)) break; \
-        grab_write_lock(&debugger_lock); \
+        GRAB_WRITE_LOCK(p_debugger_lock); \
         _process_debug_message_(m, FATAL_ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        release_write_lock(&debugger_lock); \
+        RELEASE_WRITE_LOCK(p_debugger_lock); \
         assert(0); \
     } while (0)
 
 extern int
-debug_initialize (debug_reporting_function fn, int num_modules);
+debug_initialize (int make_it_thread_safe,
+    debug_reporting_function fn, int num_modules);
 
 extern void 
 debug_set_reporting_function (debug_reporting_function fn);
