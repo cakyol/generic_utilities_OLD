@@ -128,17 +128,15 @@ lock_obj_destroy (lock_obj_t *lck);
         } \
     } while (0)
 
-#define READ_LOCK(obj) \
-    if (obj->lock) grab_read_lock(obj->lock)
+#define SAFE_READ_LOCK(lck)         if (lck) grab_read_lock(lck)
+#define SAFE_WRITE_LOCK(lck)        if (lck) grab_write_lock(lck)
+#define SAFE_READ_UNLOCK(lck)       if (lck) release_read_lock(lck)
+#define SAFE_WRITE_UNLOCK(lck)      if (lck) release_write_lock(lck)
 
-#define WRITE_LOCK(obj) \
-    if (obj->lock) grab_write_lock(obj->lock)
-
-#define READ_UNLOCK(obj) \
-    if (obj->lock) release_read_lock(obj->lock)
-
-#define WRITE_UNLOCK(obj) \
-    if (obj->lock) release_write_lock(obj->lock)
+#define OBJ_READ_LOCK(obj)          SAFE_READ_LOCK(obj->lock)
+#define OBJ_WRITE_LOCK(obj)         SAFE_WRITE_LOCK(obj->lock)
+#define OBJ_READ_UNLOCK(obj)        SAFE_READ_UNLOCK(obj->lock)
+#define OBJ_WRITE_UNLOCK(obj)       SAFE_WRITE_UNLOCK(obj->lock)
 
 #define LOCK_OBJ_DESTROY(obj) \
     do { \

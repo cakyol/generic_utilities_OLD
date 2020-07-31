@@ -164,7 +164,7 @@ dl_list_init (dl_list_t *list,
     LOCK_SETUP(list);
     list->head = list->tail = 0;
     list->n = 0;
-    WRITE_UNLOCK(list);
+    OBJ_WRITE_UNLOCK(list);
     return 0;
 }
 
@@ -173,9 +173,9 @@ dl_list_prepend_object (dl_list_t *list, void *object)
 {
     int failed;
 
-    WRITE_LOCK(list);
+    OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_dl_list_prepend_object(list, object);
-    WRITE_UNLOCK(list);
+    OBJ_WRITE_UNLOCK(list);
     return failed;
 }
 
@@ -184,9 +184,9 @@ dl_list_append_object (dl_list_t *list, void *object)
 {
     int failed;
 
-    WRITE_LOCK(list);
+    OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_dl_list_append_object(list, object);
-    WRITE_UNLOCK(list);
+    OBJ_WRITE_UNLOCK(list);
     return failed;
 }
 
@@ -195,9 +195,9 @@ dl_list_delete_element (dl_list_t *list, dl_list_element_t *elem)
 {
     int failed;
 
-    WRITE_LOCK(list);
+    OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_dl_list_delete_element(list, elem);
-    WRITE_UNLOCK(list);
+    OBJ_WRITE_UNLOCK(list);
     return failed;
 }
 
@@ -215,7 +215,7 @@ dl_list_traverse (dl_list_t *list,
 {
     dl_list_element_t *iterator;
 
-    READ_LOCK(list);
+    OBJ_READ_LOCK(list);
     list->should_not_be_modified++;
     iterator = list->head;
     while (iterator) {
@@ -225,19 +225,19 @@ dl_list_traverse (dl_list_t *list,
         iterator = iterator->next;
     }
     list->should_not_be_modified--;
-    READ_UNLOCK(list);
+    OBJ_READ_UNLOCK(list);
 }
 
 void
 dl_list_destroy (dl_list_t *list)
 {
-    WRITE_LOCK(list);
+    OBJ_WRITE_LOCK(list);
     while (list->head)
         thread_unsafe_dl_list_delete_element(list, list->head);
     assert(list->n == 0);
     assert(list->head == NULL);
     assert(list->tail == NULL);
-    WRITE_UNLOCK(list);
+    OBJ_WRITE_UNLOCK(list);
     lock_obj_destroy(list->lock);
 }
 

@@ -285,10 +285,10 @@ ordered_list_init (ordered_list_t *listp,
         listp->head = last_node;
         listp->n = 0;
         listp->cmpf = cmpf;
-        WRITE_UNLOCK(listp);
+        OBJ_WRITE_UNLOCK(listp);
         return 0;
     }
-    WRITE_UNLOCK(listp);
+    OBJ_WRITE_UNLOCK(listp);
     return ENOMEM;
 }
 
@@ -299,9 +299,9 @@ ordered_list_add (ordered_list_t *listp, void *user_data)
 {
     int failed;
 
-    WRITE_LOCK(listp);
+    OBJ_WRITE_LOCK(listp);
     failed = thread_unsafe_ordered_list_add(listp, user_data, NULL);
-    WRITE_UNLOCK(listp);
+    OBJ_WRITE_UNLOCK(listp);
     return failed;
 }
 
@@ -311,10 +311,11 @@ ordered_list_add_once (ordered_list_t *listp, void *user_data,
 {
     int failed;
 
-    WRITE_LOCK(listp);
+    OBJ_WRITE_LOCK(listp);
     failed =
-        thread_unsafe_ordered_list_add_once(listp, user_data, present_data, NULL);
-    WRITE_UNLOCK(listp);
+        thread_unsafe_ordered_list_add_once(listp, user_data,
+            present_data, NULL);
+    OBJ_WRITE_UNLOCK(listp);
     return failed;
 }
 
@@ -326,10 +327,10 @@ ordered_list_search (ordered_list_t *listp, void *searched_data,
 {
     int failed;
 
-    READ_LOCK(listp);
+    OBJ_READ_LOCK(listp);
     failed = thread_unsafe_ordered_list_search
                 (listp, searched_data, present_data, NULL, NULL);
-    READ_UNLOCK(listp);
+    OBJ_READ_UNLOCK(listp);
     return failed;
 }
 
@@ -341,10 +342,10 @@ ordered_list_delete (ordered_list_t *listp, void *data_to_be_deleted,
 {
     int failed;
 
-    WRITE_LOCK(listp);
+    OBJ_WRITE_LOCK(listp);
     failed = thread_unsafe_ordered_list_delete(listp, data_to_be_deleted,
                 data_deleted);
-    WRITE_UNLOCK(listp);
+    OBJ_WRITE_UNLOCK(listp);
     return failed;
 }
 
@@ -354,9 +355,9 @@ ordered_list_delete_node (ordered_list_t *listp,
 {
     int failed;
 
-    WRITE_LOCK(listp);
+    OBJ_WRITE_LOCK(listp);
     failed = thread_unsafe_ordered_list_node_delete(listp, node_to_be_deleted);
-    WRITE_UNLOCK(listp);
+    OBJ_WRITE_UNLOCK(listp);
     return failed;
 }
 
@@ -368,7 +369,7 @@ ordered_list_destroy (ordered_list_t *listp,
 {
     volatile void *user_data;
 
-    WRITE_LOCK(listp);
+    OBJ_WRITE_LOCK(listp);
     while (not_endof_ordered_list(listp->head)) {
 
         /* stash the user data stored in the node */
@@ -389,7 +390,7 @@ ordered_list_destroy (ordered_list_t *listp,
     listp->head = NULL;
 
     assert(0 == listp->n);
-    WRITE_UNLOCK(listp);
+    OBJ_WRITE_UNLOCK(listp);
     LOCK_OBJ_DESTROY(listp);
     memset(listp, 0, sizeof(ordered_list_t));
 }

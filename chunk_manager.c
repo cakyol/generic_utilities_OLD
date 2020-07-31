@@ -133,7 +133,7 @@ chunk_manager_init (chunk_manager_t *cmgr,
         if ((failed = cmgr_add_new_chunk(cmgr))) break;
     }
     safe_pointer_set(actual_chunks_created, cmgr->free_chunks.n);
-    WRITE_UNLOCK(cmgr);
+    OBJ_WRITE_UNLOCK(cmgr);
     return failed;
 }
 
@@ -146,7 +146,7 @@ chunk_manager_alloc (chunk_manager_t *cmgr)
     if (cmgr->should_not_be_modified)
         return 0;
 
-    WRITE_LOCK(cmgr);
+    OBJ_WRITE_LOCK(cmgr);
 
 try_again:
 
@@ -158,7 +158,7 @@ try_again:
         cmgr_append_chunk_to_list(&cmgr->used_chunks, chp);
 
         /* done */
-        WRITE_UNLOCK(cmgr);
+        OBJ_WRITE_UNLOCK(cmgr);
         return &chp->data[0];
     }
 
@@ -171,7 +171,7 @@ try_again:
     if (added) goto try_again;
 
     /* could not expand */
-    WRITE_UNLOCK(cmgr);
+    OBJ_WRITE_UNLOCK(cmgr);
     return 0;
 }
 
@@ -183,7 +183,7 @@ chunk_manager_free (chunk_manager_t *cmgr, void *data)
     if (cmgr->should_not_be_modified)
         return EBUSY;
 
-    WRITE_LOCK(cmgr);
+    OBJ_WRITE_LOCK(cmgr);
     chp = (chunk_header_t*)(((char*) data) - sizeof(chunk_header_t));
 
     /* move it out of used list into free list */
@@ -191,7 +191,7 @@ chunk_manager_free (chunk_manager_t *cmgr, void *data)
     cmgr_append_chunk_to_list(&cmgr->free_chunks, chp);
 
     /* done */
-    WRITE_UNLOCK(cmgr);
+    OBJ_WRITE_UNLOCK(cmgr);
 
     return 0;
 }
@@ -200,13 +200,13 @@ void
 chunk_manager_iterate_stop (chunk_manager_t *cmgr)
 {
     cmgr->should_not_be_modified = 0;
-    WRITE_UNLOCK(cmgr);
+    OBJ_WRITE_UNLOCK(cmgr);
 }
 
 void *
 chunk_manager_iterate_start (chunk_manager_t *cmgr)
 {
-    WRITE_LOCK(cmgr);
+    OBJ_WRITE_LOCK(cmgr);
     cmgr->should_not_be_modified = 1;
     cmgr->iterator = cmgr->used_chunks.head;
     if (cmgr->iterator) {
@@ -239,19 +239,19 @@ chunk_manager_iterate_next (chunk_manager_t *cmgr)
 void
 chunk_manager_trim (chunk_manager_t *cmgr)
 {
-    WRITE_LOCK(cmgr);
+    OBJ_WRITE_LOCK(cmgr);
     cmgr_destroy_list(cmgr, &cmgr->free_chunks);
     assert(cmgr->free_chunks.n == 0);
-    WRITE_UNLOCK(cmgr);
+    OBJ_WRITE_UNLOCK(cmgr);
 }
 
 void
 chunk_manager_destroy (chunk_manager_t *cmgr)
 {
-    WRITE_LOCK(cmgr);
+    OBJ_WRITE_LOCK(cmgr);
     cmgr_destroy_list(cmgr, &cmgr->free_chunks);
     cmgr_destroy_list(cmgr, &cmgr->used_chunks);
-    WRITE_UNLOCK(cmgr);
+    OBJ_WRITE_UNLOCK(cmgr);
     LOCK_OBJ_DESTROY(cmgr);
     memset(cmgr, 0, sizeof(chunk_manager_t));
 }

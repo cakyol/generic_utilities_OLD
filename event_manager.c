@@ -473,7 +473,7 @@ event_manager_init (event_manager_t *emp,
     /* ok we are cleared to use the object now */
     emp->should_not_be_modified = 0;
 
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
     return 0;
 }
 
@@ -484,10 +484,10 @@ already_registered (event_manager_t *emp,
 {
     int failed;
 
-    READ_LOCK(emp);
+    OBJ_READ_LOCK(emp);
     failed = thread_unsafe_already_registered(emp, event_type, object_type,
             ehfp, extra_arg);
-    READ_UNLOCK(emp);
+    OBJ_READ_UNLOCK(emp);
     return failed;
 }
 
@@ -504,10 +504,10 @@ register_for_object_events (event_manager_t *emp,
 {
     int failed;
 
-    WRITE_LOCK(emp);
+    OBJ_WRITE_LOCK(emp);
     failed = thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
             object_type, ehfp, extra_arg, 1);
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
     return failed;
 }
 
@@ -516,10 +516,10 @@ un_register_from_object_events (event_manager_t *emp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
-    WRITE_LOCK(emp);
+    OBJ_WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, OBJECT_EVENTS,
             object_type, ehfp, extra_arg, 0);
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
 }
 
 /*
@@ -533,10 +533,10 @@ register_for_attribute_events (event_manager_t *emp,
 {
     int failed;
 
-    WRITE_LOCK(emp);
+    OBJ_WRITE_LOCK(emp);
     failed = thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
             object_type, ehfp, extra_arg, 1);
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
     return failed;
 }
 
@@ -545,18 +545,18 @@ un_register_from_attribute_events (event_manager_t *emp,
         int object_type,
         event_handler_t ehfp, void *extra_arg)
 {
-    WRITE_LOCK(emp);
+    OBJ_WRITE_LOCK(emp);
     (void) thread_unsafe_generic_register_function(emp, ATTRIBUTE_EVENTS,
             object_type, ehfp, extra_arg, 0);
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
 }
 
 PUBLIC void
 announce_event (event_manager_t *emp, event_record_t *erp)
 {
-    WRITE_LOCK(emp);
+    OBJ_WRITE_LOCK(emp);
     thread_unsafe_announce_event(emp, erp);
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
 }
 
 PUBLIC void
@@ -566,7 +566,7 @@ event_manager_destroy (event_manager_t *emp)
 
     SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(i);
 
-    WRITE_LOCK(emp);
+    OBJ_WRITE_LOCK(emp);
     ordered_list_destroy(&emp->object_event_registrants_for_all_objects,
         destroy_f_and_arg_cb, NULL);
     ordered_list_destroy(&emp->attribute_event_registrants_for_all_objects,
@@ -590,7 +590,7 @@ event_manager_destroy (event_manager_t *emp)
 
 #endif /* !CONSECUTIVE_OBJECT_TYPES_USED */
     
-    WRITE_UNLOCK(emp);
+    OBJ_WRITE_UNLOCK(emp);
     LOCK_OBJ_DESTROY(emp);
     memset(emp, 0, sizeof(event_manager_t));
 }

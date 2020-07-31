@@ -261,7 +261,7 @@ radix_tree_init (radix_tree_t *ntp,
     LOCK_SETUP(ntp);
     ntp->node_count = 0;
     radix_tree_node_init(&ntp->radix_tree_root, 0);
-    WRITE_UNLOCK(ntp);
+    OBJ_WRITE_UNLOCK(ntp);
     return 0;
 }
 
@@ -272,10 +272,10 @@ radix_tree_insert (radix_tree_t *ntp,
 {
     int failed;
 
-    WRITE_LOCK(ntp);
+    OBJ_WRITE_LOCK(ntp);
     failed = thread_unsafe_radix_tree_insert(ntp, key, key_length,
                 data_to_be_inserted, present_data);
-    WRITE_UNLOCK(ntp);
+    OBJ_WRITE_UNLOCK(ntp);
     return failed;
 }
 
@@ -286,9 +286,9 @@ radix_tree_search (radix_tree_t *ntp,
 {
     int failed;
 
-    READ_LOCK(ntp);
+    OBJ_READ_LOCK(ntp);
     failed = thread_unsafe_radix_tree_search(ntp, key, key_length, present_data);
-    READ_UNLOCK(ntp);
+    OBJ_READ_UNLOCK(ntp);
     return failed;
 }
 
@@ -299,9 +299,9 @@ radix_tree_remove (radix_tree_t *ntp,
 {
     int failed;
 
-    WRITE_LOCK(ntp);
+    OBJ_WRITE_LOCK(ntp);
     failed = thread_unsafe_radix_tree_remove(ntp, key, key_length, removed_data);
-    WRITE_UNLOCK(ntp);
+    OBJ_WRITE_UNLOCK(ntp);
     return failed;
 }
 
@@ -343,7 +343,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
 
     key = malloc(8192);
     if (NULL == key) return;
-    READ_LOCK(ntp);
+    OBJ_READ_LOCK(ntp);
     node = &ntp->radix_tree_root;
     node->current = 0;
     while (node) {
@@ -375,7 +375,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
             index--;
         }
     }
-    READ_UNLOCK(ntp);
+    OBJ_READ_UNLOCK(ntp);
 
     /* ok traversal finished */
     ntp->should_not_be_modified = 0;

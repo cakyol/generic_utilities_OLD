@@ -144,7 +144,7 @@ queue_obj_init (queue_obj_t *qobj,
     if (NULL == qobj->elements) {
         failed = ENOMEM;
     }
-    WRITE_UNLOCK(qobj);
+    OBJ_WRITE_UNLOCK(qobj);
     return failed;
 }
 
@@ -154,9 +154,9 @@ queue_obj_queue (queue_obj_t *qobj,
 {
     int failed;
 
-    WRITE_LOCK(qobj);
+    OBJ_WRITE_LOCK(qobj);
     failed = thread_unsafe_queue_obj_queue(qobj, data);
-    WRITE_UNLOCK(qobj);
+    OBJ_WRITE_UNLOCK(qobj);
     return failed;
 }
 
@@ -166,9 +166,9 @@ queue_obj_dequeue (queue_obj_t *qobj,
 {
     int failed;
 
-    WRITE_LOCK(qobj);
+    OBJ_WRITE_LOCK(qobj);
     failed = thread_unsafe_queue_obj_dequeue(qobj, returned_data);
-    WRITE_UNLOCK(qobj);
+    OBJ_WRITE_UNLOCK(qobj);
     return failed;
 }
 
@@ -178,7 +178,7 @@ queue_obj_destroy (queue_obj_t *qobj,
 {
     void *user_data;
 
-    WRITE_LOCK(qobj);
+    OBJ_WRITE_LOCK(qobj);
 
     /* call user function for all user data still in the queue */
     if (dh_fptr) {
@@ -192,7 +192,7 @@ queue_obj_destroy (queue_obj_t *qobj,
         MEM_MONITOR_FREE(qobj, qobj->elements);
     }
 
-    WRITE_UNLOCK(qobj);
+    OBJ_WRITE_UNLOCK(qobj);
     LOCK_OBJ_DESTROY(qobj);
     memset(qobj, 0, sizeof(queue_obj_t));
 }

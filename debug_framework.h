@@ -121,14 +121,6 @@ static inline
 int invalid_module_number (int m)
 { return (m < 0) || (m >= n_modules); }
 
-static inline 
-void GRAB_WRITE_LOCK (lock_obj_t *lck)
-{ if (lck) grab_write_lock(lck); }
-
-static inline void
-RELEASE_WRITE_LOCK (lock_obj_t *lck)
-{ if (lck) release_write_lock(lck); }
-
 /*
  * If you do NOT want debugging code to be generated/executed,
  * then UN define this.
@@ -153,30 +145,30 @@ RELEASE_WRITE_LOCK (lock_obj_t *lck)
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > TRACE_DEBUG_LEVEL) break; \
-            GRAB_WRITE_LOCK(p_debugger_lock); \
+            SAFE_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, TRACE_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            RELEASE_WRITE_LOCK(p_debugger_lock); \
+            SAFE_WRITE_UNLOCK(p_debugger_lock); \
         } while (0)
     
     #define INFORMATION(m, fmt, args...) \
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > INFORM_DEBUG_LEVEL) break; \
-            GRAB_WRITE_LOCK(p_debugger_lock); \
+            SAFE_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, INFORM_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            RELEASE_WRITE_LOCK(p_debugger_lock); \
+            SAFE_WRITE_UNLOCK(p_debugger_lock); \
         } while (0)
     
     #define WARNING(m, fmt, args...) \
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > WARNING_DEBUG_LEVEL) break; \
-            GRAB_WRITE_LOCK(p_debugger_lock); \
+            SAFE_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, WARNING_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            RELEASE_WRITE_LOCK(p_debugger_lock); \
+            SAFE_WRITE_UNLOCK(p_debugger_lock); \
         } while (0)
     
 #else /* ! INCLUDE_DEBUGGING_CODE */
@@ -197,20 +189,20 @@ RELEASE_WRITE_LOCK (lock_obj_t *lck)
 #define ERROR(m, fmt, args...) \
     do { \
         if (invalid_module_number(m)) break; \
-        GRAB_WRITE_LOCK(p_debugger_lock); \
+        SAFE_WRITE_LOCK(p_debugger_lock); \
         _process_debug_message_(m, ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        RELEASE_WRITE_LOCK(p_debugger_lock); \
+        SAFE_WRITE_UNLOCK(p_debugger_lock); \
     } while (0)
 
 /* fatal errors are ALWAYS reported */
 #define FATAL_ERROR(m, fmt, args...) \
     do { \
         if (invalid_module_number(m)) break; \
-        GRAB_WRITE_LOCK(p_debugger_lock); \
+        SAFE_WRITE_LOCK(p_debugger_lock); \
         _process_debug_message_(m, FATAL_ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        RELEASE_WRITE_LOCK(p_debugger_lock); \
+        SAFE_WRITE_UNLOCK(p_debugger_lock); \
         assert(0); \
     } while (0)
 

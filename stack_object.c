@@ -103,7 +103,7 @@ stack_obj_init (stack_obj_t *stk,
     if (NULL == stk->elements) {
         failed = ENOMEM;
     }
-    WRITE_UNLOCK(stk);
+    OBJ_WRITE_UNLOCK(stk);
     return failed;
 }
 
@@ -113,9 +113,9 @@ stack_obj_push (stack_obj_t *stk,
 {
     int failed;
 
-    WRITE_LOCK(stk);
+    OBJ_WRITE_LOCK(stk);
     failed = thread_unsafe_stack_obj_push(stk, data);
-    WRITE_UNLOCK(stk);
+    OBJ_WRITE_UNLOCK(stk);
     return failed;
 }
 
@@ -125,9 +125,9 @@ stack_obj_pop (stack_obj_t *stk,
 {
     int failed;
 
-    WRITE_LOCK(stk);
+    OBJ_WRITE_LOCK(stk);
     failed = thread_unsafe_stack_obj_pop(stk, returned_data);
-    WRITE_UNLOCK(stk);
+    OBJ_WRITE_UNLOCK(stk);
     return failed;
 }
 
@@ -137,7 +137,7 @@ stack_obj_destroy (stack_obj_t *stk,
 {
     void *user_data;
 
-    WRITE_LOCK(stk);
+    OBJ_WRITE_LOCK(stk);
 
     /* call user function for all user data still in the stack */
     if (dh_fptr) {
@@ -151,7 +151,7 @@ stack_obj_destroy (stack_obj_t *stk,
         MEM_MONITOR_FREE(stk, stk->elements);
     }
 
-    WRITE_UNLOCK(stk);
+    OBJ_WRITE_UNLOCK(stk);
     LOCK_OBJ_DESTROY(stk);
     memset(stk, 0, sizeof(stack_obj_t));
 }

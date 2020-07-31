@@ -192,7 +192,7 @@ dynamic_array_init (dynamic_array_t *datp,
     datp->size = initial_size;
     datp->n = 0;
     datp->inserts = datp->deletes = 0;
-    WRITE_UNLOCK(datp);
+    OBJ_WRITE_UNLOCK(datp);
 
     return 0;
 }
@@ -237,9 +237,9 @@ dynamic_array_insert (dynamic_array_t *datp,
 {
     int failed;
 
-    WRITE_LOCK(datp);
+    OBJ_WRITE_LOCK(datp);
     failed = thread_unsafe_dynamic_array_insert(datp, index, data);
-    WRITE_UNLOCK(datp);
+    OBJ_WRITE_UNLOCK(datp);
     return failed;
 }
 
@@ -272,9 +272,9 @@ dynamic_array_get (dynamic_array_t *datp,
 {
     int failed;
 
-    READ_LOCK(datp);
+    OBJ_READ_LOCK(datp);
     failed = thread_unsafe_dynamic_array_get(datp, index, returned);
-    READ_UNLOCK(datp);
+    OBJ_READ_UNLOCK(datp);
     return failed;
 }
 
@@ -311,9 +311,9 @@ dynamic_array_remove (dynamic_array_t *datp,
 {
     int failed;
 
-    WRITE_LOCK(datp);
+    OBJ_WRITE_LOCK(datp);
     failed = thread_unsafe_dynamic_array_remove(datp, index, removed);
-    WRITE_UNLOCK(datp);
+    OBJ_WRITE_UNLOCK(datp);
     return failed;
 }
 
@@ -343,7 +343,7 @@ dynamic_array_destroy (dynamic_array_t *datp,
 {
     int i;
 
-    WRITE_LOCK(datp);
+    OBJ_WRITE_LOCK(datp);
     if (datp->elements) {
         if (dcbf) {
             for (i = 0; i < datp->size; i++) {
@@ -354,7 +354,7 @@ dynamic_array_destroy (dynamic_array_t *datp,
         }
         MEM_MONITOR_FREE(datp, datp->elements);
     }
-    WRITE_UNLOCK(datp);
+    OBJ_WRITE_UNLOCK(datp);
     LOCK_OBJ_DESTROY(datp);
     memset(datp, 0, sizeof(dynamic_array_t));
 }

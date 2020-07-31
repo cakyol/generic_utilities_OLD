@@ -218,7 +218,7 @@ bitlist_init (bitlist_t *bl,
     }
     for (i = 0; i < size_in_ints; i++) bl->the_bits[i] = data;
 done:
-    WRITE_UNLOCK(bl);
+    OBJ_WRITE_UNLOCK(bl);
     return failed;
 }
 
@@ -227,9 +227,9 @@ bitlist_get (bitlist_t *bl, int bit_number, int *returned_bit)
 {
     int failed;
 
-    READ_LOCK(bl);
+    OBJ_READ_LOCK(bl);
     failed = thread_unsafe_bitlist_get(bl, bit_number, returned_bit);
-    READ_UNLOCK(bl);
+    OBJ_READ_UNLOCK(bl);
     return failed;
 }
 
@@ -238,9 +238,9 @@ bitlist_set (bitlist_t *bl, int bit_number)
 {
     int failed;
 
-    WRITE_LOCK(bl);
+    OBJ_WRITE_LOCK(bl);
     failed = thread_unsafe_bitlist_set(bl, bit_number);
-    WRITE_UNLOCK(bl);
+    OBJ_WRITE_UNLOCK(bl);
     return failed;
 }
 
@@ -249,9 +249,9 @@ bitlist_clear (bitlist_t *bl, int bit_number)
 {
     int failed;
 
-    WRITE_LOCK(bl);
+    OBJ_WRITE_LOCK(bl);
     failed = thread_unsafe_bitlist_clear(bl, bit_number);
-    WRITE_UNLOCK(bl);
+    OBJ_WRITE_UNLOCK(bl);
     return failed;
 }
 
@@ -260,9 +260,9 @@ bitlist_first_set_bit (bitlist_t *bl, int *returned_bit_number)
 {
     int failed;
 
-    READ_LOCK(bl);
+    OBJ_READ_LOCK(bl);
     failed = thread_unsafe_bitlist_first_set_bit(bl, returned_bit_number);
-    READ_UNLOCK(bl);
+    OBJ_READ_UNLOCK(bl);
     return failed;
 }
 
@@ -271,18 +271,18 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
 {
     int failed;
 
-    READ_LOCK(bl);
+    OBJ_READ_LOCK(bl);
     failed = thread_unsafe_bitlist_first_clear_bit(bl, returned_bit_number);
-    READ_UNLOCK(bl);
+    OBJ_READ_UNLOCK(bl);
     return failed;
 }
 
 PUBLIC void
 bitlist_destroy (bitlist_t *bl)
 {
-    WRITE_LOCK(bl);
+    OBJ_WRITE_LOCK(bl);
     if (bl->the_bits) MEM_MONITOR_FREE(bl, bl->the_bits);
-    WRITE_UNLOCK(bl);
+    OBJ_WRITE_UNLOCK(bl);
     LOCK_OBJ_DESTROY(bl);
     memset(bl, 0, sizeof(bitlist_t));
 

@@ -232,7 +232,7 @@ index_obj_init (index_obj_t *idx,
     if (NULL == idx->elements) {
         failed = EINVAL;
     }
-    WRITE_UNLOCK(idx);
+    OBJ_WRITE_UNLOCK(idx);
     return failed;
 }
 
@@ -245,10 +245,10 @@ index_obj_insert (index_obj_t *idx,
 {
     int failed;
 
-    WRITE_LOCK(idx);
+    OBJ_WRITE_LOCK(idx);
     failed = thread_unsafe_index_obj_insert(idx, 
             data_to_be_inserted, present_data);
-    WRITE_UNLOCK(idx);
+    OBJ_WRITE_UNLOCK(idx);
     return failed;
 }
 
@@ -261,10 +261,10 @@ index_obj_search (index_obj_t *idx,
 {
     int failed;
 
-    READ_LOCK(idx);
+    OBJ_READ_LOCK(idx);
     failed = thread_unsafe_index_obj_search(idx, 
             data_to_be_searched, present_data);
-    READ_UNLOCK(idx);
+    OBJ_READ_UNLOCK(idx);
     return failed;
 }
 
@@ -277,10 +277,10 @@ index_obj_remove (index_obj_t *idx,
 {
     int failed;
     
-    WRITE_LOCK(idx);
+    OBJ_WRITE_LOCK(idx);
     failed = thread_unsafe_index_obj_remove(idx,
                 data_to_be_removed, data_actually_removed);
-    WRITE_UNLOCK(idx);
+    OBJ_WRITE_UNLOCK(idx);
     return failed;
 }
 
@@ -292,16 +292,16 @@ index_obj_get_all (index_obj_t *idx, int *returned_count)
     int i;
     void **storage_area;
 
-    READ_LOCK(idx);
+    OBJ_READ_LOCK(idx);
     storage_area = MEM_MONITOR_ZALLOC(idx, (idx->n + 1) * sizeof(void*));
     if (NULL == storage_area) {
         *returned_count = 0;
-        READ_UNLOCK(idx);
+        OBJ_READ_UNLOCK(idx);
         return NULL;
     }
     for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i];
     *returned_count = i;
-    READ_UNLOCK(idx);
+    OBJ_READ_UNLOCK(idx);
     return storage_area;
 }
 
@@ -318,7 +318,7 @@ index_obj_traverse (index_obj_t *idx,
     if (idx->should_not_be_modified) return EBUSY;
     idx->should_not_be_modified = 1;
 
-    READ_LOCK(idx);
+    OBJ_READ_LOCK(idx);
     for (i = 0; i < idx->n; i++) {
         if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
             p0, p1, p2, p3) != 0) {
@@ -326,7 +326,7 @@ index_obj_traverse (index_obj_t *idx,
                 break;
         }
     }
-    READ_UNLOCK(idx);
+    OBJ_READ_UNLOCK(idx);
 
     idx->should_not_be_modified = 0;
 
@@ -347,14 +347,14 @@ index_obj_destroy (index_obj_t *idx,
 {
     int i;
 
-    WRITE_LOCK(idx);
+    OBJ_WRITE_LOCK(idx);
     if (idx->elements) {
         if (dh_fptr) {
             for (i = 0; i < idx->n; i++) dh_fptr(idx->elements[i], extra_arg);
         }
         MEM_MONITOR_FREE(idx, idx->elements);
     }
-    WRITE_UNLOCK(idx);
+    OBJ_WRITE_UNLOCK(idx);
     LOCK_OBJ_DESTROY(idx);
     memset(idx, 0, sizeof(index_obj_t));
 }

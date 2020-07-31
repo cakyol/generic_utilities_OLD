@@ -165,12 +165,12 @@ reschedule_next_alarm (nano_seconds_t lateness)
 {
     task_t *tp;
 
-    READ_LOCK(scheduled_tasks);
+    OBJ_READ_LOCK(scheduled_tasks);
 
     /* no task scheduled, stop the alarms */
     if (scheduled_tasks->n <= 0) {
         terminate_alarm();
-        READ_UNLOCK(scheduled_tasks);
+        OBJ_READ_UNLOCK(scheduled_tasks);
         return;
     }
 
@@ -180,7 +180,7 @@ reschedule_next_alarm (nano_seconds_t lateness)
      */
     tp = (task_t*) scheduled_tasks->head->user_data;
     schedule_next_alarm_nsecs(next_firing_time(NULL, tp, lateness));
-    READ_UNLOCK(scheduled_tasks);
+    OBJ_READ_UNLOCK(scheduled_tasks);
 }
 
 static void
@@ -204,13 +204,13 @@ __alarm_signal_handler (int signo)
     signal(SIGALRM, __alarm_signal_handler);
 
     /* we must do this since we will manipulate both lists */
-    WRITE_LOCK(scheduled_tasks);
-    WRITE_LOCK(executable_tasks);
+    OBJ_WRITE_LOCK(scheduled_tasks);
+    OBJ_WRITE_LOCK(executable_tasks);
 
     /* if no task, finish (spurious alarm ?) */
     if (scheduled_tasks->n <= 0) {
-        WRITE_UNLOCK(executable_tasks);
-        WRITE_UNLOCK(scheduled_tasks);
+        OBJ_WRITE_UNLOCK(executable_tasks);
+        OBJ_WRITE_UNLOCK(scheduled_tasks);
         return;
     }
 
@@ -251,7 +251,7 @@ __alarm_signal_handler (int signo)
      * opened again for writing but the executable tasks list is still
      * write locked so we can start executing from it one at a time.
      */
-    WRITE_UNLOCK(scheduled_tasks);
+    OBJ_WRITE_UNLOCK(scheduled_tasks);
 
     /*
      * now execute all tasks in the executable_tasks list now one at a time
@@ -269,7 +269,7 @@ __alarm_signal_handler (int signo)
     }
 
     /* ok we executed everything, unlock now */
-    WRITE_UNLOCK(executable_tasks);
+    OBJ_WRITE_UNLOCK(executable_tasks);
 
     /*
      * record our finishing time so we can calculate the
@@ -327,13 +327,13 @@ task_schedule (int seconds_from_now, nano_seconds_t nano_seconds_from_now,
     tp->argument = argument;
     tp->abs_firing_time_nsecs = time_now() + 
             (seconds_from_now * SEC_TO_NSEC_FACTOR) + nano_seconds_from_now;
-    READ_LOCK(scheduled_tasks);
+    OBJ_READ_LOCK(scheduled_tasks);
     first = scheduled_tasks->head;
-    READ_UNLOCK(scheduled_tasks);
+    OBJ_READ_UNLOCK(scheduled_tasks);
     failed = ordered_list_add(scheduled_tasks, tp);
-    READ_LOCK(scheduled_tasks);
+    OBJ_READ_LOCK(scheduled_tasks);
     head_changed = first != scheduled_tasks->head;
-    READ_UNLOCK(scheduled_tasks);
+    OBJ_READ_UNLOCK(scheduled_tasks);
     if (0 == failed) {
         *scheduled_task = tp;
         if (head_changed) reschedule_next_alarm(0);
@@ -349,7 +349,7 @@ task_cancel (task_t *tp)
     task_t *t;
     int failed = ENODATA, head_changed = 0;
 
-    WRITE_LOCK(scheduled_tasks);
+    OBJ_WRITE_LOCK(scheduled_tasks);
     FOR_ALL_ORDEREDLIST_ELEMENTS(scheduled_tasks, t) {
         if (t == tp) {
             if (scheduled_tasks->head->user_data == (void*) tp) head_changed = 1;
@@ -358,7 +358,7 @@ task_cancel (task_t *tp)
             break;
         }
     }
-    WRITE_UNLOCK(scheduled_tasks);
+    OBJ_WRITE_UNLOCK(scheduled_tasks);
     if (head_changed) reschedule_next_alarm(0);
     return failed;
 }

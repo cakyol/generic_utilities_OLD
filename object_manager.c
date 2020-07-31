@@ -1437,7 +1437,7 @@ om_initialize (object_manager_t *omp,
     /* initialize root object indexes */
     object_indexes_init(omp->mem_mon_p, root_obj);
 
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
 
     /* done */
     return 0;
@@ -1451,12 +1451,12 @@ om_object_create (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = om_object_create_engine(omp, 1,
                 parent_object_type, parent_object_instance,
                 child_object_type, child_object_instance);
     failed = (obj ? 0 : EFAULT);
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1466,9 +1466,9 @@ om_object_exists (object_manager_t *omp,
 {
     int failed;
 
-    READ_LOCK(omp);
+    OBJ_READ_LOCK(omp);
     failed = (NULL != get_object_pointer(omp, object_type, object_instance));
-    READ_UNLOCK(omp);
+    OBJ_READ_UNLOCK(omp);
     return failed;
 }
 
@@ -1480,7 +1480,7 @@ om_object_attribute_add (object_manager_t *omp,
     object_t *obj;
     attribute_instance_t *aitp;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1488,7 +1488,7 @@ om_object_attribute_add (object_manager_t *omp,
         aitp = attribute_instance_add(obj, attribute_id);
         failed = (aitp ? 0 : ENOMEM);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1500,7 +1500,7 @@ om__object_attribute_add_simple_value (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1508,7 +1508,7 @@ om__object_attribute_add_simple_value (object_manager_t *omp,
         failed = __om__object_attribute_add_simple_value(obj,
                     attribute_id, simple_value);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1520,7 +1520,7 @@ object_attribute_set_simple_value (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1528,7 +1528,7 @@ object_attribute_set_simple_value (object_manager_t *omp,
         failed = __object_attribute_set_simple_value(obj,
                     attribute_id, simple_value);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1540,7 +1540,7 @@ object_attribute_delete_simple_value (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1548,7 +1548,7 @@ object_attribute_delete_simple_value (object_manager_t *omp,
         failed = __object_attribute_delete_simple_value(obj,
                     attribute_id, simple_value);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1560,7 +1560,7 @@ om_object_attribute_add_complex_value (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1568,7 +1568,7 @@ om_object_attribute_add_complex_value (object_manager_t *omp,
         failed = __om_object_attribute_add_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1580,7 +1580,7 @@ om_object_attribute_set_complex_value (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1588,7 +1588,7 @@ om_object_attribute_set_complex_value (object_manager_t *omp,
         failed = __om_object_attribute_set_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1600,7 +1600,7 @@ om_object_attribute_delete_complex_value (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1608,7 +1608,7 @@ om_object_attribute_delete_complex_value (object_manager_t *omp,
         failed = __om_object_attribute_delete_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1623,7 +1623,7 @@ om_object_attribute_get_value (object_manager_t *omp,
     attribute_value_t *avtp;
     int i;
 
-    READ_LOCK(omp);
+    OBJ_READ_LOCK(omp);
 
     /* assume failure */
     *cloned_avtp = NULL;
@@ -1631,14 +1631,14 @@ om_object_attribute_get_value (object_manager_t *omp,
     /* get object */
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
-        READ_UNLOCK(omp);
+        OBJ_READ_UNLOCK(omp);
         return ENODATA;
     }
 
     /* get attribute */
     aitp = get_attribute_instance_pointer(obj, attribute_id);
     if (NULL == aitp) {
-        READ_UNLOCK(omp);
+        OBJ_READ_UNLOCK(omp);
         return ENODATA;
     }
 
@@ -1656,11 +1656,11 @@ om_object_attribute_get_value (object_manager_t *omp,
     }
     if (avtp) {
         *cloned_avtp = clone_attribute_value(avtp);
-        READ_UNLOCK(omp);
+        OBJ_READ_UNLOCK(omp);
         return 0;
     }
 
-    READ_UNLOCK(omp);
+    OBJ_READ_UNLOCK(omp);
     return EFAULT;
 }
 
@@ -1669,8 +1669,8 @@ om_object_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[])
 {
-    READ_LOCK(omp);
-    READ_UNLOCK(omp);
+    OBJ_READ_LOCK(omp);
+    OBJ_READ_UNLOCK(omp);
     return 0;
 }
 
@@ -1681,14 +1681,14 @@ om_object_attribute_destroy (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
         failed = __object_attribute_instance_destroy(obj, attribute_id);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1699,7 +1699,7 @@ om_object_destroy (object_manager_t *omp,
     int failed;
     object_t *obj;
 
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
@@ -1707,7 +1707,7 @@ om_object_destroy (object_manager_t *omp,
         failed = 0;
         om_object_destroy_engine(obj, 1, 1);
     }
-    WRITE_UNLOCK(omp);
+    OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
@@ -1720,7 +1720,7 @@ om_object_get_matching_children (object_manager_t *omp,
     object_t *root;
     object_representation_t *found_objects;
 
-    READ_LOCK(omp);
+    OBJ_READ_LOCK(omp);
     *returned_count = 0;
     found_objects = NULL;
     root = get_object_pointer(omp,
@@ -1734,7 +1734,7 @@ om_object_get_matching_children (object_manager_t *omp,
             *returned_count = size;
         }
     }
-    READ_UNLOCK(omp);
+    OBJ_READ_UNLOCK(omp);
     return found_objects;
 }
 
@@ -1758,7 +1758,7 @@ om_object_get_matching_descendants (object_manager_t *omp,
     object_t *root;
     object_representation_t *found_objects;
 
-    READ_LOCK(omp);
+    OBJ_READ_LOCK(omp);
     *returned_count = 0;
     found_objects = NULL;
     root = get_object_pointer(omp,
@@ -1778,7 +1778,7 @@ om_object_get_matching_descendants (object_manager_t *omp,
             *returned_count = size;
         }
     }
-    READ_UNLOCK(omp);
+    OBJ_READ_UNLOCK(omp);
     return found_objects;
 }
 
@@ -1796,7 +1796,7 @@ om_object_get_descendants (object_manager_t *omp,
 PUBLIC void
 om_destroy (object_manager_t *omp)
 {
-    WRITE_LOCK(omp);
+    OBJ_WRITE_LOCK(omp);
 
     event_manager_destroy(&omp->evm);
 
@@ -1804,7 +1804,7 @@ om_destroy (object_manager_t *omp)
      * we cannot unlock since the lock
      * will also have been destroyed.
      *
-     * WRITE_UNLOCK(omp);
+     * OBJ_WRITE_UNLOCK(omp);
      *
      */
 }
@@ -1961,7 +1961,7 @@ om_store (object_manager_t *omp)
     char backup_om_tmp [TYPICAL_NAME_SIZE];
     void *unused = NULL;    // shut the compiler up
 
-    READ_LOCK(omp);
+    OBJ_READ_LOCK(omp);
 
     sprintf(om_name, "om_%d", omp->manager_id);
     sprintf(backup_om_name, "%s_BACKUP", om_name);
@@ -1974,7 +1974,7 @@ om_store (object_manager_t *omp)
 
     fp = fopen(om_name, "w");
     if (NULL == fp) {
-        READ_UNLOCK(omp);
+        OBJ_READ_UNLOCK(omp);
         return -1;
     }
     table_traverse(&omp->object_index, om_write_one_object_tfn,
@@ -1990,7 +1990,7 @@ om_store (object_manager_t *omp)
     rename(backup_om_name, om_name);
     unlink(backup_om_tmp);
 #endif
-    READ_UNLOCK(omp);
+    OBJ_READ_UNLOCK(omp);
 
     return 0;
 }
