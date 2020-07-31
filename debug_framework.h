@@ -99,6 +99,7 @@ extern "C" {
  * Critical errors will also always report AND crash the system.
  */
 #define TRACE_DEBUG_LEVEL               0
+#define MIN_DEBUG_LEVEL                 TRACE_DEBUG_LEVEL
 #define INFORM_DEBUG_LEVEL              1
 #define WARNING_DEBUG_LEVEL             2
 #define ERROR_DEBUG_LEVEL               3
@@ -117,9 +118,18 @@ extern int n_modules;
 extern byte *module_debug_levels;
 extern lock_obj_t *p_debugger_lock;
 
-static inline
-int invalid_module_number (int m)
-{ return (m < 0) || (m >= n_modules); }
+/*
+ * Do we really need this, is the programmer really so incompetent
+ * to supply an out of bounds module number.  Omitting this increases
+ * speed.  Besides, it can always be turned on later.
+ */
+#if 0
+    static inline
+    int invalid_module_number (int m)
+    { return (m < 0) || (m >= n_modules); }
+#else
+    #define invalid_module_number(m)    0
+#endif
 
 /*
  * If you do NOT want debugging code to be generated/executed,
@@ -131,7 +141,7 @@ int invalid_module_number (int m)
 
     static inline
     int invalid_debug_level (int l)
-    { return  (l < TRACE_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
+    { return  (l < MIN_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
 
     static inline void
     debug_set_module_level (int m, byte l)
