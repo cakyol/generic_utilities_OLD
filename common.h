@@ -117,29 +117,16 @@ typedef struct statistics_block_s {
 
 } statistics_block_t;
 
-#define insertion_succeeded(struct_ptr) \
-    struct_ptr->stats.insertion_successes++
+#define insertion_succeeded(sbtp)       sbtp->stats.insertion_successes++
+#define insertion_duplicated(sbtp)      sbtp->stats.insertion_duplicates++
+#define insertion_failed(sbtp)          sbtp->stats.insertion_failures++
+#define search_succeeded(sbtp)          sbtp->stats.search_successes++
+#define search_failed(sbtp)             sbtp->stats.search_failures++
+#define deletion_succeeded(sbtp)        sbtp->stats.deletion_successes++
+#define deletion_failed(sbtp)           sbtp->stats.deletion_failures++
 
-#define insertion_duplicated(struct_ptr) \
-    struct_ptr->stats.insertion_duplicates++
-
-#define insertion_failed(struct_ptr) \
-    struct_ptr->stats.insertion_failures++
-
-#define search_succeeded(struct_ptr) \
-    struct_ptr->stats.search_successes++
-
-#define search_failed(struct_ptr) \
-    struct_ptr->stats.search_failures++
-
-#define deletion_succeeded(struct_ptr) \
-    struct_ptr->stats.deletion_successes++
-
-#define deletion_failed(struct_ptr) \
-    struct_ptr->stats.deletion_failures++
-
-#define reset_stats(struct_ptr) \
-    memset(&struct_ptr->stats, 0, sizeof(statistics_block_t))
+#define reset_stats(sbtp) \
+    memset(&sbtp->stats, 0, sizeof(statistics_block_t))
 
 typedef int
 (*one_parameter_function_pointer)(void *arg1);
