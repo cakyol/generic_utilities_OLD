@@ -114,21 +114,36 @@ typedef struct module_name_s {
 /* like printf */
 typedef int (*debug_reporting_function)(const char *format, ...);
 
+/* how many modules being debugged, initialized in debug_initialize */
 extern int n_modules;
+
+/* debug level per module, null if INCLUDE_DEBUGGING_CODE is false */
 extern byte *module_debug_levels;
+
+/* serialize multiple thread access to debug printing, if needed */
 extern lock_obj_t *p_debugger_lock;
 
 /*
- * Do we really need this, is the programmer really so incompetent
- * to supply an out of bounds module number.  Omitting this increases
- * speed.  Besides, it can always be turned on later.
+ * Do we really need these, is the programmer really so incompetent
+ * to supply an out of bounds number.  Omitting this increases
+ * speed.  Besides, it can always be turned on later by changing
+ * the 'if 0' below to 'if 1'.
  */
 #if 0
+
+    static inline
+    int invalid_debug_level (int l)
+    { return  (l < MIN_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
+
     static inline
     int invalid_module_number (int m)
     { return (m < 0) || (m >= n_modules); }
+
 #else
+
+    #define invalid_debug_level(l)      0
     #define invalid_module_number(m)    0
+
 #endif
 
 /*
@@ -140,11 +155,7 @@ extern lock_obj_t *p_debugger_lock;
 #ifdef INCLUDE_DEBUGGING_CODE
 
     static inline
-    int invalid_debug_level (int l)
-    { return  (l < MIN_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
-
-    static inline void
-    debug_set_module_level (int m, byte l)
+    void debug_set_module_level (int m, byte l)
     {
         if (invalid_module_number(m)) return;
         if (invalid_debug_level(l)) return;
@@ -226,10 +237,10 @@ debug_set_reporting_function (debug_reporting_function fn);
 extern int
 debug_set_module_name (int module, char *name);
 
-/**************************************************************************/
-
-/*
+/**************************************************************************
+ *
  * PRIVATE, DO NOT USE.  DEFINED ONLY TO PASS COMPILATIONS.
+ *
  */
 extern void
 _process_debug_message_ (int module, int level,

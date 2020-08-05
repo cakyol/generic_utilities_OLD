@@ -58,7 +58,9 @@ static const char *level_strings [] = {
  * We use a global static message buffer for sprintf
  * when a user specified printing function is required.
  * This can be global even for multi threaded apps since
- * the debug macros are protected by locks.
+ * the debug macros are protected by locks.  If a user
+ * defined reporting function is not defined, then this is
+ * not needed since by default, printing to stderr is used.
  */
 #define DEBUG_MESSAGE_BUFFER_SIZE      2048
 static char *static_msg_buffer = 0;
@@ -90,6 +92,9 @@ debug_initialize (int make_it_thread_safe,
     }
     for (m = 0; m < n_modules; m++) debug_set_default_module_name(m);
 
+/*
+ * saves memory if not defined
+ */
 #ifdef INCLUDE_DEBUGGING_CODE
     module_debug_levels = malloc(n_modules * sizeof(byte));
     if (0 == module_debug_levels) {
@@ -103,7 +108,6 @@ debug_initialize (int make_it_thread_safe,
 #endif /* INCLUDE_DEBUGGING_CODE */
 
     return 0;
-
 }
 
 /*
