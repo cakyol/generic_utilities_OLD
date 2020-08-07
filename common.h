@@ -39,8 +39,8 @@
 #include <stdio.h>
 
 /*
- * This file is a collection of the most common types/definitions which
- * is used by almost all the generic utilities.
+ * This file is a collection of the most common types/definitions
+ * which is used by almost all the generic utilities.
  */
 
 #ifdef __cplusplus
@@ -62,6 +62,8 @@ extern "C" {
 #ifndef NULL
 #define NULL    0
 #endif
+
+/*************************************************************************/
 
 typedef unsigned char byte;
 
@@ -98,6 +100,8 @@ copy_pointers (void **src, void **dst, int count)
     }
 }
 
+/*************************************************************************/
+
 /*
  * Typical statistics used for most insert/search/delete
  * type of data structures.  Mostly usable for debugging.
@@ -117,16 +121,35 @@ typedef struct statistics_block_s {
 
 } statistics_block_t;
 
-#define insertion_succeeded(sbtp)       sbtp->stats.insertion_successes++
-#define insertion_duplicated(sbtp)      sbtp->stats.insertion_duplicates++
-#define insertion_failed(sbtp)          sbtp->stats.insertion_failures++
-#define search_succeeded(sbtp)          sbtp->stats.search_successes++
-#define search_failed(sbtp)             sbtp->stats.search_failures++
-#define deletion_succeeded(sbtp)        sbtp->stats.deletion_successes++
-#define deletion_failed(sbtp)           sbtp->stats.deletion_failures++
+/*
+ * update/increment values
+ */
+#define insertion_succeeded(objp)       objp->stats.insertion_successes++
+#define insertion_duplicated(objp)      objp->stats.insertion_duplicates++
+#define insertion_failed(objp)          objp->stats.insertion_failures++
+#define search_succeeded(objp)          objp->stats.search_successes++
+#define search_failed(objp)             objp->stats.search_failures++
+#define deletion_succeeded(objp)        objp->stats.deletion_successes++
+#define deletion_failed(objp)           objp->stats.deletion_failures++
 
-#define reset_stats(sbtp) \
-    memset(&sbtp->stats, 0, sizeof(statistics_block_t))
+/*
+ * read/get values
+ */
+#define get_insertion_successes(objp)   objp->stats.insertion_successes
+#define get_insertion_duplicates(objp)  objp->stats.insertion_duplicates
+#define get_insertion_failures(objp)    objp->stats.insertion_failures
+#define get_search_successes(objp)      objp->stats.search_successes
+#define get_search_failures(objp)       objp->stats.search_failures
+#define get_deletion_successes(objp)    objp->stats.deletion_successes
+#define get_deletion_failures(objp)     objp->stats.deletion_failures
+
+/*
+ * reset all stats counters
+ */
+#define reset_stats(objp) \
+    memset(&objp->stats, 0, sizeof(statistics_block_t))
+
+/*************************************************************************/
 
 typedef int
 (*one_parameter_function_pointer)(void *arg1);
