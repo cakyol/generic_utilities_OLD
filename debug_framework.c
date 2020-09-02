@@ -63,7 +63,6 @@ static const char *level_strings [] = {
  * not needed since by default, printing to stderr is used.
  */
 #define DEBUG_MESSAGE_BUFFER_SIZE      2048
-static char *static_msg_buffer = 0;
 
 static void
 debug_set_default_module_name (int m)
@@ -119,29 +118,6 @@ debug_initialize (int make_it_thread_safe,
 void
 debug_set_reporting_function (debug_reporting_function fn)
 {
-    if (fn) {
-
-        /*
-         * allocate static message buffer if never allocated before.
-         * If allocation fails, force it back to the default.
-         */
-        if (0 == static_msg_buffer) {
-            static_msg_buffer = malloc(DEBUG_MESSAGE_BUFFER_SIZE);
-            if (0 == static_msg_buffer) fn = 0;
-        }
-
-    } else {
-
-        /*
-         * we are going back to the default print function.  We dont
-         * need the static message buffer if it was allocated before.
-         */
-        if (static_msg_buffer) {
-            free(static_msg_buffer);
-            static_msg_buffer = 0;
-        }
-    }
-
     user_specified_drf = fn;
 }
 
@@ -164,27 +140,26 @@ debug_set_module_name (int m, char *name)
  */
 void
 _process_debug_message_ (int module, int level,
-    const char *file_name, const char *function_name,
-    int line_number,
+    const char *file_name, const char *function_name, const int line_number,
     char *fmt, ...)
 {
     va_list args;
-    int index, size_left, len;
 
+    SAFE_WRITE_LOCK(p_debugger_lock);
     va_start(args, fmt);
-
-    /*
-     * if an external reporting function has not been 
-     * defined, then simply use fprintf(stderr, ...);
-     */
-    if (0 == user_specified_drf) {
+    if (user_specified_drf) {
+        user_specified_drf(module, level, file_name, function_name,
+            line_number, fmt, args);
+    } else {
         fprintf(stderr, "%s: %s: %s(%d): <%s>: ",
             level_strings[level], module_names[module].module_name,
             file_name, line_number, function_name);
         vfprintf(stderr, fmt, args);
         fflush(stderr);
-        return;
     }
+
+#if 0
+    int index, size_left, len;
 
     size_left = DEBUG_MESSAGE_BUFFER_SIZE - 1;
     len = index = 0;
@@ -211,6 +186,9 @@ _process_debug_message_ (int module, int level,
      * the currently registered debug printing function
      */
     user_specified_drf(static_msg_buffer);
+#endif /* 0 */
+
+    SAFE_WRITE_UNLOCK(p_debugger_lock);
 }
 
 #ifdef __cplusplus

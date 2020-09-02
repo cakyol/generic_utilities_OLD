@@ -44,30 +44,23 @@
 **
 ** There are 5 levels of debugging: debug, information, warning, error and
 ** fatal error in that specific order.  If a specific level is set for a
-** module, lower level debugs will not be reported.  For example, if module
-** 'my_module' flag is set to the warning level, debugs and informations
-** will not be reported.  The EXCEPTION to this is that errors & fatal
-** errors will ALWAYS be reported.
-**
+** module, lower level debugs will not be reported.  The exception to this
+** is errors (ERROR, FATAL_ERROR) which will ALWAYS be reported.
 ** Note that fatal error call will crash the system with an assert call.
 ** It should be used only as a last resort.
 **
-** This framework is thread safe.  This means an error report will be
-** completely printed and finished before another thread can be
-** executed which may have the potential to screw up the writing of
-** the message.
+** This framework can be made thread safe.  This means a report/message 
+** will be completely reported and finished before another thread can be
+** executed which may have the potential to interfere in the reporting of
+** the message.  This feature can be turned on at initialization time.
 **
 ** Note the word used as 'reporting' rather than 'printing' a message.  This
 ** is because the user can override the default printing function (which is
-** simply writing to stderr) by a specified one and can do whatever in that
-** specific function.  Typically that will be some sort of printing but it 
+** simply writing to stderr) by a user specified one.  It is expected that
+** such a user defined function will typically do some sort of printing but it 
 ** can be anything defined by the user.  Note that another debug/error
 ** cannot be called inside the user defined function or deadlock will
 ** result.
-**
-** To activate this in the source code, #include 'INCLUDE_DEBUGGING_CODE'.
-** Otherwise, all debug statements will compile to nothing meaning they will
-** NOT impose ANY overhead to the code.
 **
 *******************************************************************************
 *******************************************************************************
@@ -95,11 +88,11 @@ extern "C" {
 /*
  * Debug levels, the higher the number, the higher the priority.
  * (Must fit into an unsigned byte).
- * ERROR_LEVEL always gets reported.
+ * ERROR_LEVEL & FATAL_ERROR will always gets reported.
  * Critical errors will also always report AND crash the system.
  */
-#define TRACE_DEBUG_LEVEL               0
-#define MIN_DEBUG_LEVEL                 TRACE_DEBUG_LEVEL
+#define MIN_DEBUG_LEVEL                 0
+#define TRACE_DEBUG_LEVEL               MIN_DEBUG_LEVEL
 #define INFORM_DEBUG_LEVEL              1
 #define WARNING_DEBUG_LEVEL             2
 #define ERROR_DEBUG_LEVEL               3
@@ -111,8 +104,11 @@ typedef struct module_name_s {
     char module_name [MODULE_NAME_LEN];
 } module_name_t;
 
-/* like printf */
-typedef int (*debug_reporting_function)(const char *format, ...);
+/* user will completely handle everything */
+typedef void (*debug_reporting_function)
+    (int module, int level,
+     const char *file_name, const char *function_name, const int line_number,
+     char *fmt, va_list args);
 
 /* how many modules being debugged, initialized in debug_initialize */
 extern int n_modules;
@@ -166,30 +162,24 @@ extern lock_obj_t *p_debugger_lock;
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > TRACE_DEBUG_LEVEL) break; \
-            SAFE_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, TRACE_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            SAFE_WRITE_UNLOCK(p_debugger_lock); \
         } while (0)
     
     #define INFORMATION(m, fmt, args...) \
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > INFORM_DEBUG_LEVEL) break; \
-            SAFE_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, INFORM_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            SAFE_WRITE_UNLOCK(p_debugger_lock); \
         } while (0)
     
     #define WARNING(m, fmt, args...) \
         do { \
             if (invalid_module_number(m)) break; \
             if (module_debug_levels[m] > WARNING_DEBUG_LEVEL) break; \
-            SAFE_WRITE_LOCK(p_debugger_lock); \
             _process_debug_message_(m, WARNING_DEBUG_LEVEL, \
                     __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-            SAFE_WRITE_UNLOCK(p_debugger_lock); \
         } while (0)
     
 #else /* ! INCLUDE_DEBUGGING_CODE */
@@ -210,20 +200,16 @@ extern lock_obj_t *p_debugger_lock;
 #define ERROR(m, fmt, args...) \
     do { \
         if (invalid_module_number(m)) break; \
-        SAFE_WRITE_LOCK(p_debugger_lock); \
         _process_debug_message_(m, ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        SAFE_WRITE_UNLOCK(p_debugger_lock); \
     } while (0)
 
 /* fatal errors are ALWAYS reported */
 #define FATAL_ERROR(m, fmt, args...) \
     do { \
         if (invalid_module_number(m)) break; \
-        SAFE_WRITE_LOCK(p_debugger_lock); \
         _process_debug_message_(m, FATAL_ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        SAFE_WRITE_UNLOCK(p_debugger_lock); \
         assert(0); \
     } while (0)
 

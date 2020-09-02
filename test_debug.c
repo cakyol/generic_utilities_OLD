@@ -4,11 +4,12 @@
 char *correct = "correct\n";
 char *incorrect = "*** INCORRECT ***\n";
 
-int print_error (const char *fmt, ...)
+void print_error (int module, int level,
+      const char *file_name, const char *function_name, const int line_number,
+      char *fmt, va_list args)
 {
-    fprintf(stderr, "USER SPECIFIED: ");
-    fprintf(stderr, fmt);
-    return 0;
+    fprintf(stderr, "%s", "USER DEFINED: ");
+    vfprintf(stderr, fmt, args);
 }
 
 int main (int argc, char *argv[])
@@ -26,10 +27,10 @@ int main (int argc, char *argv[])
 
         debug_set_module_level(0, ERROR_DEBUG_LEVEL);
         debug_set_module_name(0, "SHITHEAD");
-        TRACE(0, "%s\n", incorrect);
-        INFORMATION(0, "%s\n", incorrect);
-        WARNING(0, "%s\n", incorrect);
-        ERROR(0, "%s\n", correct);
+        TRACE(0, "%s %d\n", incorrect, i);
+        INFORMATION(0, "%s %d\n", incorrect, i);
+        WARNING(0, "%s %d\n", incorrect, i);
+        ERROR(0, "%s %d\n", correct, i);
         
         debug_set_module_level(0, TRACE_DEBUG_LEVEL);
         debug_set_module_name(0, 0);

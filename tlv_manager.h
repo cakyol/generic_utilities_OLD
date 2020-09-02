@@ -37,7 +37,7 @@
  *
  * This is an object which assists creation & parsing of tlvs.
  * The tlv manager can be 'attached' to a buffer and it proceeds
- * from there.  It can either parse already existing list of tlvs
+ * from there.  It can either parse an already existing list of tlvs
  * in the buffer OR it can assemble and build a list of tlvs into
  * the buffer.  When the tlv manager is initialised, the buffer 
  * to be 'associated' with is specified as a parameter.  All further
@@ -45,7 +45,10 @@
  *
  * Note that the tlv manager always terminates a tlv by a type of
  * of 0xFFFFFFFF.  Parsing will stop as soon as this 'type' is 
- * encountered.
+ * encountered.  If the tlv manager is populating the tlvs, it
+ * will insert this type to the end of the tlv list.  If it is
+ * parsing an existing list of tlvs in the buffer, it will hunt
+ * for this to find the end of the list.
  *
  */
 
@@ -83,11 +86,25 @@ typedef struct one_tlv_s {
 typedef struct tlvm_s {
 
     /*
+     * This determines whether tlvs will be processed in ascii
+     * format.  In ascii format, the tlvs will be encoded as such:
+     *
+     *      <T4:L6:0A23345623DE>
+     *
+     * where TXXX is the type in decimal, LNNN is the length in decimal,
+     * and the rest after the colon are the value bytes all written in
+     * 2 character hexes.
+     *
+     * In non ascii form, 'one_tlv_t' format defined above is used.
+     */
+    byte ascii;
+
+    /*
      * If we are creating the tlv list, this is the buffer
      * being written into.  If we are parsing a tlv list,
      * this is the buffer which contains the existing tlvs.
      */
-	byte *buffer;
+    byte *buffer;
     int buf_size;
 
     /*
@@ -124,7 +141,7 @@ typedef struct tlvm_s {
  */
 extern void
 tlvm_attach (tlvm_t *tlvmp,
-	byte *externally_supplied_buffer,
+    byte *externally_supplied_buffer,
     int externally_supplied_buffer_size);
 
 /*
