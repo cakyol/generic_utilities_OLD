@@ -37,6 +37,7 @@
  * for printing etc..
  */
 #include <stdio.h>
+#include <string.h>
 
 /*
  * This file is a collection of the most common types/definitions
@@ -53,19 +54,49 @@ extern "C" {
 
 /*
  * This supresses the compiler error messages for unused variables,
- * if the error detections are fully turned on during compilations.
+ * if the error detections are fully turned on during compilations
+ * which is a nuisance but luckily can be turned off with this.
  */
 #ifndef SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING
 #define SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(x)    ((void)(x))
-#endif
+#endif /* SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING */
 
 #ifndef NULL
-#define NULL    0
-#endif
+#define NULL        0 
+#endif /* NULL */
+
+#ifndef null
+#define null        0
+#endif /* null */
+
+#ifndef TRUE
+#define TRUE        1
+#endif /* TRUE */
+
+#ifndef true
+#define true        1
+#endif /* true */
+
+#ifndef FALSE 
+#define FALSE       0
+#endif /* FALSE */
+
+#ifndef false
+#define false       0
+#endif /* false */
+
+#ifndef TYPEDEF_BYTE
+typedef unsigned char byte;
+#define TYPEDEF_BYTE
+#endif /* TYPEDEF_BYTE */
+
+#ifndef TYPEDEF_BOOL
+typedef char bool;
+typedef char boolean;
+#define TYPEDEF_BOOL
+#endif /* TYPEDEF_BOOL */
 
 /*************************************************************************/
-
-typedef unsigned char byte;
 
 /*
  * Handles overlapping copies
@@ -86,7 +117,31 @@ copy_bytes (void *src, void *dst, int count)
 }
 
 /*
- * Handles overlapping copies
+ * Handles overlapping copies.
+ *
+ * This function copies the desired number of chunks of 'chunk_size' bytes
+ * each, from a source array index to a destination array index.
+ * The array start addresses, the indexes and the size of each array
+ * element in bytes is given as parameters.
+ */
+static inline void
+copy_chunks (void *src_array_start, int src_index,
+    void *dst_array_start, int dst_index,
+    int how_many_chunks, int chunk_size) 
+{
+    byte *src_bytes = (byte*) src_array_start;
+    byte *dst_bytes = (byte*) dst_array_start;
+
+    memmove(&dst_bytes[dst_index * chunk_size],
+        &src_bytes[src_index * chunk_size],
+        how_many_chunks * chunk_size);
+}
+
+/*
+ * Handles overlapping copies.
+ *
+ * A special case of 'copy_chunks' above where each array element is
+ * actually a pointer.  This makes it much faster to copy pointers.
  */
 static inline void
 copy_pointers (void **src, void **dst, int count)

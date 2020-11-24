@@ -21,7 +21,7 @@ LIB_OBJS =	debug_framework.o \
 		lock_object.o \
 		bitlist_object.o \
 		stack_object.o \
-		queue_object.o \
+		qobject.o \
 		ordered_list.o \
 		dl_list_object.o \
 		ez_sprintf.o \
@@ -70,9 +70,9 @@ test_ordered_list:	test_ordered_list.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_ordered_list.c \
 				-o test_ordered_list $(LIBNAME) $(STATIC_LIBS)
 
-test_queue_object:	test_queue_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_queue_object.c \
-				-o test_queue_object $(LIBNAME) $(STATIC_LIBS)
+test_qobject:	test_qobject.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_qobject.c \
+				-o test_qobject $(LIBNAME) $(STATIC_LIBS)
 
 test_chunk_manager: test_chunk_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_chunk_manager.c \
@@ -141,7 +141,7 @@ TESTS =		test_debug \
 		test_stack_object \
 		test_bitlist \
 		test_ordered_list \
-		test_queue_object \
+		test_qobject \
 		test_chunk_manager \
 		test_malloc \
 		test_chunk_integrity \
