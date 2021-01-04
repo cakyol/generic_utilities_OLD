@@ -120,17 +120,18 @@ copy_bytes (void *src, void *dst, int count)
  * Handles overlapping copies.
  *
  * This function copies the desired number of chunks of 'chunk_size' bytes
- * each, from a source array index to a destination array index.
+ * each, from a source array index to a destination array index.  It
+ * is assumed that the arrays hold such elements in each of their slots.
  * The array start addresses, the indexes and the size of each array
  * element in bytes is given as parameters.
  */
 static inline void
-copy_chunks (void *src_array_start, int src_index,
-    void *dst_array_start, int dst_index,
+copy_chunks (void *src_array_addr_start, int src_index,
+    void *dst_array_addr_start, int dst_index,
     int how_many_chunks, int chunk_size) 
 {
-    byte *src_bytes = (byte*) src_array_start;
-    byte *dst_bytes = (byte*) dst_array_start;
+    byte *src_bytes = (byte*) src_array_addr_start;
+    byte *dst_bytes = (byte*) dst_array_addr_start;
 
     memmove(&dst_bytes[dst_index * chunk_size],
         &src_bytes[src_index * chunk_size],
@@ -267,7 +268,7 @@ typedef void (*destruction_handler_t)(void *user_data, void *extra_arg);
 static inline void*
 integer2pointer (long long int value)
 {
-    byte *ptr = 0;
+    byte *ptr = NULL;
     ptr += value;
     return ptr;
 }
@@ -275,7 +276,7 @@ integer2pointer (long long int value)
 static inline long long int
 pointer2integer (void *ptr)
 {
-    byte *zero = 0;
+    byte *zero = NULL;
     return ((byte*) ptr) - zero;
 }
 

@@ -48,6 +48,7 @@ static inline void
 holdoff (lock_obj_t *lck)
 {
 #if 1
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(lck);
     sched_yield();
 #else
     if (lck->yield_if_locked) {

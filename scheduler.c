@@ -287,7 +287,11 @@ __alarm_signal_handler (int signo)
  * returns 0 for it.  Every entry will always match.
  */
 static int dummy_comparer (void *vt1, void *vt2)
-{ return 0; }
+{
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(vt1);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(vt2);
+    return 0;
+}
 
 int
 task_scheduler_init (void)

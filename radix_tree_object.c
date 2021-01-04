@@ -386,6 +386,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
 PUBLIC void
 radix_tree_destroy (radix_tree_t *ntp)
 {
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(ntp);
 }
 
 #ifdef __cplusplus
