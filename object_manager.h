@@ -336,57 +336,57 @@ om_object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
         int child_object_type, int child_object_instance);
 
-extern int
+extern bool
 om_object_exists (object_manager_t *omp,
         int object_type, int object_instance);
 
 extern int
-om_object_attribute_add (object_manager_t *omp,
+om_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 extern int
-om__object_attribute_add_simple_value (object_manager_t *omp,
+om_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
 extern int
-object_attribute_set_simple_value (object_manager_t *omp,
+om_attribute_set_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
 extern int
-object_attribute_delete_simple_value (object_manager_t *omp,
+om_attribute_delete_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value);
 
 extern int
-om_object_attribute_add_complex_value (object_manager_t *omp,
+om_attribute_add_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-om_object_attribute_set_complex_value (object_manager_t *omp,
+om_attribute_set_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-om_object_attribute_delete_complex_value (object_manager_t *omp,
+om_attribute_delete_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length);
 
 extern int
-om_object_attribute_get_value (object_manager_t *omp,
+om_attribute_get_value (object_manager_t *omp,
         int object_type, int object_instance, 
         int attribute_id, int nth,
         attribute_value_t **cloned_attribute_value);
 
 extern int
-om_object_attribute_get_all_values (object_manager_t *omp,
+om_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[]);
 
 extern int
-om_object_attribute_destroy (object_manager_t *omp,
+om_attribute_destroy (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id);
 
 /*
@@ -483,13 +483,13 @@ om_object_count (object_manager_t *omp)
  * Writes out the object manager to a file.
  */
 extern int
-om_store (object_manager_t *omp);
+om_write (object_manager_t *omp);
 
 /*
  * reads a object manager from a file
  */
 extern int
-om_load (int manager_id, object_manager_t *omp);
+om_read (int manager_id, object_manager_t *omp);
 
 extern void
 om_destroy (object_manager_t *omp);

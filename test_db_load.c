@@ -12,7 +12,7 @@ int main (int argc, char *argv[])
     printf("loading object manager .. ");
     fflush(stdout);
     fflush(stdout);
-    failed = om_load(1, &db);
+    failed = om_read(1, &db);
     if (0 == failed) {
         printf("done, object manager has %d objects\n",
             table_member_count(&db.object_index));

@@ -960,7 +960,7 @@ attribute_instance_add (object_t *obj, int attribute_id)
 }
 
 static int
-__om__object_attribute_add_simple_value (object_t *obj, int attribute_id, 
+__om_attribute_add_simple_value (object_t *obj, int attribute_id, 
     long long int simple_value)
 {
     attribute_instance_t *aitp;
@@ -974,7 +974,7 @@ __om__object_attribute_add_simple_value (object_t *obj, int attribute_id,
 }
 
 static int
-__object_attribute_set_simple_value (object_t *obj, int attribute_id, 
+__om_attribute_set_simple_value (object_t *obj, int attribute_id, 
     long long int simple_value)
 {
     attribute_instance_t *aitp;
@@ -988,7 +988,7 @@ __object_attribute_set_simple_value (object_t *obj, int attribute_id,
 }
 
 static int
-__object_attribute_delete_simple_value (object_t *obj, int attribute_id, 
+__om_attribute_delete_simple_value (object_t *obj, int attribute_id, 
     long long int simple_value)
 {
     attribute_instance_t *aitp;
@@ -999,7 +999,7 @@ __object_attribute_delete_simple_value (object_t *obj, int attribute_id,
 }
 
 static int
-__om_object_attribute_add_complex_value (object_t *obj, int attribute_id, 
+__om_attribute_add_complex_value (object_t *obj, int attribute_id, 
     byte *complex_value_data, int complex_value_data_length)
 {
     attribute_instance_t *aitp;
@@ -1014,7 +1014,7 @@ __om_object_attribute_add_complex_value (object_t *obj, int attribute_id,
 }
 
 static int
-__om_object_attribute_set_complex_value (object_t *obj, int attribute_id, 
+__om_attribute_set_complex_value (object_t *obj, int attribute_id, 
     byte *complex_value_data, int complex_value_data_length)
 {
     attribute_instance_t *aitp;
@@ -1029,7 +1029,7 @@ __om_object_attribute_set_complex_value (object_t *obj, int attribute_id,
 }
 
 static int
-__om_object_attribute_delete_complex_value (object_t *obj, int attribute_id, 
+__om_attribute_delete_complex_value (object_t *obj, int attribute_id, 
     byte *complex_value_data, int complex_value_data_length)
 {
     attribute_instance_t *aitp;
@@ -1041,7 +1041,7 @@ __om_object_attribute_delete_complex_value (object_t *obj, int attribute_id,
 }
 
 static int
-__object_attribute_instance_destroy (object_t *obj, int attribute_id)
+__om_attribute_destroy (object_t *obj, int attribute_id)
 {
     attribute_instance_t *found;
 
@@ -1110,7 +1110,7 @@ get_both_objects (object_manager_t *omp,
 }
 
 static int
-process_om_object_created_event (object_manager_t *omp,
+process__om_object_created_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
@@ -1122,7 +1122,7 @@ process_om_object_created_event (object_manager_t *omp,
 }
 
 static int
-process_om_object_destroyed_event (object_manager_t *omp,
+process__om_object_destroyed_event (object_manager_t *omp,
     event_record_t *evrp)
 {
     object_t *obj;
@@ -1159,7 +1159,7 @@ process_attribute_deleted_event (object_manager_t *omp,
     get_both_objects(omp, evrp, &obj, NULL);
     if (obj) {
         return
-            __object_attribute_instance_destroy(obj, evrp->attribute_id);
+            __om_attribute_destroy(obj, evrp->attribute_id);
     }
     return -1;
 }
@@ -1175,11 +1175,11 @@ process_attribute_value_added_event (object_manager_t *omp,
         return -1;
     if (evrp->attribute_value_length == 0) {
         return
-            __om__object_attribute_add_simple_value(obj, evrp->attribute_id,
+            __om_attribute_add_simple_value(obj, evrp->attribute_id,
                     evrp->attribute_value_data);
     } else if (evrp->attribute_value_length > 0) {
         return
-            __om_object_attribute_add_complex_value(obj, evrp->attribute_id,
+            __om_attribute_add_complex_value(obj, evrp->attribute_id,
                     (byte*) &evrp->attribute_value_data, 
                     evrp->attribute_value_length);
     }
@@ -1197,11 +1197,11 @@ process_attribute_value_deleted_event (object_manager_t *omp,
         return -1;
     if (evrp->attribute_value_length == 0) {
         return
-            __object_attribute_delete_simple_value(obj, evrp->attribute_id,
+            __om_attribute_delete_simple_value(obj, evrp->attribute_id,
                     evrp->attribute_value_data);
     } else if (evrp->attribute_value_length > 0) {
         return
-            __om_object_attribute_delete_complex_value(obj, evrp->attribute_id,
+            __om_attribute_delete_complex_value(obj, evrp->attribute_id,
                     (byte*) &evrp->attribute_value_data, 
                     evrp->attribute_value_length);
     }
@@ -1460,20 +1460,20 @@ om_object_create (object_manager_t *omp,
     return failed;
 }
 
-PUBLIC int
+PUBLIC bool
 om_object_exists (object_manager_t *omp,
         int object_type, int object_instance)
 {
-    int failed;
+    bool exists;
 
     OBJ_READ_LOCK(omp);
-    failed = (NULL != get_object_pointer(omp, object_type, object_instance));
+    exists = (NULL != get_object_pointer(omp, object_type, object_instance));
     OBJ_READ_UNLOCK(omp);
-    return failed;
+    return exists;
 }
 
 PUBLIC int
-om_object_attribute_add (object_manager_t *omp,
+om_attribute_add (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id)
 {
     int failed;
@@ -1493,7 +1493,7 @@ om_object_attribute_add (object_manager_t *omp,
 }
 
 PUBLIC int
-om__object_attribute_add_simple_value (object_manager_t *omp,
+om_attribute_add_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
@@ -1505,7 +1505,7 @@ om__object_attribute_add_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om__object_attribute_add_simple_value(obj,
+        failed = __om_attribute_add_simple_value(obj,
                     attribute_id, simple_value);
     }
     OBJ_WRITE_UNLOCK(omp);
@@ -1513,7 +1513,7 @@ om__object_attribute_add_simple_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_set_simple_value (object_manager_t *omp,
+om_attribute_set_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
@@ -1525,7 +1525,7 @@ object_attribute_set_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_set_simple_value(obj,
+        failed = __om_attribute_set_simple_value(obj,
                     attribute_id, simple_value);
     }
     OBJ_WRITE_UNLOCK(omp);
@@ -1533,7 +1533,7 @@ object_attribute_set_simple_value (object_manager_t *omp,
 }
 
 PUBLIC int
-object_attribute_delete_simple_value (object_manager_t *omp,
+om_attribute_delete_simple_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         long long int simple_value)
 {
@@ -1545,7 +1545,7 @@ object_attribute_delete_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_delete_simple_value(obj,
+        failed = __om_attribute_delete_simple_value(obj,
                     attribute_id, simple_value);
     }
     OBJ_WRITE_UNLOCK(omp);
@@ -1553,7 +1553,7 @@ object_attribute_delete_simple_value (object_manager_t *omp,
 }
 
 PUBLIC int
-om_object_attribute_add_complex_value (object_manager_t *omp,
+om_attribute_add_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
@@ -1565,7 +1565,7 @@ om_object_attribute_add_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_object_attribute_add_complex_value(obj, attribute_id,
+        failed = __om_attribute_add_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     OBJ_WRITE_UNLOCK(omp);
@@ -1573,7 +1573,7 @@ om_object_attribute_add_complex_value (object_manager_t *omp,
 }
 
 PUBLIC int
-om_object_attribute_set_complex_value (object_manager_t *omp,
+om_attribute_set_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
@@ -1585,7 +1585,7 @@ om_object_attribute_set_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_object_attribute_set_complex_value(obj, attribute_id,
+        failed = __om_attribute_set_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     OBJ_WRITE_UNLOCK(omp);
@@ -1593,7 +1593,7 @@ om_object_attribute_set_complex_value (object_manager_t *omp,
 }
 
 PUBLIC int
-om_object_attribute_delete_complex_value (object_manager_t *omp,
+om_attribute_delete_complex_value (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         byte *complex_value_data, int complex_value_data_length)
 {
@@ -1605,7 +1605,7 @@ om_object_attribute_delete_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_object_attribute_delete_complex_value(obj, attribute_id,
+        failed = __om_attribute_delete_complex_value(obj, attribute_id,
                     complex_value_data, complex_value_data_length);
     }
     OBJ_WRITE_UNLOCK(omp);
@@ -1613,7 +1613,7 @@ om_object_attribute_delete_complex_value (object_manager_t *omp,
 }
 
 PUBLIC int
-om_object_attribute_get_value (object_manager_t *omp, 
+om_attribute_get_value (object_manager_t *omp, 
     int object_type, int object_instance,
     int attribute_id, int nth,
     attribute_value_t **cloned_avtp)
@@ -1665,17 +1665,20 @@ om_object_attribute_get_value (object_manager_t *omp,
 }
 
 PUBLIC int
-om_object_attribute_get_all_values (object_manager_t *omp,
+om_attribute_get_all_values (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id,
         int *how_many, attribute_value_t *returned_attribute_values[])
 {
     OBJ_READ_LOCK(omp);
+
+    /* LATER */
+
     OBJ_READ_UNLOCK(omp);
     return 0;
 }
 
 PUBLIC int
-om_object_attribute_destroy (object_manager_t *omp,
+om_attribute_destroy (object_manager_t *omp,
         int object_type, int object_instance, int attribute_id)
 {
     int failed;
@@ -1686,7 +1689,7 @@ om_object_attribute_destroy (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __object_attribute_instance_destroy(obj, attribute_id);
+        failed = __om_attribute_destroy(obj, attribute_id);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
@@ -1822,7 +1825,7 @@ static char *attribute_id_acronym = "AID";
 static char *complex_attribute_value_acronym = "CAV";
 static char *simple_attribute_value_acronym = "SAV";
 
-/*************** Writing the object manager to a file functions *********************/
+/************* Writing the object manager to a file functions *************/
 
 static int
 om_write_one_attribute_value (FILE *fp, attribute_value_t *avtp)
@@ -1953,24 +1956,24 @@ om_write_one_object_tfn (void *utility_object, void *utility_node,
  */
 
 PUBLIC int
-om_store (object_manager_t *omp)
+om_write (object_manager_t *omp)
 {
     FILE *fp;
     char om_name [TYPICAL_NAME_SIZE];
-    char backup_om_name [TYPICAL_NAME_SIZE];
-    char backup_om_tmp [TYPICAL_NAME_SIZE];
+    char backup__om_name [TYPICAL_NAME_SIZE];
+    char backup__om_tmp [TYPICAL_NAME_SIZE];
     void *unused = NULL;    // shut the compiler up
 
     OBJ_READ_LOCK(omp);
 
     sprintf(om_name, "om_%d", omp->manager_id);
-    sprintf(backup_om_name, "%s_BACKUP", om_name);
-    sprintf(backup_om_tmp, "%s_tmp", backup_om_name);
+    sprintf(backup__om_name, "%s_BACKUP", om_name);
+    sprintf(backup__om_tmp, "%s_tmp", backup__om_name);
 
     /* does not matter if these fail */
-    unlink(backup_om_tmp);
-    rename(backup_om_name, backup_om_tmp);
-    rename(om_name, backup_om_name);
+    unlink(backup__om_tmp);
+    rename(backup__om_name, backup__om_tmp);
+    rename(om_name, backup__om_name);
 
     fp = fopen(om_name, "w");
     if (NULL == fp) {
@@ -1987,15 +1990,15 @@ om_store (object_manager_t *omp)
 
 #if 0 // error
     unlink(om_name);
-    rename(backup_om_name, om_name);
-    unlink(backup_om_tmp);
+    rename(backup__om_name, om_name);
+    unlink(backup__om_tmp);
 #endif
     OBJ_READ_UNLOCK(omp);
 
     return 0;
 }
 
-/*************** Reading back from a file functions ***************************/
+/*************** Reading back from a file functions ******************/
 
 static int
 load_object (object_manager_t *omp, FILE *fp,
@@ -2120,7 +2123,7 @@ om_resolve_all_parents (object_manager_t *omp)
 }
 
 PUBLIC int
-om_load (int manager_id, object_manager_t *omp)
+om_read (int manager_id, object_manager_t *omp)
 {
     char om_name [TYPICAL_NAME_SIZE];
     FILE *fp;

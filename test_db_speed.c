@@ -53,7 +53,7 @@ int main (int argc, char *argv[])
     printf("now writing object manager to disk ... ");
     fflush(stdout);
     fflush(stdout);
-    om_store(&db);
+    om_write(&db);
     printf("done\n");
     fflush(stdout);
     fflush(stdout);
