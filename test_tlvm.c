@@ -50,7 +50,7 @@ int main (int argc, char *argv[])
     SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(tlv);
     SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(tlvp);
 
-    tlvm_attach(&tlvm, &buffer[0], BUFSIZE);
+    tlvm_attach(&tlvm, &buffer[0], BUFSIZE, false);
 
     printf("adding tlvs .. ");
     fflush(stdout);

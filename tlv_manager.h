@@ -86,6 +86,8 @@ typedef struct one_tlv_s {
 typedef struct tlvm_s {
 
     /*
+     * ascii FORM IS NOT YET IMPLEMENTED
+     *
      * This determines whether tlvs will be processed in ascii
      * format.  In ascii format, the tlvs will be encoded as such:
      *
@@ -97,7 +99,7 @@ typedef struct tlvm_s {
      *
      * In non ascii form, 'one_tlv_t' format defined above is used.
      */
-    byte ascii;
+    bool ascii;
 
     /*
      * If we are creating the tlv list, this is the buffer
@@ -139,10 +141,11 @@ typedef struct tlvm_s {
  * which may be written into if a tlv list is being created or an
  * existing list of tlvs to be parsed.
  */
-extern void
+extern int
 tlvm_attach (tlvm_t *tlvmp,
     byte *externally_supplied_buffer,
-    int externally_supplied_buffer_size);
+    int externally_supplied_buffer_size,
+    bool process_in_ascii_format);
 
 /*
  * append a tlv to the managed tlv buffer.

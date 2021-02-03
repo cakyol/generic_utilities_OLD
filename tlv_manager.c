@@ -138,15 +138,21 @@ tlvm_reset (tlvm_t *tlvmp)
  * which a new tlv list will be built or an already assembled tlv
  * list which may need parsing.
  */
-PUBLIC void
+PUBLIC int
 tlvm_attach (tlvm_t *tlvmp,
 	byte *externally_supplied_buffer,
-    int externally_supplied_buffer_size)
+    int externally_supplied_buffer_size,
+    bool process_in_ascii_format)
 {
+    if (process_in_ascii_format) {
+        return ENOTSUP;
+    }
     tlvmp->buffer = externally_supplied_buffer;
     tlvmp->buf_size = externally_supplied_buffer_size;
     tlvmp->tlvs = NULL;
     tlvm_reset(tlvmp);
+
+    return 0;
 }
 
 PUBLIC int
