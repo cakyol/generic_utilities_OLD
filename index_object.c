@@ -37,7 +37,7 @@ index_resize (index_obj_t *idx, int new_size)
 
     new_elements = MEM_MONITOR_ZALLOC(idx, new_size * sizeof(void*));
     if (NULL == new_elements) return ENOMEM;
-    copy_pointers(idx->elements, new_elements, idx->n);
+    copy_pointer_blocks(idx->elements, new_elements, idx->n);
     MEM_MONITOR_FREE(idx, idx->elements);
     idx->elements = new_elements;
     idx->maximum_size = new_size;
@@ -135,7 +135,7 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     */
     source = &(idx->elements[insertion_point]);
     if ((size = idx->n - insertion_point) > 0)
-        copy_pointers(source, (source+1), size);
+        copy_pointer_blocks(source, (source+1), size);
     
     /* fill in the new node values */
     idx->elements[insertion_point] = data;
@@ -196,7 +196,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
     /* pull the elements AFTER "index" to the left by one */
     if ((size = idx->n - i) > 0) {
         void **source = &idx->elements[i+1];
-        copy_pointers(source, (source - 1), size);
+        copy_pointer_blocks(source, (source - 1), size);
     }
 
     deletion_succeeded(idx);

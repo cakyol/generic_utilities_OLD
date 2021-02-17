@@ -91,8 +91,9 @@ typedef unsigned char byte;
 #endif /* TYPEDEF_BYTE */
 
 #ifndef TYPEDEF_BOOL
-typedef char bool;
-typedef char boolean;
+typedef char tinybool;
+typedef int bool;
+typedef int boolean;
 #define TYPEDEF_BOOL
 #endif /* TYPEDEF_BOOL */
 
@@ -119,33 +120,34 @@ copy_bytes (void *src, void *dst, int count)
 /*
  * Handles overlapping copies.
  *
- * This function copies the desired number of chunks of 'chunk_size' bytes
+ * This function copies the desired number of continuous array entries
+ * where each element of the array is assumed to be of 'element_size' bytes
  * each, from a source array index to a destination array index.  It
  * is assumed that the arrays hold such elements in each of their slots.
  * The array start addresses, the indexes and the size of each array
  * element in bytes is given as parameters.
  */
 static inline void
-copy_chunks (void *src_array_addr_start, int src_index,
+copy_array_blocks (void *src_array_addr_start, int src_index,
     void *dst_array_addr_start, int dst_index,
-    int how_many_chunks, int chunk_size) 
+    int how_many_chunks, int element_size) 
 {
     byte *src_bytes = (byte*) src_array_addr_start;
     byte *dst_bytes = (byte*) dst_array_addr_start;
 
-    memmove(&dst_bytes[dst_index * chunk_size],
-        &src_bytes[src_index * chunk_size],
-        how_many_chunks * chunk_size);
+    memmove(&dst_bytes[dst_index * element_size],
+        &src_bytes[src_index * element_size],
+        how_many_chunks * element_size);
 }
 
 /*
  * Handles overlapping copies.
  *
- * A special case of 'copy_chunks' above where each array element is
+ * A special case of 'copy_array_blocks' above where each array element is
  * actually a pointer.  This makes it much faster to copy pointers.
  */
 static inline void
-copy_pointers (void **src, void **dst, int count)
+copy_pointer_blocks (void **src, void **dst, int count)
 {
     if (dst < src)
         while (count-- > 0) *dst++ = *src++;

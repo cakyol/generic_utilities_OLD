@@ -40,18 +40,19 @@ thread_unsafe_queue_expand (qobj_t *qobj)
     int w;
 
     /* q is defined to be of fixed size, not allowed to expand */
-    if (qobj->expansion_increment <= 0) return ENOSPC;
+    if (qobj->expansion_increment <= 0)
+        return ENOSPC;
 
     /* expand the elements */
     new_size = qobj->maximum_size + qobj->expansion_increment;
     new_elements = MEM_MONITOR_ZALLOC(qobj, (new_size * qobj->element_size));
-    if (NULL == new_elements) return ENOMEM;
+    if (NULL == new_elements)
+        return ENOMEM;
 
     /* copy all unread events/data to new queue elements array */
     for (w = 0; w < qobj->n; w++) {
-        copy_chunks(qobj->elements, qobj->read_idx,
-            new_elements, w,
-            1, qobj->element_size);
+        copy_array_blocks(qobj->elements, qobj->read_idx,
+            new_elements, w, 1, qobj->element_size);
         qobj->read_idx = (qobj->read_idx + 1) % qobj->maximum_size;
     }
 
@@ -66,6 +67,7 @@ thread_unsafe_queue_expand (qobj_t *qobj)
 
     /* done */
     qobj->expansion_count++;
+
     return 0;
 }
 
@@ -77,7 +79,7 @@ thread_unsafe_qobj_queue (qobj_t *qobj, void *data,
 
     /* do we have space */
     if (qobj->n < qobj->maximum_size) {
-        copy_chunks(data, 0, qobj->elements, qobj->write_idx,
+        copy_array_blocks(data, 0, qobj->elements, qobj->write_idx,
             1, qobj->element_size);
         qobj->n++;
         qobj->write_idx++;
@@ -114,9 +116,8 @@ thread_unsafe_qobj_dequeue (qobj_t *qobj,
         queue_event_function_pointer fnp)
 {
     if (qobj->n > 0) {
-        copy_chunks(qobj->elements, qobj->read_idx,
-            returned_data, 0,
-            1, qobj->element_size);
+        copy_array_blocks(qobj->elements, qobj->read_idx,
+            returned_data, 0, 1, qobj->element_size);
         qobj->n--;
         qobj->read_idx++;
         if (qobj->read_idx >= qobj->maximum_size) {
@@ -162,8 +163,7 @@ qobj_init (qobj_t *qobj,
     reset_stats(qobj);
 
     /* allocate its queue element storage */
-    qobj->elements = MEM_MONITOR_ZALLOC(qobj,
-            (maximum_size * element_size));
+    qobj->elements = MEM_MONITOR_ZALLOC(qobj, (maximum_size * element_size));
     if (NULL == qobj->elements) {
         failed = ENOMEM;
     }
