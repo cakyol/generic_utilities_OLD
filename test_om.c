@@ -55,7 +55,7 @@ create_objects (object_manager_t *omp)
             2, 0, -1, -1);
     }
     for (i = 5; i < 50; i++) {
-        rc = cm_object_create(omp, 2, 0, 2, i);
+        rc = om_object_create(omp, 2, 0, 2, i);
         if (rc) {
             ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
                 2, i, 2, 0);
@@ -63,8 +63,16 @@ create_objects (object_manager_t *omp)
     }
 
     om_object_create(omp, -1, -1, 3, 0);
+    if (rc) {
+        ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
+            3, 0, -1, -1);
+    }
     for (i = 5; i < 50; i++) {
-        om_object_create(omp, 1, 0, 3, i);
+        rc = om_object_create(omp, 3, 0, 3, i);
+        if (rc) {
+            ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
+                3, i, 3, 0);
+        }
     }
 }
 
@@ -75,7 +83,7 @@ verify_objects (object_manager_t *omp)
 
 int main (int argc, char *argv[])
 {
-    object_manager_t db;
+    object_manager_t om;
     int pt, pi;
     int ct, ci;
     int count;
@@ -84,13 +92,14 @@ int main (int argc, char *argv[])
 
 
     printf("size of one object is %ld bytes\n", sizeof(object_t));
-    om_init(&db, true, 1, NULL);
+    om_init(&om, true, 1, NULL);
     //om_set_debug_level(TRACE_DEBUG_LEVEL);
     printf("creating objects\n");
+    create_objects(&om);
     count = pt = 0; pi = 0;
     for (ti = 1; ti < 1000; ti++) {
         ct = ci = ti;
-        rc = om_object_create(&db, pt, pi, ct, ci);
+        rc = om_object_create(&om, pt, pi, ct, ci);
         if (rc) {
             printf("obj (%d, %d) creation with parent (%d, %d) failed\n",
                 ct, ci, pt, pi);
@@ -98,15 +107,15 @@ int main (int argc, char *argv[])
             printf("obj (%d, %d) creation with parent (%d, %d) succeeded\n",
                 ct, ci, pt, pi);
             count++;
-            add_attributes(&db, ct, ci);
+            add_attributes(&om, ct, ci);
         }
         pt = pi = ti;
     }
-    om_object_create(&db, 1000, 1000, 1, 1);
+    om_object_create(&om, 1000, 1000, 1, 1);
     printf("finished creating all %d objects\n", count);
     printf("now verifying existence of all objects .. ");
     for (ti = -30; ti < 1020; ti++) {
-        rc = om_object_exists(&db, ti, ti);
+        rc = om_object_exists(&om, ti, ti);
         if (!rc) {
             printf("obj (%d, %d) does NOT exist but it should\n", ti, ti);
         }
@@ -115,7 +124,7 @@ int main (int argc, char *argv[])
     printf("now writing to file ... ");
     fflush(stdout);
     fflush(stdout);
-    om_write(&db);
+    om_write(&om);
     printf("done\n");
     fflush(stdout);
     fflush(stdout);
