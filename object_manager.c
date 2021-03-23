@@ -522,15 +522,19 @@ object_children_traverse (object_manager_t *omp, object_t *root,
 
         /* if it has any remaining children go down to it */
         if (idxp->current < idxp->n) {
+
             obj = idxp->elements[idxp->current++];
             idxp = &obj->children;
 
-            /* shld we do this here on first entry into the object */
+            /* MUST do this here on first entry into the object */
             idxp->current = 0;
 
         /* all children of this object traversed, go back to the parent */
         } else {
+
+            /* must also leave it clean as we move up back to the parent */
             idxp->current = 0;
+
             obj = get_parent_pointer(obj);
             idxp = &obj->children;
 
@@ -630,10 +634,7 @@ object_children_get (object_manager_t *omp, object_t *root,
         if (idxp->current < idxp->n) {
             obj = idxp->elements[idxp->current++];
             idxp = &obj->children;
-
-            /* shld we do this here ? */
             idxp->current = 0;
-
         /* all children of this object traversed, go back to the parent */
         } else {
             idxp->current = 0;

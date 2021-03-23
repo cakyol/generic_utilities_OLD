@@ -15,6 +15,8 @@ make_object (object_manager_t *omp,
 void
 make_tree (object_manager_t *omp)
 {
+    int i;
+
     make_object(omp, -1, -1, 0, 0);
         make_object(omp, 0, 0, 1, 0);
             make_object(omp, 1, 0, 10, 1);
@@ -23,6 +25,8 @@ make_tree (object_manager_t *omp)
             make_object(omp, 1, 0, 20, 2);
             make_object(omp, 1, 0, 30, 3);
                 make_object(omp, 30, 3, 40, 1);
+                    for (i = 0; i < 10; i++)
+                        make_object(omp, 40, 1, 500, i);
                 make_object(omp, 30, 3, 40, 2);
         make_object(omp, 0, 0, 2, 0);
             make_object(omp, 2, 0, 20, 0);
@@ -72,6 +76,10 @@ main (int argc, char *argv [])
 
     printf("objects under 1, 0:\n");
     om_traverse(&om, 1, 0, traverse, NULL, NULL, NULL, NULL, NULL);
+    printf("\n\n");
+
+    printf("objects under 40, 1:\n");
+    om_traverse(&om, 40, 1, traverse, NULL, NULL, NULL, NULL, NULL);
     printf("\n\n");
 
     return 0;
