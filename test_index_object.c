@@ -66,7 +66,7 @@ printf("FILLING INITIAL DATA\n");
         }
     }
     timer_end(&timr);
-    printf("INITIAL DATA FILLED, object expanded %d times\n", index.expansion_count);
+    printf("INITIAL DATA FILLED\n");
     timer_report(&timr, MAX_SZ, NULL);
 
     lodata.first = lodata.second = -5;

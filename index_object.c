@@ -124,9 +124,6 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
             insertion_failed(idx);
             return ENOMEM;
         }
-
-        /* record the expansion */
-        idx->expansion_count++;
     }
 
     /*
@@ -226,9 +223,8 @@ index_obj_init (index_obj_t *idx,
     MEM_MONITOR_SETUP(idx);
     LOCK_SETUP(idx);
     idx->should_not_be_modified = false;
-    idx->initial_size = idx->maximum_size = maximum_size;
+    idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
-    idx->expansion_count = 0;
     idx->cmpf = cmpf;
     idx->n = 0;
     idx->current = 0;

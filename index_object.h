@@ -62,10 +62,8 @@ typedef struct index_obj_s {
     LOCK_VARIABLES;
     boolean should_not_be_modified;
     object_comparer cmpf;
-    int initial_size;
     int maximum_size;
     int expansion_size;
-    int expansion_count;
     int n;
     void **elements;
 
