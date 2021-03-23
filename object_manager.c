@@ -507,7 +507,8 @@ object_children_traverse (object_manager_t *omp, object_t *root,
 
     /*
      * make sure that the user supplied traversal function
-     * cannot change anything in this object manager.
+     * cannot change anything in this object manager while
+     * the traversal is taking place.
      */
     omp->should_not_be_modified = true;
 

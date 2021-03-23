@@ -266,9 +266,6 @@ typedef struct object_s {
     /* All the attributes of this object */
     index_obj_t attributes;
 
-    /* used for non recursive & non stack traversal */
-    int current;
-
 } object_t;
 
 /******************************************************************************
