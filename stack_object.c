@@ -52,8 +52,8 @@ thread_unsafe_stack_obj_push (stack_obj_t *stk,
 
     /* try & expand */
     new_maximum_size = stk->maximum_size + stk->expansion_size;
-    new_elements = MEM_REALLOC(stk,
-                        stk->elements, (new_maximum_size * sizeof(void*)));
+    new_elements = MEM_MONITOR_REALLOC(stk->elements,
+            (new_maximum_size * sizeof(void*)));
     if (NULL == new_elements) {
         return ENOMEM;
     }
@@ -148,7 +148,7 @@ stack_obj_destroy (stack_obj_t *stk,
 
     /* delete the object itself */
     if (stk->elements) {
-        MEM_MONITOR_FREE(stk, stk->elements);
+        MEM_MONITOR_FREE(stk->elements);
     }
 
     OBJ_WRITE_UNLOCK(stk);

@@ -73,10 +73,7 @@ typedef struct dynamic_array_s {
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
-    int size;
-    int n;
     int lowest, highest;
-    unsigned long long int inserts, deletes;
     void **elements;
     statistics_block_t stats;
 
@@ -84,7 +81,7 @@ typedef struct dynamic_array_s {
 
 extern int
 dynamic_array_init (dynamic_array_t *datp,
-        int make_it_thread_safe,
+        bool make_it_thread_safe,
         int initial_size,
         mem_monitor_t *parent_mem_monitor);
 
@@ -93,27 +90,11 @@ dynamic_array_insert (dynamic_array_t *datp,
         int index, 
         void *value);
 
-/*
- * if an entry is requested outside the array bounds, it is an error.
- * Similarly, if an entry is un-set, it is also considered an error
- * even if it resides within the valid array boundaries
- */
-extern int
-dynamic_array_get (dynamic_array_t *datp,
-        int index, 
-        void **returned_value);
+extern void *
+dynamic_array_get (dynamic_array_t *datp, int index);
 
-/*
- * cannot remove an entry which does not lie within boundaries
- * or is an unused slot
- */
 extern int
-dynamic_array_remove (dynamic_array_t *datp,
-        int index,
-        void **removed);
-
-extern void **
-dynamic_array_get_all (dynamic_array_t *datp, int *count);
+dynamic_array_delete (dynamic_array_t *datp, int index);
 
 extern void
 dynamic_array_destroy (dynamic_array_t *datp,

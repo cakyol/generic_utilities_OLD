@@ -281,7 +281,7 @@ PUBLIC void
 bitlist_destroy (bitlist_t *bl)
 {
     OBJ_WRITE_LOCK(bl);
-    if (bl->the_bits) MEM_MONITOR_FREE(bl, bl->the_bits);
+    if (bl->the_bits) MEM_MONITOR_FREE(bl->the_bits);
     OBJ_WRITE_UNLOCK(bl);
     LOCK_OBJ_DESTROY(bl);
     memset(bl, 0, sizeof(bitlist_t));

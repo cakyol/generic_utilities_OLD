@@ -42,9 +42,9 @@ typedef struct avl_node_s avl_node_t;
 
 struct avl_node_s {
 
-    avl_node_t *parent;         // parent of this node
-    avl_node_t *left, *right;   // children
-    void *user_data;            // opaque user data
+    avl_node_t *parent;
+    avl_node_t *left, *right;
+    void *user_data;
     int balance;
 };
 
@@ -55,60 +55,62 @@ typedef struct avl_tree_s {
 
     avl_node_t *root_node;
     object_comparer cmpf;
-    int should_not_be_modified;
+    bool should_not_be_modified;
     int n;
     statistics_block_t stats;
 
 } avl_tree_t;
 
-/**************************** Inlines ****************************************/
-
 static inline int
 avl_tree_size (avl_tree_t *tree)
 { return tree->n; }
 
-/**************************** Initialize *************************************/
-
 extern int 
 avl_tree_init (avl_tree_t *tree,
-        int make_it_thread_safe,
+        bool make_it_thread_safe,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
-
-/**************************** Insert *****************************************/
 
 extern int 
 avl_tree_insert (avl_tree_t *tree,
         void *data_to_be_inserted,
         void **present_data);
 
-/**************************** Search *****************************************/
-
 extern int 
 avl_tree_search (avl_tree_t *tree,
         void *data_to_be_searched,
         void **present_data);
-
-/**************************** Remove *****************************************/
 
 extern int 
 avl_tree_remove (avl_tree_t *tree,
         void *data_to_be_removed,
         void **data_actually_removed);
 
-/**************************** Get all entries ********************************/
-
-extern void **
-avl_tree_get_all (avl_tree_t *tree, int *returned_count);
-
-/**************************** Traverse ***************************************/
-
+/*
+ * Morris traverses the tree down from the specified 'root' parameter.
+ * If 'root' is NULL, the entire tree will be traversed.
+ * Here will be the parameters passed into the traversal function:
+ *
+ *  param0: tree
+ *  param1: user data pointer of the node being traversed
+ *  param2: p0
+ *  param3: p1
+ *  param4: p2
+ *  param5: p3
+ *
+ *  Note that if 'tfn' returns NON zero, traversal will 'effectively'
+ *  stop.  The reason I say 'effectively' is because the actual traversal
+ *  of all the nodes will continue since in a morris traversal, we have
+ *  to conclude the traversal till the end.  But the function will no
+ *  longer be called.
+ *
+ *  The function return value should be 0 for continue and non
+ *  zero (error code), to stop the traversal.
+ */
 extern int
-avl_tree_traverse (avl_tree_t *tree,
+avl_tree_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3);
-
-/**************************** Destroy ****************************************/
 
 /*
  * Note that this destroys ONLY the contents of the object, NOT
@@ -116,7 +118,9 @@ avl_tree_traverse (avl_tree_t *tree,
  * was statically or dynamically created.  It is up to the user
  * to free up the object itself (or not).  Note however that once
  * the object is destroyed, it is rendered unusable and MUST be
- * re-initialized if it needs to be reused again.
+ * re-initialized if it needs to be reused again.  'dcbf' function
+ * will be called for every user data with the extra argument
+ * passed in.  The function can be specified as NULL.
  */
 extern void 
 avl_tree_destroy (avl_tree_t *tree,

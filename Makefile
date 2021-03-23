@@ -2,9 +2,10 @@
 CC =		gcc
 
 ## for debugging with gdb
-CFLAGS =	-g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
-CFLAGS =	-std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
-# CFLAGS =	-std=gnu99 -O3 -Wall -Wextra -Werror
+CFLAGS = -g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
+CFLAGS = -std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
+# CFLAGS = -std=gnu99 -O3 -Wall -Wextra -Werror
+# CFLAGS += -DINCLUDE_STATISTICS
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread
@@ -30,7 +31,6 @@ LIB_OBJS =	debug_framework.o \
 		chunk_manager.o \
 		index_object.o \
 		avl_tree_object.o \
-		table.o \
 		dynamic_array_object.o \
 		radix_tree_object.o \
 		scheduler.o \
@@ -108,17 +108,17 @@ test_dynamic_array: test_dynamic_array.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_dynamic_array.c \
 				-o test_dynamic_array $(LIBNAME) $(STATIC_LIBS)
 
-test_db:		test_db.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_db.c -o test_db \
+test_om:		test_om.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_om.c -o test_om \
 					$(LIBNAME) $(STATIC_LIBS)
 
-test_db_load:		test_db_load.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_db_load.c -o test_db_load \
+test_om_load:		test_om_load.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_om_load.c -o test_om_load \
 					$(LIBNAME) $(STATIC_LIBS)
 
-test_db_speed:		test_db_speed.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_db_speed.c \
-				-o test_db_speed $(LIBNAME) $(STATIC_LIBS)
+test_om_speed:		test_om_speed.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_om_speed.c \
+				-o test_om_speed $(LIBNAME) $(STATIC_LIBS)
 
 test_delay:		test_delay.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_delay.c -o test_delay \
@@ -136,8 +136,7 @@ test_tlvm:		test_tlvm.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_tlvm.c \
 				-o test_tlvm $(LIBNAME) $(STATIC_LIBS)
 
-TESTS =		test_debug \
-		test_lock_object \
+TESTS =		test_lock_object \
 		test_lock_speed \
 		test_stack_object \
 		test_bitlist \
@@ -151,9 +150,9 @@ TESTS =		test_debug \
 		test_dynamic_array \
 		test_radix_tree \
 		test_radix_tree2 \
-		test_db \
-		test_db_load \
-		test_db_speed \
+		test_om \
+		test_om_load \
+		test_om_speed \
 		test_delay \
 		test_scheduler \
 		test_tlvm \
@@ -162,6 +161,9 @@ TESTS =		test_debug \
 tests:		$(TESTS)
 
 all:		$(LIBNAME) tests
+
+store:		*.c *.h copyright divider
+		tar cvf INTERIM_Sources *.c *.h copyright divider
 
 clean:
 		@rm -f *.o

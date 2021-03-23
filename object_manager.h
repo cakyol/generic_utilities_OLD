@@ -32,15 +32,24 @@
 **
 ** @@@@@ GENERIC OBJECT MANAGER
 **
-**      This is a VERY fast and a VERY flexible hierarchical object manager.
+**      This is a hierarchical object manager.  It is very fast
+**      to search an object and/or an attribute & value of an
+**      object.  Inserting & deleting objects are somewaht a bit
+**      slower.  It is more suited to create/modify a few times but
+**      search many times type of processes.
+**      
+**      An object (as defined by its uniqueness) can only appear ONCE
+**      in the manager.
 **
-**      Almost every data structure is either an avl tree or a binary
-**      index object, making it very efficient.
+**      An object does not need to have a parent but can have MANY children.  
+**      This allows multiple dangling objects with or without children
+**      to be in the object manager.  However, if an object is a child
+**      of an object, then it MUST have a parent.  The object manager
+**      enforces this logic.
 **
-**      An object always has ONE parent but can have MANY children.  
 **      It is up to the user to make sure an object's child cannot 
-**      also be its parent otherwise infinite loops will be created.
-**      This is not checked by the object manager.
+**      also be its parent otherwise cyclic loops will be created.
+**      This error is not checked by the object manager.
 **
 **      An object can have any number of attributes and these can be
 **      added and/or deleted dynamically during an object's lifetime.
@@ -52,11 +61,7 @@
 **
 **      An object is identified distinctly by its type & instance and hence
 **      there can be only ONE instance of an object of the same type in one
-**      manager.  All object types & instances MUST be > 0.  Values <= 0 are
-**      reserved and should not be used.
-**
-**      Conversely, an attribute is also distinctly identified by an integer
-**      of value > 0.  Do not use attribute ids of <= 0.
+**      manager.
 **
 **      An object always has ONLY ONE parent.
 **
@@ -73,7 +78,8 @@
 **
 **      Object attributes are multi valued.  An attribute can hold
 **              multiple simple or complex values.  There is no
-**              limit.
+**              limit.  It can even be the same value repeated
+**              many times.
 **
 **              Note that there is a distinction between an 'attribute
 **              value add' and an 'attribute value set'.  The 'set' will
@@ -100,24 +106,17 @@ extern "C" {
 #include <assert.h>
 
 #include "common.h"
+#include "debug_framework.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
-#include "table.h"
-#include "dynamic_array_object.h"
-#include "object_types.h"
-#include "event_manager.h"
-
-/* 
- * This uses more memory for widespread attribute ids
- * but is extremely fast.  If attribute id numbers are
- * kept consecutive, then it would use less memory.
- */
-#define USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
+#include "avl_tree_object.h"
+#include "index_object.h"
 
 #define TYPICAL_NAME_SIZE                       (64)
 
+typedef struct complex_attribute_value_s complex_attribute_value_t;
 typedef struct attribute_value_s attribute_value_t;
-typedef struct attribute_instance_s attribute_instance_t;
+typedef struct attribute_s attribute_t;
 typedef struct object_identifier_s object_identifier_t;
 typedef struct object_representation_s object_representation_t;
 typedef struct object_s object_t;
@@ -130,35 +129,25 @@ typedef struct object_manager_s object_manager_t;
  */
 
 /*
- * The structure below can be used for every possible kind of 
- * data type.  This includes all the basic types as well
- * as pointers to byte streams.  Every possible data is either a
- * 'simple' type (byte, char, short, int, int64) or complex
- * type (pointer to a byte stream and its length).
+ * Attribute values can be simple or complex.
+ * A simple attribute is any data which can fit into a long long int.
+ * A complex data is a stream of bytes and its length.  It does NOT
+ * have to be NULL terminated.
  *
- * One consequence of this method is that ALL simple data types,
+ * The structure below can be used for both of these kinds of 
+ * attribute data types.
+ *
+ * One consequence of this is that ALL simple data types,
  * regardless of their size, will always be stored as int64.
- * This is a bit wasteful but not so bad given the simplicity it 
- * provides.
+ * This is a bit wasteful but not so bad given the coding simplicity
+ * it provides.
  *
- * Here is the important differentiation points between 'simple'
- * and 'complex' attribute values:
+ * The type of the attribute is determined by the bits in the
+ * 'attribute_flags' field.
  *
- * - an attribute value length should never be < 0.  This shows an
- *   an internal error.
- *
- * - if length == 0, it indicates a 'simple' attribute value type.
- *
- * - if length > 0, it represents a pointer to a byte stream
- *   whose length is as given.
- *
- * The way both types of data stored is a bit strange but very
- * convenient in the sense that only ONE malloc allocates all the
- * needed space.  Basically, for byte stream data, the data starts 
- * WITH the 'attribute_value_data'.  It 'becomes' part of the 
- * stream.  In this case, the first 8 bytes of the stream data
- * will always be stored in the 'attribute_value_data' as 'bytes'.
- *
+ * The EXACT same attribute value can be added to an attribute, which
+ * increments the 'ref_count' value.  This means an attribute
+ * can have the same value (simple or complex) multiple times.
  * Since an attribute can have multiple values, simple or complex,
  * there is a linked list implementation of values for each attribute
  * id.  Since it is not expected for a single attribute id to have 
@@ -167,19 +156,52 @@ typedef struct object_manager_s object_manager_t;
  * start suffering.
  *
  */
-struct attribute_value_s {
 
-    attribute_value_t *next_attribute_value;
-    int attribute_value_length;
-    long long int attribute_value_data;
+#define ATTRIBUTE_VALUE_SIMPLE_FLAG         (0x1)
+#define ATTRIBUTE_VALUE_COMPLEX_FLAG        (0x2)
+
+struct complex_attribute_value_s {
+
+    int length;
+    byte *data;
+
 };
 
-struct attribute_instance_s {
+struct attribute_value_s {
 
-    object_t *object;           /* which object does this attribute belong to */
-    int attribute_id;           /* which attribute is it */
-    int n_attribute_values;     /* how many values does it have */
-    attribute_value_t *avps;    /* linked list of the attribute values */
+    /* information about the attribute type */
+    byte attribute_flags;
+
+    /* same identical value can be present more than once */
+    short ref_count;
+
+    /* for chaining multiple values */
+    attribute_value_t *next_avp;
+
+    /* exact value of the simple or complex attribute */
+    union {
+
+        long long int simple_attribute_value;
+        complex_attribute_value_t complex_attribute_value;
+
+    } attribute_value_u;
+
+};
+
+/*
+ * This is an attribute instance.
+ * It can hold many attribute values.
+ *
+ * An example of an attribute instance can be 'port speed'.  It may
+ * have a simple attribute value of 100M to represent 100 Mbits.
+ */
+struct attribute_s {
+
+    object_t *object;               /* object of this attribute */
+    int attribute_id;               /* which attribute is it */
+    int n;                          /* how many values does it have */
+    attribute_value_t *avp_list;    /* linked list of the attribute values */
+
 };
 
 /******************************************************************************
@@ -189,33 +211,37 @@ struct attribute_instance_s {
  */
 
 /*
- * User facing APIs only deal with this representation of an object
- * since pointers are always hidden from the user and the only way
- * to address an object is thru this.
+ * User facing APIs mostly deal with this representation of an object
+ * since pointers are mostly hidden from the user and the only way
+ * to address an object is thru this.  This reduces the chance of a
+ * user program corrupting pointers or accessing them incorrectly.
  */
-struct object_identifier_s {
+typedef struct object_identifier_s {
+
     int object_type;
     int object_instance;
-};
+
+} object_identifier_t;
 
 /*
- * Internal APIs mostly use pointers since they are thread protected.
+ * Internal APIs mostly use pointers since they are more protected.
  * and pointers are safe to use.  So, this one type can be used both 
  * for user facing APIs as well as internal uses.
  */
-struct object_representation_s {
+typedef struct object_representation_s {
 
     /* set if the representation is a pointer */
-    byte is_pointer;
+    tinybool is_pointer;
 
     /* which address type to use */
     union {
         object_identifier_t object_id;
         object_t *object_ptr;
     } u;
-};
 
-struct object_s {
+} object_representation_t;
+
+typedef struct object_s {
 
     /* which object manager this object belongs to */
     object_manager_t *omp;
@@ -234,17 +260,16 @@ struct object_s {
      */ 
     object_representation_t parent;
 
-    /* Can have many children; no limit */
-    table_t children;
+    /* All the children of this object */
+    index_obj_t children;
 
     /* All the attributes of this object */
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    dynamic_array_t attributes;
-#else 
-    table_t attributes;
-#endif
+    index_obj_t attributes;
 
-};
+    /* used for non recursive & non stack traversal */
+    int current;
+
+} object_t;
 
 /******************************************************************************
  *
@@ -252,7 +277,7 @@ struct object_s {
  *
  */
 
-struct object_manager_s {
+typedef struct object_manager_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
@@ -260,183 +285,192 @@ struct object_manager_s {
     /* unique integer for this manager */
     int manager_id;
 
-    /* event manager for this object manager */
-    event_manager_t evm;
+    /* if a traversal is taking place, the object manager cannot be modified */
+    boolean should_not_be_modified;
 
     /*
      * Objects are always uniquely indexed by 'object_type' & 
      * 'object_instance'.  There can be only ONE object of
-     * this unique combination in every manager.
+     * this unique combination in every manager.  They are
+     * kept in this avl tree for fast access.
      */
-    table_t object_index;
+    avl_tree_t om_objects;
 
-    /*
-     * the root object; this is special, can NOT be deleted
-     * This is used to store all the objects (children) of 
-     * the manager.
-     */
-    object_t root_object;
-
-    /*
-     * This helps suppression of sub event generation.  If an
-     * obbject is deleted, all its children are also deleted as
-     * well as their attributes etc, which will generate an
-     * enormous amount of events.  This variable is used to
-     * block all the subtree events.  It is used to send only
-     * the top most event (the object deletion and its attributes etc)
-     * but suppresses the object deletion events for all the children.
-     */
-    int blocked_events;
-};
+} object_manager_t;
 
 /************* User functions ************************************************/
 
+/* debug infrastructure */
+extern debug_module_block_t om_debug;
+
+/*
+ * initialize object manager
+ */
 extern int
-om_initialize (object_manager_t *omp,
-        int make_it_thread_safe,
+om_init (object_manager_t *omp,
+        boolean make_it_thread_safe,
         int manager_id,
         mem_monitor_t *parent_mem_monitor);
 
-static inline int
-om_register_for_object_events (object_manager_t *omp,
-        int object_type,
-        event_handler_t ehfp, void *extra_arg)
-{
-    return
-        register_for_object_events(&omp->evm, object_type, ehfp, extra_arg);
-}
-
-static inline void
-om_un_register_from_object_events (object_manager_t *omp,
-        int object_type,
-        event_handler_t ehfp, void *extra_arg)
-{
-    un_register_from_object_events(&omp->evm, object_type, ehfp, extra_arg);
-}
-
-static inline int
-om_register_for_attribute_events (object_manager_t *omp,
-        int object_type,
-        event_handler_t ehfp, void *extra_arg)
-{
-    return
-        register_for_attribute_events(&omp->evm, object_type, ehfp, extra_arg);
-}
-
-static inline void
-om_un_register_from_attribute_events (object_manager_t *omp,
-        int object_type,
-        event_handler_t ehfp, void *extra_arg)
-{
-    un_register_from_attribute_events(&omp->evm, object_type, ehfp, extra_arg);
-}
-
+/*
+ * creates an object with given id & type under the
+ * specified parent.  Success returns 0.  If it already
+ * exists, this is a no-op, unless the required parents
+ * do not match the existing parents.  In that case,
+ * the object creation is refused.
+ */
 extern int
 om_object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
-        int child_object_type, int child_object_instance);
+        int object_type, int object_instance);
 
+/*
+ * returns true if the specified object exists in the object manager.
+ */
 extern bool
 om_object_exists (object_manager_t *omp,
         int object_type, int object_instance);
 
-extern int
-om_attribute_add (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id);
-
-extern int
-om_attribute_add_simple_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        long long int simple_value);
-
-extern int
-om_attribute_set_simple_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        long long int simple_value);
-
-extern int
-om_attribute_delete_simple_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        long long int simple_value);
-
-extern int
-om_attribute_add_complex_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        byte *complex_value_data, int complex_value_data_length);
-
-extern int
-om_attribute_set_complex_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        byte *complex_value_data, int complex_value_data_length);
-
-extern int
-om_attribute_delete_complex_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        byte *complex_value_data, int complex_value_data_length);
-
-extern int
-om_attribute_get_value (object_manager_t *omp,
-        int object_type, int object_instance, 
-        int attribute_id, int nth,
-        attribute_value_t **cloned_attribute_value);
-
-extern int
-om_attribute_get_all_values (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        int *how_many, attribute_value_t *returned_attribute_values[]);
-
-extern int
-om_attribute_destroy (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id);
-
-/*
- * Returns only the FIRST level of children objects MATCHING ONLY 
- * the specified type.
- * Returns in the form of object identification (type, instance).
- */
-extern object_representation_t *
-om_object_get_matching_children (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int matching_object_type, int *returned_count);
-
-/*
- * Returns ALL of the FIRST level children objects.
- * Returns in the form of object identification (type, instance).
- */
-extern object_representation_t *
-om_object_get_children (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int *returned_count);
-
-/*
- * NOT RECOMMENDED TO BE USED EXTERNALLY, INTERNAL USE ONLY.
- *
- * Returns ALL LEVELS of children objects MATCHING ONLY the specified type.
- * Returns in the form of object pointer.
- */
-extern object_representation_t *
-om_object_get_matching_descendants (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int matching_object_type, int *returned_count);
-
-/*
- * NOT RECOMMENDED TO BE USED EXTERNALLY, INTERNAL USE ONLY.
- *
- * Returns ALL LEVELS of children of ALL objects of the parent.
- * Returns in the form of object pointer.
- */
-extern object_representation_t *
-om_object_get_descendants (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int *returned_count);
-
-extern int
-om_object_destroy (object_manager_t *omp,
-        int object_type, int object_instance);
-
 static inline int
 om_object_count (object_manager_t *omp)
-{ return table_member_count(&omp->object_index); }
+{ return omp->om_objects.n; }
+
+/*
+ * add an attribute (id) to an object.  If it already exists, this is
+ * a no-op.  If memory fails, error will be returned.  Success will
+ * return a value of 0.
+ */
+extern int
+om_attribute_add (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id);
+
+/*
+ * adds a simple value to the attribute (id).  Same exact value can
+ * be added multiple times.  'howmany_extras' will add ADDITIONAL
+ * copies of the value.
+ *
+ * If the specified attribute does not exist, it will also automatically
+ * be added to the object.
+ */
+extern int
+om_attribute_simple_value_add (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        long long int value, int howmany_extras);
+
+/*
+ * This function deletes all existing values of the attribute (id) 
+ * and sets it ONLY to the new value specified.  Multiple copies
+ * can be set specified by 'ref_count'.
+ */
+extern int
+om_attribute_simple_value_set (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        long long int value, int ref_count);
+
+/*
+ * Deletes a simple attribute value from the attribute (id).
+ * Specifies how many copies to be deleted in 'howmany'.  If
+ * that is greater than the ref count of the value, all will be
+ * deleted.
+ */
+extern int
+om_attribute_simple_value_remove (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        long long int value, int howmany);
+
+/*
+ * same as above but for complex values.
+ */
+extern int
+om_attribute_complex_value_add (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        byte *data, int len, int howmany_extras);
+
+extern int
+om_attribute_complex_value_set (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        byte *data, int len, int ref_count);
+
+extern int
+om_attribute_complex_value_remove (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        byte *data, int len, int howmany);
+
+/*
+ * This will return all the attribute value pointers in the
+ * specified array 'avp_list' bounded by 'limit'.  Upon
+ * completion, 'limit' will contain how many values have been
+ * returned.
+ */
+extern int
+om_attribute_values_get (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        attribute_value_t *avp_list [], int *limit);
+
+/*
+ * destroys the attribute (id) and all associated values
+ * of that attribute, from the specified object.
+ */
+extern int
+om_attribute_remove (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id);
+
+/*
+ * get the parent type & instance of an object and
+ * place them in the addresses respectively.
+ * If not found, error is returned.  Success
+ * returns 0.
+ */
+extern int
+om_parent_get (object_manager_t *omp,
+        int object_type, int object_instance,
+        int *parent_object_type, int *parent_object_instance);
+
+/*
+ * destroys an object and all its children, including attributes,
+ * values, everything.
+ */
+extern int
+om_object_remove (object_manager_t *omp,
+        int object_type, int object_instance);
+
+/*
+ * traverses the object AND all its children applying the
+ * function 'tfn' to all of them.  The parameters passed 
+ * to the 'tfn' function will be:
+ *
+ *      param0: object manager pointer
+ *      param1: the child pointer being traversed
+ *      param2: p0
+ *      param3: p1
+ *      param4: p2
+ *      param5: p3
+ *      param6: p4
+ *
+ * The return value is the first error encountered by 'tfn'.
+ * 0 means no error was seen.
+ */
+extern int
+om_traverse (object_manager_t *omp,
+        int object_type, int object_instance,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3, void *p4);
+
+/*
+ * destroys the entire object manager.  It cannot be used again
+ * until re-initialised.
+ */
+extern void
+om_destroy (object_manager_t *omp);
 
 /******************************************************************************
  *

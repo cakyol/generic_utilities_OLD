@@ -160,6 +160,8 @@ copy_pointer_blocks (void **src, void **dst, int count)
 
 /*************************************************************************/
 
+#ifdef INCLUDE_STATISTICS
+
 /*
  * Typical statistics used for most insert/search/delete
  * type of data structures.  Mostly usable for debugging.
@@ -206,6 +208,33 @@ typedef struct statistics_block_s {
  */
 #define reset_stats(objp) \
     memset(&objp->stats, 0, sizeof(statistics_block_t))
+
+#else /* !INCLUDE_STATISTICS */
+
+typedef struct statistics_block_s {
+} statistics_block_t;
+
+#define insertion_succeeded(objp)
+#define insertion_duplicated(objp)
+#define insertion_failed(objp)
+#define search_succeeded(objp)
+#define search_failed(objp)
+#define deletion_succeeded(objp)
+#define deletion_failed(objp)
+
+/*
+ * read/get values
+ */
+#define get_insertion_successes(objp)   0
+#define get_insertion_duplicates(objp)  0
+#define get_insertion_failures(objp)    0
+#define get_search_successes(objp)      0
+#define get_search_failures(objp)       0
+#define get_deletion_successes(objp)    0
+#define get_deletion_failures(objp)     0
+#define reset_stats(objp)
+
+#endif /* INCLUDE_STATISTICS */
 
 /*************************************************************************/
 

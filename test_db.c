@@ -2,152 +2,116 @@
 #include "object_manager.h"
 #include <sys/resource.h>
 
-#define MAX_TYPES               3000
-#define MAX_ATTRS               5
-#define ITER                    1
-#define MAX_AV_COUNT            2
+#define MIN_TYPE                30
+#define MAX_TYPE                50
+
+#define MIN_INST                500
+#define MAX_INST                600
+
+#define ITER                    100
+#define MAX_ATTRS               10
+#define MAX_AV_COUNT            20
 
 char temp_buffer [64];
 
 long long int calls = 0;
 
-char *attribute_value_string (event_record_t *evrp)
+void
+add_attributes (object_manager_t *omp, int type, int instance)
 {
-    if (evrp->attribute_value_length == 0) {
-        sprintf(temp_buffer, "%lld", evrp->attribute_value_data);
-    } else {
-        sprintf(temp_buffer, "%s", (char*) &evrp->attribute_value_data);
-    }
-    return temp_buffer;
-}
-
-void notify_event (event_record_t *evrp, void *arg2)
-{
-    object_manager_t *dbp = (object_manager_t*) arg2;
-    int event = evrp->event_type;
-
-    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(evrp);
-    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(dbp);
-    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(event);
-
-    calls++;
-    return;
-
-    if (event & OBJECT_CREATED) {
-        printf("child (%d, %d) created for parent (%d, %d)\n",
-            evrp->related_object_type, evrp->related_object_instance,
-            evrp->object_type, evrp->object_instance);
-        return;
-    }
-    if (event & ATTRIBUTE_INSTANCE_ADDED) {
-        printf("attribute %d added to object (%d, %d)\n",
-            evrp->attribute_id, evrp->object_type, evrp->object_instance);
-        return;
-    }
-    if (event & ATTRIBUTE_VALUE_ADDED) {
-        printf("attribute %d value <%s> added to object (%d, %d)\n",
-            evrp->attribute_id, attribute_value_string(evrp),
-            evrp->object_type, evrp->object_instance);
-        return;
-    }
-    if (event & ATTRIBUTE_VALUE_DELETED) {
-        printf("attribute %d value <%s> deleted from object (%d, %d)\n",
-            evrp->attribute_id, attribute_value_string(evrp),
-            evrp->object_type, evrp->object_instance);
-        return;
-    }
-    if (event & ATTRIBUTE_INSTANCE_DELETED) {
-        printf("attribute %d deleted from object (%d, %d)\n",
-            evrp->attribute_id, evrp->object_type, evrp->object_instance);
-        return;
-    }
-    if (event & OBJECT_DESTROYED) {
-        printf("object (%d, %d) destroyed\n", 
-            evrp->object_type, evrp->object_instance);
-        return;
-    }
-
-    printf("UNKNOWN EVENT TYPE %d\n", event);
-}
-
-void add_del_attributes (object_manager_t *omp, int type, int instance)
-{
-    int i, iter, count;
+    int i;
     char complex_value[50];
-    int av;
 
-    //printf("adding attributes to an object\n");
-    count = 0;
-    for (iter = 0; iter < ITER; iter++) {
-        for (i = MAX_ATTRS; i > 1; i--) {
-            for (av = 0; av < MAX_AV_COUNT; av++) {
-                om_attribute_add_simple_value(omp, type, instance, i, av);
-                sprintf(complex_value, "cav %d", av);
-                om_attribute_add_complex_value(omp, type, instance, i,
-                        (byte*) complex_value, strlen(complex_value) + 1);
-                count++;
-            }
-            om_attribute_destroy(omp, type, instance, i);
+    return;
+    for (i = 0; i < 5; i++) {
+        om_attribute_simple_value_add(omp, type, instance, i, i, 2);
+        sprintf(complex_value, "cav %d", i);
+        om_attribute_complex_value_add(omp, type, instance, i,
+            (byte*) complex_value, strlen(complex_value) + 1, 2);
+    }
+}
+
+void
+create_objects (object_manager_t *omp)
+{
+    int rc, i;
+
+    rc = om_object_create(omp, -1, -1, 1, 0);
+    if (rc) {
+        ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
+            1, 0, -1, -1);
+    }
+    for (i = 5; i < 50; i++) {
+        rc = om_object_create(omp, 1, 0, 1, i);
+        if (rc) {
+            ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
+                1, i, 1, 0);
         }
     }
+
+    rc = om_object_create(omp, -1, -1, 2, 0);
+    if (rc) {
+        ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
+            2, 0, -1, -1);
+    }
+    for (i = 5; i < 50; i++) {
+        rc = cm_object_create(omp, 2, 0, 2, i);
+        if (rc) {
+            ERROR(&om_debug, "creating (%d, %d) with parent (%d, %d) failed\n",
+                2, i, 2, 0);
+        }
+    }
+
+    om_object_create(omp, -1, -1, 3, 0);
+    for (i = 5; i < 50; i++) {
+        om_object_create(omp, 1, 0, 3, i);
+    }
+}
+
+void
+verify_objects (object_manager_t *omp)
+{
 }
 
 int main (int argc, char *argv[])
 {
     object_manager_t db;
-    int parent_type, parent_instance;
-    int child_type, child_instance;
-    int rc, count;
+    int pt, pi;
+    int ct, ci;
+    int count;
+    int ti;
+    int rc;
+
 
     printf("size of one object is %ld bytes\n", sizeof(object_t));
-
-    om_initialize(&db, 1, 1, NULL);
-
-    rc = om_register_for_object_events(&db, MAX_TYPES/2,
-                notify_event, &db);
-    if (rc) {
-        fprintf(stderr, "om_register_for_object_events failed: %d\n", rc);
-        return rc;
-    }
-    rc = om_register_for_attribute_events(&db, MAX_TYPES/2,
-                notify_event, &db);
-    if (rc) {
-        fprintf(stderr, "om_register_for_attribute_events failed: %d\n", rc);
-        return rc;
-    }
-
+    om_init(&db, true, 1, NULL);
+    //om_set_debug_level(TRACE_DEBUG_LEVEL);
     printf("creating objects\n");
-    count = 0;
-
-    // reverse ordering is WORST performance for the index object
-    // but irrelevant to the avl tree object
-
-    parent_type = parent_instance = 0;
-
-    for (child_type = MAX_TYPES; child_type > 0; child_type--) {
-        for (child_instance = child_type; child_instance > 0; child_instance--) {
-            if (om_object_create(&db,
-                            parent_type, parent_instance,
-                            child_type, child_instance))
-            {
-                fprintf(stderr, "object %d,%d creation with parent %d,%d failed\n",
-                        child_type, child_instance,
-                        parent_type, parent_instance);
-                continue;
-            } 
-            
-            //printf("object %d,%d with parent %d,%d created\n",
-                //child_type, child_instance,
-                //parent_type, parent_instance);
-            add_del_attributes(&db, child_type, child_instance);
+    count = pt = 0; pi = 0;
+    for (ti = 1; ti < 1000; ti++) {
+        ct = ci = ti;
+        rc = om_object_create(&db, pt, pi, ct, ci);
+        if (rc) {
+            printf("obj (%d, %d) creation with parent (%d, %d) failed\n",
+                ct, ci, pt, pi);
+        } else {
+            printf("obj (%d, %d) creation with parent (%d, %d) succeeded\n",
+                ct, ci, pt, pi);
             count++;
-
-            parent_type = child_type;
-            parent_instance = child_instance;
+            add_attributes(&db, ct, ci);
+        }
+        pt = pi = ti;
+    }
+    om_object_create(&db, 1000, 1000, 1, 1);
+    printf("finished creating all %d objects\n", count);
+    printf("now verifying existence of all objects .. ");
+    for (ti = -30; ti < 1020; ti++) {
+        rc = om_object_exists(&db, ti, ti);
+        if (!rc) {
+            printf("obj (%d, %d) does NOT exist but it should\n", ti, ti);
         }
     }
-    printf("finished creating all %d objects\n", count);
-    printf("%lld events recorded\n", calls);
+    fflush(stdout);
     printf("now writing to file ... ");
     fflush(stdout);
     fflush(stdout);

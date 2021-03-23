@@ -229,7 +229,7 @@ __alarm_signal_handler (int signo)
             d = scheduled_tasks->head;
             scheduled_tasks->head = d->next;
             scheduled_tasks->n--;
-            MEM_MONITOR_FREE(scheduled_tasks, d);
+            MEM_MONITOR_FREE(d);
 
             /*
              * now txfer it to the executable_tasks list.
@@ -265,7 +265,7 @@ __alarm_signal_handler (int signo)
         d = executable_tasks->head;
         executable_tasks->head = d->next;
         executable_tasks->n--;
-        MEM_MONITOR_FREE(executable_tasks, d);
+        MEM_MONITOR_FREE(d);
     }
 
     /* ok we executed everything, unlock now */

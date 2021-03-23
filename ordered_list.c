@@ -238,7 +238,7 @@ thread_unsafe_ordered_list_node_delete (ordered_list_t *listp,
 
     to_free = node_tobe_deleted->next;
     *node_tobe_deleted = *to_free;
-    MEM_MONITOR_FREE(listp, to_free);
+    MEM_MONITOR_FREE(to_free);
     listp->n--;
 
     return 0;
@@ -386,7 +386,7 @@ ordered_list_destroy (ordered_list_t *listp,
     }
 
     /* free up the end of list marker */
-    MEM_MONITOR_FREE(listp, listp->head);
+    MEM_MONITOR_FREE(listp->head);
     listp->head = NULL;
 
     assert(0 == listp->n);

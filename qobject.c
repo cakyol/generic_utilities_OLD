@@ -62,7 +62,7 @@ thread_unsafe_queue_expand (qobj_t *qobj)
     qobj->maximum_size = new_size;
 
     /* free up old queue array assign new one */
-    MEM_MONITOR_FREE(qobj, qobj->elements);
+    MEM_MONITOR_FREE(qobj->elements);
     qobj->elements = new_elements;
 
     /* done */
@@ -219,7 +219,7 @@ qobj_destroy (qobj_t *qobj,
 
     /* delete the object itself */
     if (qobj->elements) {
-        MEM_MONITOR_FREE(qobj, qobj->elements);
+        MEM_MONITOR_FREE(qobj->elements);
     }
 
     OBJ_WRITE_UNLOCK(qobj);

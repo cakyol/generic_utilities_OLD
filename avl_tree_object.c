@@ -25,13 +25,10 @@
 ******************************************************************************/
 
 #include "avl_tree_object.h"
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define PUBLIC
 
 static inline avl_node_t *
 get_first (avl_node_t *node)
@@ -163,7 +160,7 @@ avl_lookup_engine (avl_tree_t *tree,
 static inline void
 free_avl_node (avl_tree_t *tree, avl_node_t *node)
 {
-    MEM_MONITOR_FREE(tree, node);
+    MEM_MONITOR_FREE(node);
     tree->n--;
 }
 
@@ -180,61 +177,6 @@ new_avl_node (avl_tree_t *tree, void *user_data)
     }
     return node;
 }
-
-/*
- * Recursive functions are no good in real world situations.
- * The objects are sooo large we run out of stack space
- * trying to do any recursive actions.  Everything has
- * to be iterative.
- */
-#if 0
-
-/*
- * used to recursively destroy (free up) all nodes below 'node'
- */
-static void 
-avl_node_destroy_nodes (avl_tree_t *tree,
-        avl_node_t *node, 
-        int leave_parent_consistent)
-{
-    avl_node_t *parent, *left, *right;
-
-    // end node
-    if (NULL == node) return;
-
-    left = node->left;
-    right = node->right;
-
-    if (leave_parent_consistent) {
-        parent = node->parent;
-        if (parent) {
-            if (parent->left == node) {
-                parent->left = NULL;
-            } else if (parent->right == node) {
-                parent->right = NULL;
-            } else {
-                assert(0);
-            }
-        } else {
-            tree->root_node = NULL;
-        }
-    }
-
-    // done with this one.  Freeing this here before we get deep into
-    // recursion frees up the nodes much more quickly without building
-    // up all the stack of nodes during recursion.
-    //
-    free_avl_node(tree, node);
-
-    // recurse on; since we will be deleting all these
-    // nodes, there is no need to leave the parent's
-    // pointers consistent.
-    //
-    avl_node_destroy_nodes(tree, left, 0);
-    avl_node_destroy_nodes(tree, right, 0);
-}
-
-#endif /* 0 */
 
 static int 
 thread_unsafe_avl_tree_insert (avl_tree_t *tree,
@@ -275,21 +217,8 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
 
     if (!parent) {
         tree->root_node = node;
-#if 0
-        tree->first_node = tree->last_node = node;
-#endif
         return 0;
     }
-
-#if 0
-    if (is_left) {
-        if (parent == tree->first_node)
-            tree->first_node = node;
-    } else {
-        if (parent == tree->last_node)
-            tree->last_node = node;
-    }
-#endif
 
     node->parent = parent;
     set_child(node, parent, is_left);
@@ -383,6 +312,8 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     avl_node_t *next;
     int is_left;
 
+    safe_pointer_set(actual_data_removed, NULL);
+
     /* being traversed, cannot access */
     if (tree->should_not_be_modified) {
         deletion_failed(tree);
@@ -395,7 +326,6 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
 
     /* not there */
     if (!node) {
-        safe_pointer_set(actual_data_removed, NULL);
         deletion_failed(tree);
         return ENODATA;
     }
@@ -409,13 +339,6 @@ thread_unsafe_avl_tree_remove (avl_tree_t *tree,
     parent = node->parent;
     left = node->left;
     right = node->right;
-
-#if 0
-    if (node == tree->first_node)
-        tree->first_node = avl_tree_next(node);
-    if (node == tree->last_node)
-        tree->last_node = avl_tree_prev(node);
-#endif
 
     if (!left)
         next = right;
@@ -557,15 +480,19 @@ END_OF_DELETE:
  * using recursion and without stack.  No extra storage
  * is needed, therefore it is frugal in memory usage.
  *
+ * For as long as the user function keeps on returning 
+ * zero, we keep on calling it for every node (user data)
+ * in the tree.
+ *
  * One very important point here.  Since morris traversal
  * changes pointers, we cannot stop until we traverse the
  * entire tree so that all pointers are recovered back.
  * Therefore, if the user traverse function returns a non 0,
  * we can NOT stop traversing; we must continue.  However,
  * once the error occurs, we simply stop calling the user
- * function for the rest of the tree.
+ * function for the rest of the traversal.
  */
-int
+static int
 thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
@@ -573,10 +500,14 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     int failed = 0;
     avl_node_t *current;
 
-    /* if the starting root is NULL, start from top of tree */
-    if (NULL == root) {
-        root = tree->root_node;
-    }
+    /*
+     * in case the traversal funtion attempts to 
+     * change the tree from under us
+     */
+    tree->should_not_be_modified = true;
+
+    /* if root is not given, the entire tree will be traversed */
+    if (NULL == root) root = tree->root_node;
 
     while (root) {
         if (root->left == NULL) {
@@ -589,12 +520,10 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
             while (current->right && (current->right != root)) {
                 current = current->right;
             }
-
             if (current->right == root) {
                 current->right = NULL;
                 root = root->right;
             } else {
-                /* call user function only if no error occured so far */
                 if (0 == failed) {
                     failed = tfn(tree, root, root->user_data, p0, p1, p2, p3);
                 }
@@ -603,34 +532,51 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
             }
         }
     }
-
-    return 0;
+    tree->should_not_be_modified = false;
+    return failed;
 }
 
+/*
+ * destroy everything below & including the root node.
+ * If 'root' is NULL, the entire tree is destroyed.
+ */
 static int
-thread_unsafe_iterative_destroy (avl_tree_t *tree,
+thread_unsafe_iterative_destroy (avl_tree_t *tree, avl_node_t *root,
         destruction_handler_t dh_fptr, void *extra_arg)
 {
-    avl_node_t *r, *n;
+    avl_node_t *n, *parent;
     int delete_count;
 
-    r = tree->root_node;
+    /*
+     * in case the destruction handler tries
+     * to change the tree from under us.
+     */
+    tree->should_not_be_modified = true;
+
+    if (NULL == root) root = tree->root_node;
+    parent = (root == tree->root_node) ? NULL : root->parent;
     delete_count = 0;
-    while (r) {
-        if (r->left) {
-            n = r->left;
-            r->left = NULL;
-        } else if (r->right != NULL) {
-            n = r->right;
-            r->right = NULL;
+    while (root) {
+        if (root->left) {
+            n = root->left;
+            root->left = NULL;
+        } else if (root->right != NULL) {
+            n = root->right;
+            root->right = NULL;
         } else {
-            n = r->parent;
-            if (dh_fptr) dh_fptr(r->user_data, extra_arg);
-            free_avl_node(tree, r);
+            n = root->parent;
+            if (dh_fptr) dh_fptr(root->user_data, extra_arg);
+            free_avl_node(tree, root);
             delete_count++;
         }
-        r = n;
+        root = n;
     }
+    if (parent) {
+        parent->left = parent->right = NULL;
+    } else {
+        tree->root_node = NULL;
+    }
+    tree->should_not_be_modified = false;
     return delete_count;
 }
 
@@ -638,7 +584,7 @@ thread_unsafe_iterative_destroy (avl_tree_t *tree,
 
 PUBLIC int
 avl_tree_init (avl_tree_t *tree,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -650,7 +596,7 @@ avl_tree_init (avl_tree_t *tree,
     tree->cmpf = cmpf;
     tree->n = 0;
     tree->root_node = NULL;
-    tree->should_not_be_modified = 0;
+    tree->should_not_be_modified = false;
 
     OBJ_WRITE_UNLOCK(tree);
 
@@ -668,7 +614,7 @@ avl_tree_insert (avl_tree_t *tree,
 
     OBJ_WRITE_LOCK(tree);
     failed = thread_unsafe_avl_tree_insert(tree,
-            data_to_be_inserted, present_data);
+                data_to_be_inserted, present_data);
     OBJ_WRITE_UNLOCK(tree);
     return failed;
 }
@@ -716,70 +662,18 @@ avl_tree_remove (avl_tree_t *tree,
     return failed;
 }
 
-/**************************** Get all entries ********************************/
-
-/*
- * This is much faster & more efficient with morris traverse
- */
-PUBLIC void **
-avl_tree_get_all (avl_tree_t *tree, int *returned_count)
-{
-    void **storage_area;
-    int index;
-    avl_node_t *root, *current;
-
-    OBJ_READ_LOCK(tree);
-    tree->should_not_be_modified = 1;
-    storage_area = malloc((tree->n + 1) * sizeof(void*));
-    if (NULL == storage_area) {
-        *returned_count = 0;
-        tree->should_not_be_modified = 0;
-        OBJ_READ_UNLOCK(tree);
-        return NULL;
-    }
-
-    index = 0;
-    root = tree->root_node;
-    while (root) {
-        if (root->left == NULL) {
-            storage_area[index++] = root->user_data;
-            root = root->right;
-        } else {
-            current = root->left;
-            while (current->right && (current->right != root)) {
-                current = current->right;
-            }
-            if (current->right == root) {
-                current->right = NULL;
-                root = root->right;
-            } else {
-                storage_area[index++] = root->user_data;
-                current->right = root;
-                root = root->left;
-            }
-        }
-    }
-    *returned_count = index;
-    tree->should_not_be_modified = 0;
-    OBJ_READ_UNLOCK(tree);
-
-    return storage_area;
-}
-
 /**************************** Traverse ***************************************/
 
 PUBLIC int
-avl_tree_traverse (avl_tree_t *tree,
+avl_tree_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
     int failed;
 
     OBJ_READ_LOCK(tree);
-    tree->should_not_be_modified = 1;
-    failed = thread_unsafe_morris_traverse(tree, tree->root_node,
+    failed = thread_unsafe_morris_traverse(tree, root,
                 tfn, p0, p1, p2, p3);
-    tree->should_not_be_modified = 0;
     OBJ_READ_UNLOCK(tree);
     return failed;
 }
@@ -793,14 +687,14 @@ avl_tree_destroy (avl_tree_t *tree,
     int old_count, deleted;
 
     OBJ_WRITE_LOCK(tree);
-    tree->should_not_be_modified = 1;
     old_count = tree->n;
-    deleted = thread_unsafe_iterative_destroy(tree, dh_fptr, extra_arg);
+    deleted =
+        thread_unsafe_iterative_destroy(tree, tree->root_node,
+            dh_fptr, extra_arg);
     assert(tree->n == 0);
     assert(old_count == deleted);
     tree->root_node = NULL;
     tree->cmpf = NULL;
-    tree->should_not_be_modified = 0;
     OBJ_WRITE_UNLOCK(tree);
     LOCK_OBJ_DESTROY(tree);
     memset(tree, 0, sizeof(avl_tree_t));

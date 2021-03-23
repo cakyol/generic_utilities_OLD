@@ -78,9 +78,7 @@ compare_f_and_args (void *p1, void *p2)
 static void
 destroy_f_and_arg_cb (void *user_data, void *extra_arg)
 {
-    event_manager_t *emp = (event_manager_t*) extra_arg;
-
-    MEM_MONITOR_FREE(emp, user_data);
+    MEM_MONITOR_FREE(user_data);
 }
 
 /***************************************************************************
@@ -125,7 +123,7 @@ destroy_f_and_arg_container (void *p1, void *p2)
     index_obj_remove(fargcp->my_index, fargcp, NULL);
 
     /* free the actual memory */
-    MEM_MONITOR_FREE(emp, fargcp);
+    MEM_MONITOR_FREE(fargcp);
 }
 
 static f_and_arg_container_t *
@@ -140,7 +138,7 @@ create_f_and_arg_container (event_manager_t *emp,
         failed = ordered_list_init(&fargcp->list_of_f_and_args, 0,
                     compare_f_and_args, emp->mem_mon_p);
         if (failed) {
-            MEM_MONITOR_FREE(emp, fargcp);
+            MEM_MONITOR_FREE(fargcp);
             return NULL;
         }
         fargcp->object_type = object_type;
@@ -327,7 +325,7 @@ thread_unsafe_generic_register_function (event_manager_t *emp,
         /* uniquely add it to the list */
         failed = ordered_list_add_once(list, fandargp, NULL);
         if (failed) {
-            MEM_MONITOR_FREE(emp, fandargp);
+            MEM_MONITOR_FREE(fandargp);
             return failed;
         }
 

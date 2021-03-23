@@ -36,19 +36,20 @@ int main (int argc, char *argv[])
         }
     }
     printf("inserted data into dynamic array\n");
+    printf("lowest %d, highest %d\n", dyn.lowest, dyn.highest);
     fflush(stdout);
 
     errors = j = 0;
     for (i = VALID_START - EXCESS; i <= (VALID_END + EXCESS); i++) {
-        failed = dynamic_array_get(&dyn, i, (void**) &data);
+        data = dynamic_array_get(&dyn, i);
         if ((i >= VALID_START) && (i <= VALID_END)) {
-            if (failed || (data != &array[j])) {
+            if (data != &array[j]) {
                 printf("invalid entry at index %d\n", i);
                 errors++;
             }
             j++;
         } else {
-            if (failed == 0) {
+            if (data != NULL) {
                 printf("invalid entry unexpected at index %d\n", i);
                 errors++;
             }

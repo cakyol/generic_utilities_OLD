@@ -116,7 +116,7 @@ thread_unsafe_dl_list_delete_element (dl_list_t *list,
             elem->next->prev = elem->prev;
         }
     }
-    MEM_MONITOR_FREE(list, elem);
+    MEM_MONITOR_FREE(elem);
     list->n--;
     return 0;
 }

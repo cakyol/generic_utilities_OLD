@@ -91,137 +91,102 @@ extern "C" {
  * ERROR_LEVEL & FATAL_ERROR will always gets reported.
  * Critical errors will also always report AND crash the system.
  */
-#define MIN_DEBUG_LEVEL                 0
-#define TRACE_DEBUG_LEVEL               MIN_DEBUG_LEVEL
+#define TRACE_DEBUG_LEVEL               0
 #define INFORM_DEBUG_LEVEL              1
 #define WARNING_DEBUG_LEVEL             2
 #define ERROR_DEBUG_LEVEL               3
 #define FATAL_ERROR_DEBUG_LEVEL         4
-#define MAX_DEBUG_LEVEL                 FATAL_ERROR_DEBUG_LEVEL
 
-#define MODULE_NAME_LEN                 48
-typedef struct module_name_s {
-    char module_name [MODULE_NAME_LEN];
-} module_name_t;
+typedef struct debug_module_block_s debug_module_block_t;
 
 /* user will completely handle everything */
 typedef void (*debug_reporting_function)
-    (int module, int level,
+    (debug_module_block_t *dmbp, int level,
      const char *file_name, const char *function_name, const int line_number,
      char *fmt, va_list args);
 
-/* how many modules being debugged, initialized in debug_initialize */
-extern int n_modules;
+typedef struct debug_module_block_s {
 
-/* debug level per module, null if INCLUDE_DEBUGGING_CODE is false */
-extern byte *module_debug_levels;
+    int level;
+    char *module_name;
+    debug_reporting_function drf;
 
-/* serialize multiple thread access to debug printing, if needed */
-extern lock_obj_t *p_debugger_lock;
+} debug_module_block_t;
 
-/*
- * Do we really need these, is the programmer really so incompetent
- * to supply an out of bounds number.  Omitting this increases
- * speed.  Besides, it can always be turned on later by changing
- * the 'if 0' below to 'if 1'.
- */
-#if 0
-
-    static inline
-    int invalid_debug_level (int l)
-    { return  (l < MIN_DEBUG_LEVEL) || (l > MAX_DEBUG_LEVEL); }
-
-    static inline
-    int invalid_module_number (int m)
-    { return (m < 0) || (m >= n_modules); }
-
-#else
-
-    #define invalid_debug_level(l)      0
-    #define invalid_module_number(m)    0
-
-#endif
-
-/*
- * If you do NOT want debugging code to be generated/executed,
- * then UN define this.
- */
-#define INCLUDE_DEBUGGING_CODE
-
-#ifdef INCLUDE_DEBUGGING_CODE
-
-    static inline
-    void debug_set_module_level (int m, byte l)
-    {
-        if (invalid_module_number(m)) return;
-        if (invalid_debug_level(l)) return;
-        module_debug_levels[m] = l;
+static inline
+void debug_module_block_set_level (debug_module_block_t *dmbp, int level)
+{
+    /* normalize the level */
+    if (level > FATAL_ERROR_DEBUG_LEVEL) {
+        level = FATAL_ERROR_DEBUG_LEVEL;
+    } else if (level < TRACE_DEBUG_LEVEL) {
+        level = TRACE_DEBUG_LEVEL;
     }
+    dmbp->level = level;
+}
 
-    #define TRACE(m, fmt, args...) \
-        do { \
-            if (invalid_module_number(m)) break; \
-            if (module_debug_levels[m] > TRACE_DEBUG_LEVEL) break; \
-            _process_debug_message_(m, TRACE_DEBUG_LEVEL, \
-                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } while (0)
+static inline void
+debug_module_block_set_module_name (debug_module_block_t *dmbp,
+        char *name)
+{
+    dmbp->module_name = name;
+}
+
+static inline void
+debug_module_block_set_reporting_function (debug_module_block_t *dmbp,
+        debug_reporting_function drf)
+{
+    dmbp->drf = drf;
+}
+
+static inline void
+debug_module_block_init (debug_module_block_t *dmbp,
+        int level, char *name, debug_reporting_function drf)
+{
+    debug_module_block_set_level(dmbp, level);
+    debug_module_block_set_module_name(dmbp, name);
+    debug_module_block_set_reporting_function(dmbp, drf);
+}
+
+#define TRACE(dmbp, fmt, args...) \
+    do { \
+        if ((dmbp)->level > TRACE_DEBUG_LEVEL) break; \
+        _process_debug_message_(dmbp, TRACE_DEBUG_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+    } while (0)
+
+#define INFO(dmbp, fmt, args...) \
+    do { \
+        if ((dmbp)->level > INFORM_DEBUG_LEVEL) break; \
+        _process_debug_message_(ddmbp, INFORM_DEBUG_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+    } while (0)
     
-    #define INFORMATION(m, fmt, args...) \
-        do { \
-            if (invalid_module_number(m)) break; \
-            if (module_debug_levels[m] > INFORM_DEBUG_LEVEL) break; \
-            _process_debug_message_(m, INFORM_DEBUG_LEVEL, \
-                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } while (0)
+#define WARN(dmbp, fmt, args...) \
+    do { \
+        if ((dmbp)->level > WARNING_DEBUG_LEVEL) break; \
+        _process_debug_message_(dmbp, WARNING_DEBUG_LEVEL, \
+                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+    } while (0)
     
-    #define WARNING(m, fmt, args...) \
-        do { \
-            if (invalid_module_number(m)) break; \
-            if (module_debug_levels[m] > WARNING_DEBUG_LEVEL) break; \
-            _process_debug_message_(m, WARNING_DEBUG_LEVEL, \
-                    __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
-        } while (0)
-    
-#else /* ! INCLUDE_DEBUGGING_CODE */
-
-    #define debug_set_module_level(m, l)
-    #define TRACE(m, fmt, args...)
-    #define INFORMATION(m, fmt, args...)
-    #define WARNING(m, fmt, args...)
-
-#endif /* ! INCLUDE_DEBUGGING_CODE */
-
 /*
- * These are always needed regardless since ERROR & FATAL_ERROR
- * will need some sort of debug infra support.
+ * Below are ALWAYS reported regardless of the level set.
  */
 
 /* errors are ALWAYS reported */
-#define ERROR(m, fmt, args...) \
+#define ERROR(dmbp, fmt, args...) \
     do { \
-        if (invalid_module_number(m)) break; \
-        _process_debug_message_(m, ERROR_DEBUG_LEVEL, \
+        _process_debug_message_(dmbp, ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
     } while (0)
 
 /* fatal errors are ALWAYS reported */
-#define FATAL_ERROR(m, fmt, args...) \
+#define FATAL_ERROR(dmbp, fmt, args...) \
     do { \
-        if (invalid_module_number(m)) break; \
-        _process_debug_message_(m, FATAL_ERROR_DEBUG_LEVEL, \
+        _process_debug_message_(dmbp, FATAL_ERROR_DEBUG_LEVEL, \
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
         assert(0); \
     } while (0)
-
-extern int
-debug_initialize (int make_it_thread_safe,
-    debug_reporting_function fn, int num_modules);
-
-extern void 
-debug_set_reporting_function (debug_reporting_function fn);
-
-extern int
-debug_set_module_name (int module, char *name);
 
 /**************************************************************************
  *
@@ -229,7 +194,7 @@ debug_set_module_name (int module, char *name);
  *
  */
 extern void
-_process_debug_message_ (int module, int level,
+_process_debug_message_ (debug_module_block_t *dmbp, int level,
     const char *file_name, const char *function_name, int line_number,
     char *fmt, ...);
 

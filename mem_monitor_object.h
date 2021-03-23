@@ -28,6 +28,7 @@ extern "C" {
 
 #include <stdlib.h>
 #include <string.h>
+#include "common.h"
 
 typedef struct mem_monitor_s {
 
@@ -38,14 +39,15 @@ typedef struct mem_monitor_s {
 } mem_monitor_t;
 
 extern void *
-mem_monitor_allocate (mem_monitor_t *mem,
-        int size, int initialize_to_zero);
+mem_monitor_allocate (mem_monitor_t *mmp, int size,
+    bool initialize_to_zero);
 
 extern void *
-mem_monitor_reallocate (mem_monitor_t *mem, void *ptr, int newsize);
+mem_monitor_reallocate (void *ptr, int newsize,
+    bool initialize_to_zero);
 
 extern void
-mem_monitor_free (mem_monitor_t *mem, void *ptr);
+mem_monitor_free (void *ptr);
 
 #define MEM_MON_VARIABLES \
     mem_monitor_t mem_mon, *mem_mon_p
@@ -60,16 +62,19 @@ mem_monitor_free (mem_monitor_t *mem, void *ptr);
     } while (0)
 
 #define MEM_MONITOR_ALLOC(objp, size) \
-    mem_monitor_allocate(objp->mem_mon_p, size, 0)
+    mem_monitor_allocate(objp->mem_mon_p, size, false)
 
 #define MEM_MONITOR_ZALLOC(objp, size) \
-    mem_monitor_allocate(objp->mem_mon_p, size, 1)
+    mem_monitor_allocate(objp->mem_mon_p, size, true)
 
-#define MEM_REALLOC(objp, oldp, newsize) \
-    mem_monitor_reallocate(objp->mem_mon_p, oldp, newsize)
+#define MEM_MONITOR_REALLOC(oldp, newsize) \
+    mem_monitor_reallocate(oldp, newsize, false)
 
-#define MEM_MONITOR_FREE(objp, ptr) \
-    mem_monitor_free(objp->mem_mon_p, ptr)
+#define MEM_MONITOR_ZREALLOC(oldp, newsize) \
+    mem_monitor_reallocate(oldp, newsize, true)
+
+#define MEM_MONITOR_FREE(ptr) \
+    mem_monitor_free(ptr)
 
 #define OBJECT_MEMORY_USAGE(objp, size_in_bytes, size_in_megabytes) \
     do { \

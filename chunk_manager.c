@@ -96,7 +96,7 @@ cmgr_destroy_list (chunk_manager_t *cmgr, chunk_list_t *list)
     while (chp) {
         nxt = chp->next;
         cmgr_remove_chunk_from_list(list, chp);
-        MEM_MONITOR_FREE(cmgr, chp);
+        MEM_MONITOR_FREE(chp);
         chp = nxt;
     }
     assert(list->head == 0);

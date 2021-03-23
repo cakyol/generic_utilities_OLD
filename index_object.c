@@ -38,7 +38,7 @@ index_resize (index_obj_t *idx, int new_size)
     new_elements = MEM_MONITOR_ZALLOC(idx, new_size * sizeof(void*));
     if (NULL == new_elements) return ENOMEM;
     copy_pointer_blocks(idx->elements, new_elements, idx->n);
-    MEM_MONITOR_FREE(idx, idx->elements);
+    MEM_MONITOR_FREE(idx->elements);
     idx->elements = new_elements;
     idx->maximum_size = new_size;
     return 0;
@@ -150,14 +150,14 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
 
 static int 
 thread_unsafe_index_obj_search (index_obj_t *idx,
-        void *search_key,
+        void *data,
         void **found)
 {
     int i, dummy;
 
     safe_pointer_set(found, NULL);
 
-    i = index_find_position(idx, search_key, &dummy);
+    i = index_find_position(idx, data, &dummy);
 
     /* not found */
     if (i < 0) {
@@ -172,17 +172,20 @@ thread_unsafe_index_obj_search (index_obj_t *idx,
 
 static int
 thread_unsafe_index_obj_remove (index_obj_t *idx,
-        void *data_to_be_removed,
-        void **actual_data_removed)
+        void *data,
+        void **data_removed)
 {
     int i, size, dummy;
 
-    safe_pointer_set(actual_data_removed, NULL);
+    safe_pointer_set(data_removed, NULL);
 
-    if (idx->should_not_be_modified) return EBUSY;
+    if (idx->should_not_be_modified) {
+        deletion_failed(idx);
+        return EBUSY;
+    }
 
     /* first see if it is there */
-    i = index_find_position(idx, data_to_be_removed, &dummy);
+    i = index_find_position(idx, data, &dummy);
 
     /* not in table */
     if (i < 0) {
@@ -190,7 +193,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
         return ENODATA;
     }
 
-    safe_pointer_set(actual_data_removed, idx->elements[i]);
+    safe_pointer_set(data_removed, idx->elements[i]);
     idx->n--;
 
     /* pull the elements AFTER "index" to the left by one */
@@ -208,7 +211,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 
 PUBLIC int
 index_obj_init (index_obj_t *idx,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
         object_comparer cmpf,
         int maximum_size,
         int expansion_size,
@@ -222,12 +225,13 @@ index_obj_init (index_obj_t *idx,
 
     MEM_MONITOR_SETUP(idx);
     LOCK_SETUP(idx);
-    idx->should_not_be_modified = 0;
+    idx->should_not_be_modified = false;
     idx->initial_size = idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;
     idx->expansion_count = 0;
     idx->cmpf = cmpf;
     idx->n = 0;
+    idx->current = 0;
     idx->elements = MEM_MONITOR_ZALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
         failed = EINVAL;
@@ -240,14 +244,13 @@ index_obj_init (index_obj_t *idx,
 
 PUBLIC int
 index_obj_insert (index_obj_t *idx,
-        void *data_to_be_inserted,
+        void *data,
         void **present_data)
 {
     int failed;
 
     OBJ_WRITE_LOCK(idx);
-    failed = thread_unsafe_index_obj_insert(idx, 
-            data_to_be_inserted, present_data);
+    failed = thread_unsafe_index_obj_insert(idx, data, present_data);
     OBJ_WRITE_UNLOCK(idx);
     return failed;
 }
@@ -256,14 +259,13 @@ index_obj_insert (index_obj_t *idx,
 
 PUBLIC int
 index_obj_search (index_obj_t *idx,
-        void *data_to_be_searched,
+        void *data,
         void **present_data)
 {
     int failed;
 
     OBJ_READ_LOCK(idx);
-    failed = thread_unsafe_index_obj_search(idx, 
-            data_to_be_searched, present_data);
+    failed = thread_unsafe_index_obj_search(idx, data, present_data);
     OBJ_READ_UNLOCK(idx);
     return failed;
 }
@@ -272,37 +274,31 @@ index_obj_search (index_obj_t *idx,
 
 PUBLIC int
 index_obj_remove (index_obj_t *idx,
-        void *data_to_be_removed,
-        void **data_actually_removed)
+        void *data,
+        void **data_removed)
 {
     int failed;
     
     OBJ_WRITE_LOCK(idx);
-    failed = thread_unsafe_index_obj_remove(idx,
-                data_to_be_removed, data_actually_removed);
+    failed = thread_unsafe_index_obj_remove(idx, data, data_removed);
     OBJ_WRITE_UNLOCK(idx);
     return failed;
 }
 
 /**************************** Get all entries ********************************/
 
-PUBLIC void **
-index_obj_get_all (index_obj_t *idx, int *returned_count)
+PUBLIC void
+index_obj_get_all (index_obj_t *idx,
+        void *data_pointers [], int *count)
 {
-    int i;
-    void **storage_area;
+    int i, n = *count;
 
     OBJ_READ_LOCK(idx);
-    storage_area = MEM_MONITOR_ZALLOC(idx, (idx->n + 1) * sizeof(void*));
-    if (NULL == storage_area) {
-        *returned_count = 0;
-        OBJ_READ_UNLOCK(idx);
-        return NULL;
-    }
-    for (i = 0; i < idx->n; i++) storage_area[i] = idx->elements[i];
-    *returned_count = i;
+    for (i = 0; ((i < idx->n) && (i < n)); i++)
+        data_pointers[i] = idx->elements[i];
+    *count = i;
+    while (i < n) data_pointers[i++] = NULL;
     OBJ_READ_UNLOCK(idx);
-    return storage_area;
 }
 
 /**************************** Traverse ***************************************/
@@ -312,25 +308,48 @@ index_obj_traverse (index_obj_t *idx,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
-    int i;
-    int failed = 0;
+    int i, failed = 0;
 
-    if (idx->should_not_be_modified) return EBUSY;
-    idx->should_not_be_modified = 1;
-
+    if (NULL == tfn) return 0;
     OBJ_READ_LOCK(idx);
+    idx->should_not_be_modified = true;
     for (i = 0; i < idx->n; i++) {
-        if ((tfn)((void*) idx, &(idx->elements[i]), idx->elements[i],
-            p0, p1, p2, p3) != 0) {
-                failed = EFAULT;
-                break;
-        }
+        failed = tfn((void*) idx, &(idx->elements[i]), idx->elements[i],
+                    p0, p1, p2, p3);
+        if (failed) break;
     }
+    idx->should_not_be_modified = false;
     OBJ_READ_UNLOCK(idx);
-
-    idx->should_not_be_modified = 0;
-
     return failed;
+}
+
+/**************************** Trim size **************************************/
+
+#define INDEX_OBJ_BLOAT     4
+
+PUBLIC int
+index_obj_trim (index_obj_t *idx)
+{
+    int failed = 0;
+    int bloated = idx->n + INDEX_OBJ_BLOAT;
+
+    OBJ_WRITE_LOCK(idx);
+    if (idx->maximum_size > bloated) {
+        failed = index_resize(idx, bloated);
+    }
+    OBJ_WRITE_UNLOCK(idx);
+    return failed;
+}
+
+/********************************* Reset *************************************/
+
+PUBLIC void
+index_obj_reset (index_obj_t *idx)
+{
+    OBJ_WRITE_LOCK(idx);
+    idx->n = 0;
+    index_obj_trim(idx);
+    OBJ_WRITE_UNLOCK(idx);
 }
 
 /**************************** Destroy ****************************************/
@@ -348,32 +367,17 @@ index_obj_destroy (index_obj_t *idx,
     int i;
 
     OBJ_WRITE_LOCK(idx);
+    idx->should_not_be_modified = true;
     if (idx->elements) {
         if (dh_fptr) {
-            for (i = 0; i < idx->n; i++) dh_fptr(idx->elements[i], extra_arg);
+            for (i = 0; i < idx->n; i++)
+                dh_fptr(idx->elements[i], extra_arg);
         }
-        MEM_MONITOR_FREE(idx, idx->elements);
+        MEM_MONITOR_FREE(idx->elements);
     }
     OBJ_WRITE_UNLOCK(idx);
     LOCK_OBJ_DESTROY(idx);
     memset(idx, 0, sizeof(index_obj_t));
-}
-
-/**************************** Other ******************************************/
-
-PUBLIC int
-index_obj_trim (index_obj_t *idx)
-{
-    int trimmed = 0;
-    int old_size = idx->maximum_size;
-
-    /* trim only if size is >= twice the number of elements */
-    if (idx->maximum_size >= (2 * idx->n)) {
-        if (index_resize(idx, (idx->n + 1)) == 0) {
-            trimmed = old_size - (idx->n + 1);
-        }
-    }
-    return trimmed;
 }
 
 #ifdef __cplusplus

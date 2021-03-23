@@ -30,73 +30,17 @@
 extern "C" {
 #endif
 
-#define PUBLIC
+debug_module_block_t om_debug = { 
+
+    .level = ERROR_DEBUG_LEVEL,
+    .module_name = "OBJECT_MANAGER",
+    .drf = NULL
+
+};
 
 /******************************************************************************
  *
- * FACTS:
- * ------
- * Below are global variables which control whether an avl tree or 
- * the index object should be used for some heavily accessed data 
- * structures.  Setting them to 0 will disable use of avl trees
- * and will activate index object structures.  Setting them to 1 
- * will do the reverse, ie activate the avl tree implementation.
- *
- * Using avl trees will ALWAYS make ALL creations and deletions MUCH
- * MUCH faster but will ALWAYS use much more memory (approximately 10
- * fold more).  Using the index object uses much less memory (10 times
- * less) but MAY make your creations/deletions much slower.  It is
- * possible that using the index object may also make your creations
- * and deletions just as fast as an avl tree but that is heavily
- * dependent on the 'order' of how the objects are created and deleted.
- * Its speed is therefore very undeterministic and can never be guaranteed.
- *
- * Searching data in the manager however is the SAME speed whether you
- * use the avl trees or the index object.  The determining factor is the
- * frequency of creations/deletion and not the searches.
- *
- * RECOMMENDATION:
- * ----------------
- * If your manager is relatively static once it has been created
- * (it is mostly used for lookups rather than frequently being modified),
- * then all 'use_avl_tree*' variables can be set to 0.  This will save
- * a LOT of memory and lookups will be just as fast as an avl tree.
- *
- * However, if your manager is dynamic (objects and attributes being
- * constantly created & deleted), then usage of avl trees makes sense
- * unless you have very limited memory.
- *
- * If you have lots of memory, then it makes sense to use the avl
- * variables.  In this case you get maximum performance whether you
- * are searching, creating or deleting objects/attributes.
- *
- * If your manager is very dynamic AND you do not have sufficient
- * memory, you are out of luck.  In this case, it is better NOT to
- * use the avl variables and suffer with slower performance.
- */
-static int use_avl_tree_for_manager_object_index = 1;
-static int use_avl_tree_for_object_children = 1;
-
-#ifndef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-static int use_avl_tree_for_attribute_ids = 1;
-#endif
-
-/*
- * forward declarations
- */
-
-static void
-om_object_destroy_callback (void *p1, void *p2);
-
-static int
-om_announce_event (object_manager_t *omp,
-    int event,
-    object_t *obj, object_t *obj_related, 
-    int attribute_id, attribute_value_t *related_attribute_value);
-
-/******************************************************************************
- *
- * general & common support functions, used by anyone
+ * general support functions
  *
  */
 
@@ -111,34 +55,30 @@ compare_objects (void *o1, void *o2)
         ((object_t*) o1)->object_instance - ((object_t*) o2)->object_instance;
 }
 
-static inline int
-object_is_root (object_t *obj)
+static int
+compare_attributes (void *aip1, void *aip2)
 {
     return
-        (obj->object_type == ROOT_OBJECT_TYPE);
+        ((attribute_t*) aip1)->attribute_id -
+        ((attribute_t*) aip2)->attribute_id;
 }
 
-static object_t *
+static inline object_t*
 get_object_pointer (object_manager_t *omp,
         int object_type, int object_instance)
 {
     object_t searched;
     void *found;
 
-    if (object_type == ROOT_OBJECT_TYPE) {
-        return
-            &omp->root_object;
-    }
-
     searched.object_type = object_type;
     searched.object_instance = object_instance;
-    if (0 == table_search(&omp->object_index, &searched, &found)) {
+    if (0 == avl_tree_search(&omp->om_objects, &searched, &found)) {
         return found;
     }
     return NULL;
 }
 
-static object_t *
+static inline object_t*
 get_parent_pointer (object_t *obj)
 {
     if (obj->parent.is_pointer) {
@@ -152,593 +92,570 @@ get_parent_pointer (object_t *obj)
             obj->parent.u.object_id.object_instance);
 }
 
-static attribute_instance_t *
-get_attribute_instance_pointer (object_t *obj, int attribute_id)
+static inline attribute_t*
+get_attribute_pointer (object_t *obj, int attribute_id)
 {
     void *found;
-
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    if (dynamic_array_get(&obj->attributes, attribute_id, &found) == 0) {
-        return found;
-    }
-#else
-    attribute_instance_t searched;
+    attribute_t searched;
 
     searched.attribute_id = attribute_id;
-    if (table_search(&obj->attributes, &searched, &found) == 0) {
+    if (index_obj_search(&obj->attributes, &searched, &found) == 0) {
         return found;
     }
-#endif
+
     return NULL;
-}
-
-/*
- * It is very important to understand this function.
- * It works to cut down redundant event announcements
- * during a deletion event.  In a deletion event,
- * only the topmost delete needs to be announced.
- * sub event deletions need not be sent and must be suppressed
- * to cut unnecessary chatter between the managers.
- * The purpose of this function is to set the blocked event
- * bits.  Once those are set, those bits MUST stick and
- * perhaps be added with more bits as calls get deeper
- * within the stack.  This is why "|=" is used to accumulate
- * more events to block.  This has the effect of making sure that
- * if an event was already blocked before this call, it STAYS
- * blocked, regardless of what this bit says.  If however,
- * it was not blocked before, it still stays unblocked.
- */
-static int
-allow_event_if_not_already_blocked (object_manager_t *omp, 
-        int allowed_events)
-{
-    int orig = omp->blocked_events;
-
-    omp->blocked_events |= (~allowed_events);
-    return orig;
-}
-
-static void
-restore_events (object_manager_t *omp, int events)
-{
-    omp->blocked_events = events;
-}
-
-/*
- * This function collects all FIRST level children of an object
- * whose object types match a specified type.
- * It collects them into the collector array up to the specified
- * limit.
- */
-static int
-get_matching_children_tfn (void *utility_object, void *utility_node,
-    void *user_data, void *v_matching_object_type, 
-    void *v_collector, void *v_index, void *v_limit)
-{
-    object_t *obj = user_data;
-    int matching_object_type = pointer2integer(v_matching_object_type);
-    object_representation_t *collector; 
-    object_representation_t *rep;
-    int *index;
-
-    /* end of iteration */
-    if (NULL == obj) return 0;
-
-    /* if object type does not match, skip it */
-    if ((matching_object_type != ALL_OBJECT_TYPES) &&
-        (matching_object_type != obj->object_type))
-            return 0;
-
-    index = (int*) v_index;
-    if (*index >= pointer2integer(v_limit)) return ENOSPC;
-    
-    collector = (object_representation_t*) v_collector;
-    rep = &collector[*index];
-    rep->is_pointer = 0;
-    rep->u.object_id.object_type = obj->object_type;
-    rep->u.object_id.object_instance = obj->object_instance;
-    (*index)++;
-
-    return 0;
-}
-
-/*
- * This is similar to above but it collects ALL the matching objects below
- * the specified object, including children, grand children and ALL.
- * Entire set of descendants.
- *
- * This is used internally, so the collector array stores the
- * object pointers.
- */
-static int
-get_matching_descendants_tfn (void *utility_object, void *utility_node,
-    void *user_data, void *v_matching_object_type, 
-    void *v_collector, void *v_index, void *v_limit)
-{
-    object_t *obj = user_data;
-    int matching_object_type = pointer2integer(v_matching_object_type);
-    object_representation_t *collector; 
-    int *index;
-
-    /* end of iteration */
-    if (NULL == obj) return 0;
-
-    /* if object type does not match, skip it */
-    if ((matching_object_type != ALL_OBJECT_TYPES) &&
-        (matching_object_type != obj->object_type))
-            return 0;
-
-    index = (int*) v_index;
-    if (*index >= pointer2integer(v_limit)) return ENOSPC;
-    
-    collector = (object_representation_t*) v_collector;
-    collector[*index].is_pointer = 1;
-    collector[*index].u.object_ptr = obj;
-    (*index)++;
-
-    /* now get all the descendants too */
-    table_traverse(&obj->children, get_matching_descendants_tfn,
-            v_matching_object_type, v_collector, v_index, v_limit);
-
-    return 0;
 }
 
 /******************************************************************************
  *
- * attribute related functions
+ * attribute value related functions
  *
  */
 
-#ifndef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
+#define ATTRIBUTE_VALUE_IS_SIMPLE_FLAG          (0x1)
+#define ATTRIBUTE_VALUE_IS_COMPLEX_FLAG         (0x2)
 
 /*
- * if dynamic arrays are not used for storing attribute ids, the table
- * object is used.  This function is therefore needed as the comparison
- * function to support that object
+ * conveniences to access the attribute value union
  */
-static int
-compare_attribute_ids (void *att1, void *att2)
+#define ATTRIBUTE_VALUE_IS_SIMPLE(avp) \
+    (avp && (avp->attribute_flags & ATTRIBUTE_VALUE_IS_SIMPLE_FLAG))
+
+#define ATTRIBUTE_VALUE_IS_COMPLEX(avp) \
+    (avp && (avp->attribute_flags & ATTRIBUTE_VALUE_IS_COMPLEX_FLAG))
+
+#define SIMPLE_ATTRIBUTE_VALUE(avp) \
+    (avp->attribute_value_u.simple_attribute_value)
+
+#define COMPLEX_ATTRIBUTE_VALUE_LENGTH(avp) \
+    (avp->attribute_value_u.complex_attribute_value.length)
+
+#define COMPLEX_ATTRIBUTE_VALUE_PTR(avp) \
+    (avp->attribute_value_u.complex_attribute_value.data)
+
+/*
+ * Is 'value' the same as the value in 'avp' ?
+ */
+static boolean
+same_attribute_simple_values (attribute_value_t *avp,
+    long long int value)
 {
-    return
-        ((attribute_instance_t*) att1.pointer)->attribute_id -
-        ((attribute_instance_t*) att2.pointer)->attribute_id;
-}
-
-#endif 
-
-static attribute_value_t *
-create_simple_attribute_value (mem_monitor_t *memp, long long int value)
-{
-    attribute_value_t *avtp;
-
-    if (memp) {
-        avtp = mem_monitor_allocate(memp, sizeof(attribute_value_t), 1);
-    } else {
-        avtp = malloc(sizeof(attribute_value_t));
+    assert(avp->ref_count > 0);
+    if (ATTRIBUTE_VALUE_IS_SIMPLE(avp)) {
+        return (SIMPLE_ATTRIBUTE_VALUE(avp) == value);
     }
-    if (NULL != avtp) {
-        avtp->next_attribute_value = NULL;
-        avtp->attribute_value_data = value;
-        avtp->attribute_value_length = 0;
+    return false;
+}
+
+/*
+ * Is byte stream 'data' of length 'len' bytes
+ * the same as the value in 'avp' ?
+ */
+static boolean
+same_attribute_complex_values (attribute_value_t *avp,
+    byte *data, int len)
+{
+    assert(avp->ref_count > 0);
+    if (ATTRIBUTE_VALUE_IS_COMPLEX(avp) && 
+        (COMPLEX_ATTRIBUTE_VALUE_LENGTH(avp) == len)) {
+            return
+                (memcmp(data, COMPLEX_ATTRIBUTE_VALUE_PTR(avp), len) == 0);
     }
-    return avtp;
+    return false;
 }
 
+/*
+ * In attribute instance 'aip' find the value which 
+ * matches the simple attribute value of 'value'.
+ * Return a pointer to it if found.
+ */
 static attribute_value_t *
-clone_simple_attribute_value (attribute_value_t *avtp)
+attribute_simple_value_find (attribute_t *aip,
+    long long int value, attribute_value_t **prev)
 {
-    return
-        create_simple_attribute_value(NULL, avtp->attribute_value_data);
-}
+    attribute_value_t *avp = aip->avp_list;
 
-static int
-same_simple_attribute_values (attribute_value_t *avtp, long long int value)
-{
-    return
-        (avtp->attribute_value_length == 0) &&
-        (avtp->attribute_value_data == value);
-}
-
-static attribute_value_t *
-find_simple_attribute_value (attribute_instance_t *aitp, long long int value,
-        attribute_value_t **previous_avtp)
-{
-    attribute_value_t *avtp;
-
-    safe_pointer_set(previous_avtp, NULL);
-    avtp = aitp->avps;
-    while (avtp) {
-        if (same_simple_attribute_values(avtp, value)) return avtp;
-        safe_pointer_set(previous_avtp, avtp);
-        avtp = avtp->next_attribute_value;
+    safe_pointer_set(prev, NULL);
+    while (avp) {
+        if (same_attribute_simple_values(avp, value)) return avp;
+        safe_pointer_set(prev, avp);
+        avp = avp->next_avp;
     }
     return NULL;
 }
 
+/*
+ * In attribute instance 'aip' find the value which 
+ * matches the complex attribute value of 'data' and 'len'.
+ * Return a pointer to it if found.
+ */
 static attribute_value_t *
-create_complex_attribute_value (mem_monitor_t *memp, 
-        byte *complex_value_data, int complex_value_data_length)
+attribute_complex_value_find (attribute_t *aip,
+    byte *data, int len, attribute_value_t **prev)
 {
-    attribute_value_t *avtp;
-    int size = sizeof(attribute_value_t);
+    attribute_value_t *avp = aip->avp_list;
 
-    /* adjust for stream whose length > sizeof(long long int) */
-    if (complex_value_data_length > (int) sizeof(long long int)) {
-        size = size + complex_value_data_length - sizeof(long long int);
-    }
-
-    /* allocate enuf space */
-    if (memp) {
-        avtp = mem_monitor_allocate(memp, size, 1);
-    } else {
-        avtp = malloc(size);
-    }
-    if (NULL == avtp) return NULL;
-
-    /* set the stuff */
-    avtp->next_attribute_value = NULL;
-    avtp->attribute_value_length = complex_value_data_length;
-    memcpy((void*) &avtp->attribute_value_data,
-                complex_value_data, complex_value_data_length);
-
-    return avtp;
-}
-
-static attribute_value_t *
-clone_complex_attribute_value (attribute_value_t *avtp)
-{
-    return
-        create_complex_attribute_value(NULL, 
-            (byte*) &avtp->attribute_value_data, 
-            avtp->attribute_value_length);
-}
-
-static int
-same_complex_attribute_values (attribute_value_t *avtp, 
-    byte *complex_value_data, int complex_value_data_length)
-{
-    return
-        (complex_value_data_length > 0) && 
-        (avtp->attribute_value_length == complex_value_data_length) &&
-        (memcmp((void*) &avtp->attribute_value_data,
-                    complex_value_data, complex_value_data_length) == 0);
-}
-
-static attribute_value_t *
-find_complex_attribute_value (attribute_instance_t *aitp,
-    byte *complex_value_data, int complex_value_data_length,
-    attribute_value_t **previous_avtp)
-{
-    attribute_value_t *avtp;
-
-    safe_pointer_set(previous_avtp, NULL);
-    avtp = aitp->avps;
-    while (avtp) {
-        if (same_complex_attribute_values(avtp,
-                    complex_value_data, complex_value_data_length)) return avtp;
-        safe_pointer_set(previous_avtp, avtp);
-        avtp = avtp->next_attribute_value;
+    safe_pointer_set(prev, NULL);
+    while (avp) {
+        if (same_attribute_complex_values(avp, data, len)) return avp;
+        safe_pointer_set(prev, avp);
+        avp = avp->next_avp;
     }
     return NULL;
 }
 
-static attribute_value_t *
-clone_attribute_value (attribute_value_t *avtp)
-{
-    if (avtp->attribute_value_length > 0) {
-        return
-            clone_complex_attribute_value(avtp);
-    }
-    return
-        clone_simple_attribute_value(avtp);
-}
-
-static void
-add_attribute_value_to_list (attribute_instance_t *aitp, 
-    attribute_value_t *avtp)
-{
-    /* always add to head, much faster */
-    avtp->next_attribute_value = aitp->avps;
-    aitp->avps = avtp;
-    aitp->n_attribute_values++;
-}
-
-static void
-remove_attribute_value_from_list (attribute_instance_t *aitp, 
-    attribute_value_t *avtp, attribute_value_t *prev_avtp)
-{
-    if (prev_avtp) {
-        prev_avtp->next_attribute_value = avtp->next_attribute_value;
-    } else {
-        aitp->avps = avtp->next_attribute_value;
-    }
-    aitp->n_attribute_values--;
-}
-
 /*
- * WILL handle NULL keep, in fact this is deliberately used in
- * some functions below so do *NOT* check for NULL keep.
- * When keep is NULL, it will destroy ALL attribute values.
+ * obliterate & free all storages of all the attribute values
+ * belonging to attribute instance 'aip'.
  */
 static void
-destroy_all_attribute_values_except (attribute_instance_t *aitp,
-    attribute_value_t *keep)
+attribute_values_remove_all (attribute_t *aip)
 {
-    attribute_value_t *curr, *next;
-    object_t *obj;
-    int events;
+    attribute_value_t *deleter;
 
-    if (NULL == aitp) return;
-    obj = aitp->object;
-
-    events = allow_event_if_not_already_blocked(obj->omp, 
-            ATTRIBUTE_VALUE_DELETED);
-    
-    /* now delete all skipping over the kept one */
-    curr = aitp->avps;
-    while (curr) {
-        next = curr->next_attribute_value;
-        if (keep != curr) {
-            om_announce_event(obj->omp, ATTRIBUTE_VALUE_DELETED, obj,
-                NULL, aitp->attribute_id, curr);
-            MEM_MONITOR_FREE(obj->omp, curr);
+    while (aip->avp_list) {
+        deleter = aip->avp_list;
+        aip->avp_list = aip->avp_list->next_avp;
+        aip->n -= deleter->ref_count;
+        if (ATTRIBUTE_VALUE_IS_COMPLEX(deleter)) {
+            mem_monitor_free(COMPLEX_ATTRIBUTE_VALUE_PTR(deleter));
         }
-        curr = next;
+        mem_monitor_free(deleter);
     }
+    assert(aip->n == 0);
+    assert(aip->avp_list == NULL);
+}
 
-    restore_events(obj->omp, events);
+/*
+ * add an attribute value to an attribute id.
+ * This function can add both a simple or a complex
+ * attribute value, depending on 'complex'.  The values
+ * will be taken from different parameters depending on
+ * 'complex'.
+ *
+ * Note that since the same exact value (simple or complex)
+ * can be added multiple times to an attribute id, a parameter
+ * named 'howmany_extras' is added.
+ *
+ * It does exactly what it says.  It adds EXTRA count of
+ * values.  If it is 0, the attribute value will be added
+ * only once.  0 specifies a one time unique value.  If you
+ * call the function with the same value and 0 extras,
+ * there will always be ONE copy of the value.  If you want
+ * the same value added 10 times, you can call the function
+ * either 10 times with 'howmany_extras' as one, OR call
+ * it once with 'howmany_extras' as 9.
+ */
+static int
+attribute_value_add_engine (attribute_t *aip,
+    boolean complex,
+    long long int value,        /* used when 'complex' is false */
+    byte *data, int len,        /* used when 'complex' is true */
+    int howmany_extras)
+{
+    attribute_value_t *avp;
+    byte *d;
 
-    /*
-     * if we kept any, we can now make it the ONLY one in the list,
-     * otherwise, there should ne nothing left in the list
-     */
-    aitp->avps = keep;
-    if (keep) {
-        keep->next_attribute_value = NULL;
-        aitp->n_attribute_values = 1;
+    if (complex) {
+        avp = attribute_complex_value_find(aip, data, len, NULL);
     } else {
-        aitp->n_attribute_values = 0;
+        avp = attribute_simple_value_find(aip, value, NULL);
     }
+    if (avp) {
+        avp->ref_count += howmany_extras;
+        aip->n += howmany_extras;
+        return 0;
+    }
+
+    avp = MEM_MONITOR_ALLOC(aip->object->omp, sizeof(attribute_value_t));
+    if (NULL == avp) return ENOMEM;
+    if (complex) {
+        d = MEM_MONITOR_ALLOC(aip->object->omp, len);
+        if (NULL == d) {
+            mem_monitor_free(avp);
+            return ENOMEM;
+        }
+        avp->attribute_flags = ATTRIBUTE_VALUE_IS_COMPLEX_FLAG;
+        COMPLEX_ATTRIBUTE_VALUE_LENGTH(avp) = len;
+        COMPLEX_ATTRIBUTE_VALUE_PTR(avp) = d;
+        memcpy(d, data, len);
+    } else {
+        avp->attribute_flags = ATTRIBUTE_VALUE_IS_SIMPLE_FLAG;
+        SIMPLE_ATTRIBUTE_VALUE(avp) = value;
+    }
+    
+    avp->ref_count = 1 + howmany_extras;
+    avp->next_avp = aip->avp_list;
+    aip->avp_list = avp;
+    aip->n += avp->ref_count;
+
+    return 0;
 }
 
-static void
-destroy_all_attribute_values (attribute_instance_t *aitp)
+static inline int
+attribute_simple_value_add (attribute_t *aip,
+    long long int value, int howmany_extras)
 {
-    destroy_all_attribute_values_except(aitp, NULL);
+    return
+        attribute_value_add_engine(aip, false,
+            value, NULL, 0, howmany_extras);
+}
+
+/*
+ * the 'set' function is different.  It deletes all other values
+ * and just sets the value to the new one.
+ */
+static inline int
+attribute_simple_value_set (attribute_t *aip,
+    long long int value, int ref_count)
+{
+    attribute_values_remove_all(aip);
+    return
+        attribute_simple_value_add(aip, value, (ref_count-1));
+}
+
+static inline int
+attribute_complex_value_add (attribute_t *aip,
+    byte *data, int len, int howmany_extras)
+{
+    return
+        attribute_value_add_engine(aip, true,
+            0, data, len, howmany_extras);
+}
+
+static inline boolean
+attribute_complex_value_set (attribute_t *aip,
+    byte *data, int len, int ref_count)
+{
+    attribute_values_remove_all(aip);
+    return
+        attribute_complex_value_add(aip, data, len, (ref_count-1));
+}
+
+/*
+ * You can delete multiple occurences of the same attribute
+ * value.  This is specified in 'howmany'.
+ * If that value is greater than the total number of values,
+ * then all those values will be deleted.
+ */
+static int
+attribute_value_remove_engine (attribute_t *aip,
+    boolean complex,
+    long long int value,        /* used when 'complex' is false */
+    byte *data, int len,        /* used when 'complex' is true */
+    int howmany)
+{
+    attribute_value_t *avp, *prev;
+
+    if (complex) {
+        avp = attribute_complex_value_find(aip, data, len, &prev);
+    } else {
+        avp = attribute_simple_value_find(aip, value, &prev);
+    }
+    if (NULL == avp) return ENOENT;
+    if (howmany > avp->ref_count) howmany = avp->ref_count;
+    avp->ref_count -= howmany;
+    aip->n -= howmany;
+    assert(aip->n >= 0);
+    if (avp->ref_count <= 0) {
+        if (NULL == prev) {
+            assert(aip->avp_list == avp);
+            aip->avp_list = aip->avp_list->next_avp;
+        } else {
+            assert(prev->next_avp == avp);
+            prev->next_avp = avp->next_avp;
+        }
+        if (complex) mem_monitor_free(COMPLEX_ATTRIBUTE_VALUE_PTR(avp));
+        mem_monitor_free(avp);
+    }
+    return 0;
+}
+
+static inline int
+attribute_simple_value_remove (attribute_t *aip,
+    long long int value, int howmany)
+{
+    return
+        attribute_value_remove_engine(aip, false,
+            value, NULL, 0, howmany);
+}
+
+static inline int
+attribute_complex_value_remove (attribute_t *aip,
+    byte *data, int len, int howmany)
+{
+    return
+        attribute_value_remove_engine(aip, true,
+            0, data, len, howmany);
+}
+
+/*
+ * Get all the values associated with an attribute id.
+ *
+ * Return all the attribute value pointers to the requester as pointers
+ * in the supplied array of attribute value pointers.  The 'limit' is
+ * the size of the array passed in by the caller and only up to that
+ * many attribute values will be returned.  'limit' is also used to return
+ * how many attribute values have been returned.
+ */
+static void
+attribute_values_get_all (attribute_t *aip,
+    attribute_value_t *avp_list [], int *limit)
+{
+    attribute_value_t *avp = aip->avp_list;
+    int i, n = *limit;
+
+    /* add them to the array one by one */
+    for (i = 0; ((i < n) && avp); i++) {
+        avp_list[i] = avp;
+        avp = avp->next_avp;
+    }
+    *limit = i;
 }
 
 /******************************************************************************/
 
-static attribute_value_t *
-attribute_add_simple_value_engine (attribute_instance_t *aitp,
-    long long int value)
-{
-    attribute_value_t *avtp;
-    object_t *obj;
-
-    if (NULL == aitp) return NULL;
-    obj = aitp->object;
-
-    /* value already there ? */
-    avtp = find_simple_attribute_value(aitp, value, NULL);
-    if (avtp) return avtp;
-
-    /* not there, add it */
-    avtp = create_simple_attribute_value(obj->omp->mem_mon_p, value);
-    if (avtp) {
-        add_attribute_value_to_list(aitp, avtp);
-        om_announce_event(obj->omp, ATTRIBUTE_VALUE_ADDED, obj,
-            NULL, aitp->attribute_id, avtp);
-    }
-
-    return avtp;
-}
-
-static int
-attribute_add_simple_value (attribute_instance_t *aitp, 
-    long long int value)
-{
-    attribute_value_t *avtp;
-        
-    avtp = attribute_add_simple_value_engine(aitp, value);
-    return avtp ? 0 : -1;
-}
-
-static int
-attribute_set_simple_value (attribute_instance_t *aitp,
-    long long int value)
-{
-    attribute_value_t *avtp;
-
-    avtp = attribute_add_simple_value_engine(aitp, value);
-    if (avtp) {
-        destroy_all_attribute_values_except(aitp, avtp);
-        return 0;
-    }
-    return -1;
-}
-
-static int
-attribute_delete_simple_value (attribute_instance_t *aitp, 
-        long long int value)
-{
-    attribute_value_t *avtp, *prev_avtp;
-    object_t *obj;
-
-    if (NULL == aitp) return -1;
-    obj = aitp->object;
-    avtp = find_simple_attribute_value(aitp, value, &prev_avtp);
-    if (avtp) {
-        remove_attribute_value_from_list(aitp, avtp, prev_avtp);
-        om_announce_event(obj->omp, ATTRIBUTE_VALUE_DELETED, obj,
-            NULL, aitp->attribute_id, avtp);
-        MEM_MONITOR_FREE(obj->omp, avtp);
-        return 0;
-    }
-    return -1;
-}
-
-/******************************************************************************/
-
-static attribute_value_t *
-attribute_add_complex_value_engine (attribute_instance_t *aitp, 
-        byte *complex_value_data, int complex_value_data_length)
-{
-    attribute_value_t *avtp;
-    object_t *obj;
-
-    if (NULL == aitp) return NULL;
-    obj = aitp->object;
-
-    /* value already there ? */
-    avtp = find_complex_attribute_value(aitp,
-                complex_value_data, complex_value_data_length, NULL);
-    if (avtp) return avtp;
-
-    /* not there, add it */
-    avtp = create_complex_attribute_value(obj->omp->mem_mon_p,
-                complex_value_data, complex_value_data_length);
-    if (avtp) {
-        add_attribute_value_to_list(aitp, avtp);
-        om_announce_event(obj->omp, ATTRIBUTE_VALUE_ADDED, obj,
-            NULL, aitp->attribute_id, avtp);
-    }
-    return avtp;
-}
-
-static int
-attribute_add_complex_value (attribute_instance_t *aitp,
-        byte *complex_value_data, int complex_value_data_length)
-{
-    attribute_value_t *avtp;
-
-    avtp = attribute_add_complex_value_engine(aitp,
-                complex_value_data, complex_value_data_length);
-    return avtp ? 0 : -1;
-}
-
-static int
-attribute_set_complex_value (attribute_instance_t *aitp,
-    byte *complex_value_data, int complex_value_data_length)
-{
-    attribute_value_t *avtp;
-
-    avtp = attribute_add_complex_value_engine(aitp,
-                complex_value_data, complex_value_data_length);
-    if (avtp) {
-        destroy_all_attribute_values_except(aitp, avtp);
-        return 0;
-    }
-    return -1;
-}
-
-static int
-attribute_delete_complex_value (attribute_instance_t *aitp, 
-        byte *complex_value_data, int complex_value_data_length)
-{
-    attribute_value_t *avtp, *prev_avtp;
-    object_t *obj;
-
-    if (NULL == aitp) return -1;
-    obj = aitp->object;
-    avtp = find_complex_attribute_value(aitp,
-                complex_value_data, complex_value_data_length, &prev_avtp);
-    if (avtp) {
-        remove_attribute_value_from_list(aitp, avtp, prev_avtp);
-        om_announce_event(obj->omp, ATTRIBUTE_VALUE_DELETED, obj,
-            NULL, aitp->attribute_id, avtp);
-        MEM_MONITOR_FREE(obj->omp, avtp);
-        return 0;
-    }
-    return -1;
-}
-
 static void
-attribute_instance_destroy (attribute_instance_t *aitp)
+attribute_remove (attribute_t *aip)
 {
-    object_t *obj = aitp->object;
-    object_manager_t *omp = obj->omp;
+    object_t *obj = aip->object;
     void *removed_data;
-    int events;
-
-    events = allow_event_if_not_already_blocked(omp, 
-                ATTRIBUTE_INSTANCE_DELETED);
 
     /* delete all its values first */
-    destroy_all_attribute_values(aitp);
+    attribute_values_remove_all(aip);
 
-    /* now delete the instance itself */
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    dynamic_array_remove(&obj->attributes, aitp->attribute_id, &removed_data);
-#else
-    table_remove(&obj->attributes, aitp, &removed_data);
-#endif
-    assert(aitp == removed_data);
+    /* remove the attribute from its object */
+    index_obj_remove(&obj->attributes, aip, &removed_data);
+    assert(aip == removed_data);
 
-    om_announce_event(obj->omp, ATTRIBUTE_INSTANCE_DELETED, 
-            obj, NULL, aitp->attribute_id, NULL);
-
-    /* ok event is processed, now restore back */
-    restore_events(omp, events);
-
-    MEM_MONITOR_FREE(omp, aitp);
+    mem_monitor_free(aip);
 }
 
 static void
-attribute_instance_destroy_callback (void *p1, void *p2)
+attributes_remove_all (object_t *obj)
 {
-    attribute_instance_destroy((attribute_instance_t*) p1);
-}
+    int i;
 
-static void
-object_indexes_init (mem_monitor_t *memp, object_t *obj)
-{
-    assert(0 == table_init(&obj->children, 
-                    0, compare_objects, memp,
-                    use_avl_tree_for_object_children));
-
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-
-    assert(0 == dynamic_array_init(&obj->attributes,
-                    0, 4, memp));
-
-#else /* !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES */
-
-    assert(0 == table_init(&obj->attributes,
-                    0, compare_attribute_ids, memp,
-                    use_avl_tree_for_attribute_ids));
-
-#endif /* !USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES */
-}
-
-static int
-object_attributes_delete_all (object_t *obj)
-{
-    int count, i;
-    attribute_instance_t **all_attributes;
-
-    all_attributes = (attribute_instance_t**) 
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-        dynamic_array_get_all(&obj->attributes, &count);
-#else
-        table_get_all(&obj->attributes, &count);
-#endif
-    if (all_attributes && count) {
-        for (i = 0; i < count; i++) {
-            attribute_instance_destroy(all_attributes[i]);
-        }
-        free(all_attributes);
+    /* delete each attribute one by one */
+    for (i = 0; i < obj->attributes.n; i++) {
+        attribute_remove(obj->attributes.elements[i]);
     }
-    return count;
+    assert(0 == obj->attributes.n);
+    index_obj_reset(&obj->attributes);
+}
+
+static inline void
+object_indexes_init (object_t *obj)
+{
+    mem_monitor_t *memp = obj->omp->mem_mon_p;
+
+    assert(0 == index_obj_init(&obj->children, 
+                    false, compare_objects,
+                    8, 8, memp));
+    assert(0 == index_obj_init(&obj->attributes,
+                    false, compare_attributes,
+                    8, 8, memp));
+}
+
+/*
+ * get object type and object instance values of an object.
+ */
+static void
+get_ot_and_oi (object_representation_t *reprp,
+        int *otp, int *oip)
+{
+    *otp = *oip = -1;
+    if (NULL == reprp) return;
+    if (reprp->is_pointer) {
+        *otp = reprp->u.object_ptr->object_type;
+        *oip = reprp->u.object_ptr->object_instance;
+    } else {
+        *otp = reprp->u.object_id.object_type;
+        *oip = reprp->u.object_id.object_instance;
+    }
+}
+
+/*
+ * This function traverses all children of 'root' recursively all
+ * the way to the last children.  Note however that it does not use
+ * actual recursion to do it, since in very deep trees, it would run
+ * out of stack.  It does it in an iterative way.  It therefore does
+ * not need any extra memory.
+ *
+ * Note that the traversal of root is EXCLUDED.  Only its children
+ * are traversed (not the mother).
+ *
+ * Note that the 'current' value of the indexes must be all at 0 when
+ * starting the traversal and must end with value 0 when the traversal
+ * ends, so that they are ready for the next traversal.  Therefore, the
+ * traversal continues till the very end, even though user function
+ * may no longer be called due to an error it may have returned.
+ *
+ * Function return value is the first ever error value returned by the
+ * user function while traversing the tree.
+ */
+static int
+object_children_traverse (object_manager_t *omp, object_t *root,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3, void *p4)
+{
+    index_obj_t *idxp;
+    object_t *obj;
+    int failed = 0;
+
+    if (NULL == root) return 0;
+
+    /*
+     * make sure that the user supplied traversal function
+     * cannot change anything in this object manager.
+     */
+    omp->should_not_be_modified = true;
+
+    obj = root;
+    idxp = &obj->children;
+    while (true) {
+
+        /* we apply the user function the very first time we enter it */
+        if ((0 == idxp->current) && (0 == failed) && (obj != root)) {
+            failed = tfn(omp, obj, p0, p1, p2, p3, p4);
+        }
+
+        /* if it has any remaining children go down to it */
+        if (idxp->current < idxp->n) {
+            obj = idxp->elements[idxp->current++];
+            idxp = &obj->children;
+
+            /* shld we do this here on first entry into the object */
+            idxp->current = 0;
+
+        /* all children of this object traversed, go back to the parent */
+        } else {
+            idxp->current = 0;
+            obj = get_parent_pointer(obj);
+            idxp = &obj->children;
+
+            /* back at root and processed every child */
+            if ((obj == root) && (idxp->current >= idxp->n)) {
+                idxp->current = 0;
+                break;
+            }
+        }
+    }
+
+    /* ok traversal ended */
+    omp->should_not_be_modified = false;
+
+    return failed;
+}
+
+/*
+ * This function uses the same algorithm for traversing as above but 
+ * for a very specific purpose of collecting all the children of an
+ * object BUT EXCLUDING the root object itself.
+ *
+ * It returns all the child object pointers in a malloc'ed area to the
+ * user, with the number returned in 'count'.  It expands itself using
+ * realloc.  If realloc fails, then it will only return a subset of 
+ * the children, as much as malloc'ed area allows.  Even if realloc
+ * fails however, 'total' will always return how many total children
+ * are below the object.  Basically, even if memory allocation fails,
+ * the entire children will be traversed & counted, but cannot obviously 
+ * all be passed up in a children pointer array.  Besides, since we MUST
+ * clear the 'current' values on each children index object, we MUST
+ * let the traversal finish completely, regardless of whether we were
+ * able to store child object pointers along the way or not.
+ *
+ * 'enuf_memory' is set to false when malloc/realloc fails for the very
+ * first time and after that, no attempt is made again to acquire any
+ * memory any more, since once failed, it is very unlikely that immediately
+ * consecutive requests will succeed.  First failure therefore is the
+ * only & final failure.
+ *
+ * The caller is responsible for freeing this storage area returned
+ * (Note that NULL may be returned, if also the initial malloc fails).
+ */
+static object_t **
+object_children_get (object_manager_t *omp, object_t *root,
+        int *count, int *total)
+{
+    index_obj_t *idxp;
+    object_t *obj, **storage, **new;
+    int limit = 256;
+    bool enuf_memory = true;
+
+    *count = *total = 0;
+    if (NULL == root) return NULL;
+    obj = root;
+    idxp = &obj->children;
+    storage = (object_t**) (malloc(limit * sizeof(object_t*)));
+
+    /*
+     * we must traverse till the end, to find 'total' even
+     * if the memory allocation may have failed.
+     */
+    if (NULL == storage) {
+        ERROR(&om_debug, "malloc of %d pointers space failed\n", limit);
+        enuf_memory = false;
+    }
+
+    while (true) {
+
+        /* we want the children of the root, but EXCLUDING the root */
+        if ((0 == idxp->current) && (obj != root)) {
+
+            /* array limit reached, try & expand */
+            if ((*count >= limit) && enuf_memory) {
+                limit += 256;
+                new = (object_t**)
+                    realloc(storage, limit * sizeof(object_t*));
+                if (new) {
+                    storage = new;
+                } else {
+                    ERROR(&om_debug, "realloc of %d pointers space failed\n",
+                        limit);
+                    enuf_memory = false;
+                }
+            }
+
+            /* as long as we have storage, record it and increment */
+            if (enuf_memory) {
+                storage[(*count)++] = obj;
+            }
+
+            /* this is always incremented, counting total children */
+            (*total)++;
+        }
+
+        /* traverse down */
+        if (idxp->current < idxp->n) {
+            obj = idxp->elements[idxp->current++];
+            idxp = &obj->children;
+
+            /* shld we do this here ? */
+            idxp->current = 0;
+
+        /* all children of this object traversed, go back to the parent */
+        } else {
+            idxp->current = 0;
+            obj = get_parent_pointer(obj);
+            idxp = &obj->children;
+            if ((obj == root) && (idxp->current >= idxp->n)) {
+                idxp->current = 0;
+                break;
+            }
+        }
+    }
+
+    return storage;
 }
 
 /*
  * The 'leave_parent_consistent' is used for something very subtle.
  *
- * when we destroy an object, we must leave the parent's
+ * when we remove an object, we must leave the parent's
  * children in a consistent state.... except when we know
- * we are destroying a whole bunch of sub children in a
- * big swoop. Since these objects will all be destroyed,
+ * we are removing a whole bunch of sub children in a
+ * big swoop. Since these objects will all be removed,
  * including the parent, we do not have to do the extra and 
  * useless effort of leaving their child/parent relationship 
  * consistent since we know the parent will also be eventually 
@@ -750,721 +667,303 @@ object_attributes_delete_all (object_t *obj)
  * This variable controls that.
  */
 static void 
-om_object_destroy_engine (object_t *obj,
-        int leave_parent_consistent,
-        int destroy_all_children)
+om_object_remove_engine (object_t *obj,
+        boolean leave_parent_consistent,
+        boolean remove_all_children)
 {
     void *removed_obj;
-    void **all_its_children;
+    object_t **all_the_children;
     object_manager_t *omp = obj->omp;
     object_t *parent;
-    int child_count, i;
-    int events;
+    int child_count, total_children, i;
 
-    /*
-     * stop all lower level AND child object destruction events
-     * from being advertised.  That would cause too much noise.
-     * Only 'this object' destroyed event is sufficient.
-     */ 
-    events = allow_event_if_not_already_blocked(omp, 0);
-
-    parent = get_parent_pointer(obj);
-
-    /*
-     * make sure it is taken out of the parent's children list
-     * but only if full & consistent cleanup is required.
-     */ 
-    if (leave_parent_consistent && parent) {
-        table_remove(&parent->children, obj, &removed_obj);
-    }
-
-    if (destroy_all_children) {
-        all_its_children = table_get_all(&obj->children, &child_count);
-        if (child_count && all_its_children) {
-            for (i = 0; i < child_count; i++) {
-                om_object_destroy_engine((object_t*) all_its_children[i], 0, 0);
-            }
-            free(all_its_children);
+    /* take object out of the parent's children index if needed */
+    if (leave_parent_consistent) {
+        parent = get_parent_pointer(obj);
+        if (parent) {
+            index_obj_remove(&parent->children, obj, &removed_obj);
         }
     }
 
-    /* free up all its attribute storage */
-    object_attributes_delete_all(obj);
+    /* get rid of all its attribute storage */
+    attributes_remove_all(obj);
     
-    /*
-     * if this was the root object, it got cleaned; report
-     * the event and nothing more to do.  Root object is
-     * static and should never be deleted.
-     */ 
-    if (object_is_root(obj)) {
-        restore_events(omp, events);
-        om_announce_event(omp, OBJECT_DESTROYED, obj, NULL, 0, NULL);
-        return;
+    /* get rid of all children traversing iteratively */
+    if (remove_all_children) {
+
+        /* collect all children from every sub level into an array */
+        all_the_children = object_children_get(omp, obj,
+                &child_count, &total_children);
+        if (child_count != total_children) {
+            ERROR(&om_debug, "could only get %d children of %d "
+                " for object (%d, %d)\n",
+                child_count, total_children,
+                obj->object_type, obj->object_instance);
+        }
+
+        /* simple delete each one from the array */
+        if (child_count && all_the_children) {
+            for (i = 0; i < child_count; i++) {
+                om_object_remove_engine(all_the_children[i], false, false);
+            }
+            free(all_the_children);
+        }
     }
 
     /* take object out of the main object index */
-    assert(0 == table_remove(&omp->object_index, obj, &removed_obj));
+    assert(0 == avl_tree_remove(&omp->om_objects, obj, &removed_obj));
     assert(removed_obj == obj);
 
     /* free up its index objects */
-    table_destroy(&obj->children, om_object_destroy_callback, NULL);
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    dynamic_array_destroy(&obj->attributes,
-        attribute_instance_destroy_callback, NULL);
-#else
-    table_destroy(&obj->attributes,
-        attribute_instance_destroy_callback, NULL);
-#endif
-
-    /* finally notify its destruction */
-    restore_events(omp, events);
-    om_announce_event(omp, OBJECT_DESTROYED, obj, NULL, 0, NULL);
+    index_obj_destroy(&obj->children, NULL, NULL);
+    index_obj_destroy(&obj->attributes, NULL, NULL);
 
     /* and blow it away */
-    MEM_MONITOR_FREE(omp, obj);
-}
-
-static void
-om_object_destroy_callback (void *p1, void *p2)
-{
-    om_object_destroy_engine((object_t*) p1, 0, 0);
+    mem_monitor_free(obj);
 }
 
 static object_t *
 om_object_create_engine (object_manager_t *omp,
-        int parent_must_exist,
         int parent_object_type, int parent_object_instance,
-        int child_object_type, int child_object_instance)
+        int object_type, int object_instance)
 {
     object_t *obj, *parent;
-    void *exists;
+    object_t *exists;
+    int pot, poi;
 
-    /* 
-     * Obtain parent pointer.
-     *
-     * Note that it IS possible when loading from the manager,
-     * that the parent object has not yet been created.  In that
-     * case, simply store the type & instance of the parent rather
-     * than a direct pointer to it.  This will get resolved later.
-     * This is controlled by 'parent_must_exist'.
-     */
-    parent = get_object_pointer(omp,
-                    parent_object_type, parent_object_instance);
-    if (parent_must_exist && (NULL == parent)) {
+    TRACE(&om_debug, "creating (%d, %d) with parents (%d, %d)\n",
+        object_type, object_instance,
+        parent_object_type, parent_object_instance);
+
+    /* create & search simultaneously */
+    obj = MEM_MONITOR_ALLOC(omp, sizeof(object_t));
+    if (NULL == obj) {
+        WARN(&om_debug, "MEM_MONITOR_ALLOC failed for %d bytes\n",
+            sizeof(object_t));
         return NULL;
     }
+    obj->object_type = object_type;
+    obj->object_instance = object_instance;
 
-    /* allocate the object & fill in some basics */
-    obj = MEM_MONITOR_ZALLOC(omp, sizeof(object_t));
-    assert(obj != NULL);
-    obj->omp = omp;
-    if (parent) {
-        obj->parent.is_pointer = 1;
-        obj->parent.u.object_ptr = parent;
-    } else {
-        obj->parent.is_pointer = 0;
-        obj->parent.u.object_id.object_type = parent_object_type;
-        obj->parent.u.object_id.object_instance = parent_object_instance;
-    }
-    obj->object_type = child_object_type;
-    obj->object_instance = child_object_instance;
-
-    /*
-     * if the object already exists simply return that.
-     */
-    assert(0 == table_insert(&omp->object_index, obj, &exists));
+    /* if the object already exists simply return that */
+    assert(0 == avl_tree_insert(&omp->om_objects, obj, (void**) &exists));
     if (exists) {
-
-        /* it already exists, we dont need the new one we just created */
-        MEM_MONITOR_FREE(omp, obj);
-
+        get_ot_and_oi(&exists->parent, &pot, &poi);
+        TRACE(&om_debug,
+            "object (%d, %d) already exists with parent (%d, %d)\n",
+            object_type, object_instance,
+            pot, poi);
+        if ((pot != parent_object_type) || (poi != parent_object_instance)) {
+            ERROR(&om_debug,
+                "object (%d, %d) already has parent (%d, %d), "
+                "but requested parent (%d, %d) is different. "
+                "Object not created.\n",
+                object_type, object_instance,
+                pot, poi,
+                parent_object_type, parent_object_instance);
+            MEM_MONITOR_FREE(obj);
+            return NULL;
+        }
+        MEM_MONITOR_FREE(obj);
         return exists;
     }
 
-    /* make sure this object is added as a child of the parent */
+    /* ok, it does not already exist, fill the rest */
+    obj->omp = omp;
+    parent = get_object_pointer(omp,
+                parent_object_type, parent_object_instance);
     if (parent) {
-        assert(0 == table_insert(&parent->children, obj, &exists));
+        obj->parent.is_pointer = true;
+        obj->parent.u.object_ptr = parent;
+        assert(0 == index_obj_insert(&parent->children, obj,
+                        (void**) &exists));
+    } else {
+        obj->parent.is_pointer = false;
+        obj->parent.u.object_id.object_type = parent_object_type;
+        obj->parent.u.object_id.object_instance = parent_object_instance;
     }
 
     /* initialize the children and attribute indexes */
-    object_indexes_init(omp->mem_mon_p, obj);
+    object_indexes_init(obj);
 
-    /*
-     * send out the creation event but only if the parent exists.
-     * If it does not, it means we are just loading from the 
-     * manager and some parents have not yet been resolved.
-     * In this case, wait now since the 2nd pass of the manager
-     * parent resolving phase will generate the events as the
-     * parent resolving completes.
-     */
-    if (parent) {
-        om_announce_event(omp, OBJECT_CREATED, obj, parent, 0, NULL);
-    }
+    TRACE(&om_debug, "object (%d, %d) created with parent (%d, %d)\n",
+        object_type, object_instance,
+        parent_object_type, parent_object_instance);
 
     /* done */
     return obj;
 }
 
-static attribute_instance_t *
-attribute_instance_add (object_t *obj, int attribute_id)
+static attribute_t *
+obj_attribute_add (object_t *obj, int attribute_id)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
     void *found;
 
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-
-    /* if already there, just return the existing one */
-    if (dynamic_array_get(&obj->attributes, attribute_id, &found) == 0) {
-        return found;
-    }
-    
-    /* create the new attribute */
-    aitp = MEM_MONITOR_ZALLOC(obj->omp, sizeof(attribute_instance_t));
-    if (NULL == aitp) return NULL;
-
-    /* add it to object */
-    aitp->attribute_id = attribute_id;
-    if (dynamic_array_insert(&obj->attributes, attribute_id, aitp) != 0) {
-        MEM_MONITOR_FREE(obj->omp, aitp);
-        return NULL;
-    }
-
-#else
-
     /* create the new attribute  */
-    aitp = MEM_MONITOR_ZALLOC(obj->omp, sizeof(attribute_instance_t));
-    if (NULL == aitp) return NULL;
+    aip = MEM_MONITOR_ZALLOC(obj->omp, sizeof(attribute_t));
+    if (NULL == aip) return NULL;
 
     /* if already there, just free up the new one & return */
-    aitp->attribute_id = attribute_id;
-    if (table_insert(&obj->attributes, aitp, &found) == 0) {
+    aip->attribute_id = attribute_id;
+    if (index_obj_insert(&obj->attributes, aip, &found) == 0) {
         if (found) {
-            MEM_MONITOR_FREE(obj->omp, aitp);
+            mem_monitor_free(aip);
             return found;
         }
     }
 
-#endif
-
     /* initialize rest of it */
-    aitp->object = obj;
-    aitp->n_attribute_values = 0;
-    aitp->avps = NULL;
-
-    /* notify */
-    om_announce_event(obj->omp, ATTRIBUTE_INSTANCE_ADDED, 
-        obj, NULL, aitp->attribute_id, NULL);
+    aip->object = obj;
+    aip->n = 0;
+    aip->avp_list = NULL;
 
     /* done */
-    return aitp;
+    return aip;
 }
 
 static int
-__om_attribute_add_simple_value (object_t *obj, int attribute_id, 
-    long long int simple_value)
+obj_attribute_simple_value_add (object_t *obj, int attribute_id, 
+    long long int value, int howmany_extras)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
-    if (NULL == aitp) {
-        aitp = attribute_instance_add(obj, attribute_id);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        aip = obj_attribute_add(obj, attribute_id);
+        if (NULL == aip) return ENOMEM;
     }
     return
-        attribute_add_simple_value(aitp, simple_value);
+        attribute_simple_value_add(aip, value, howmany_extras);
 }
 
 static int
-__om_attribute_set_simple_value (object_t *obj, int attribute_id, 
-    long long int simple_value)
+obj_attribute_simple_value_set (object_t *obj, int attribute_id, 
+    long long int value, int ref_count)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
-    if (NULL == aitp) {
-        aitp = attribute_instance_add(obj, attribute_id);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        aip = obj_attribute_add(obj, attribute_id);
+        if (NULL == aip) return ENOMEM;
     }
     return
-        attribute_set_simple_value(aitp, simple_value);
+        attribute_simple_value_set(aip, value, ref_count);
 }
 
 static int
-__om_attribute_delete_simple_value (object_t *obj, int attribute_id, 
-    long long int simple_value)
+obj_attribute_simple_value_remove (object_t *obj, int attribute_id, 
+    long long int value, int howmany)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        return ENOENT;
+    }
     return 
-        attribute_delete_simple_value(aitp, simple_value);
+        attribute_simple_value_remove(aip, value, howmany);
 }
 
 static int
-__om_attribute_add_complex_value (object_t *obj, int attribute_id, 
-    byte *complex_value_data, int complex_value_data_length)
+obj_attribute_complex_value_add (object_t *obj, int attribute_id, 
+    byte *data, int len, int howmany_extras)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
-    if (NULL == aitp) {
-        aitp = attribute_instance_add(obj, attribute_id);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        aip = obj_attribute_add(obj, attribute_id);
+        if (NULL == aip) return ENOMEM;
     }
     return
-        attribute_add_complex_value(aitp,
-                complex_value_data, complex_value_data_length);
+        attribute_complex_value_add(aip, data, len, howmany_extras);
 }
 
 static int
-__om_attribute_set_complex_value (object_t *obj, int attribute_id, 
-    byte *complex_value_data, int complex_value_data_length)
+obj_attribute_complex_value_set (object_t *obj, int attribute_id, 
+    byte *data, int len, int ref_count)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
-    if (NULL == aitp) {
-        aitp = attribute_instance_add(obj, attribute_id);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        aip = obj_attribute_add(obj, attribute_id);
+        if (NULL == aip) return ENOMEM;
     }
     return
-        attribute_set_complex_value(aitp,
-                complex_value_data, complex_value_data_length);
+        attribute_complex_value_set(aip, data, len, ref_count);
 }
 
 static int
-__om_attribute_delete_complex_value (object_t *obj, int attribute_id, 
-    byte *complex_value_data, int complex_value_data_length)
+obj_attribute_complex_value_remove (object_t *obj, int attribute_id, 
+    byte *data, int len, int howmany)
 {
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        return ENOENT;
+    }
     return
-        attribute_delete_complex_value(aitp,
-                complex_value_data, complex_value_data_length);
+        attribute_complex_value_remove(aip, data, len, howmany);
 }
 
 static int
-__om_attribute_destroy (object_t *obj, int attribute_id)
+obj_attribute_remove (object_t *obj, int attribute_id)
 {
-    attribute_instance_t *found;
+    attribute_t *aip;
 
-    found = get_attribute_instance_pointer(obj, attribute_id);
-    if (found) {
-        attribute_instance_destroy(found);
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (aip) {
+        attribute_remove(aip);
         return 0;
     }
     return ENODATA;
 }
 
-static int
-__om_object_get_matching_children (object_t *parent,
-        int matching_object_type, 
-        object_representation_t *found_objects, int limit)
-{
-    int index = 0;
-    void *v_object_type = integer2pointer(matching_object_type);
-    void *v_limit = integer2pointer(limit);
-
-    table_traverse(&parent->children, 
-        get_matching_children_tfn,
-        v_object_type, found_objects, &index, v_limit);
-
-    return index;
-}
-
-static int
-__om_object_get_matching_descendants (object_t *parent,
-        int matching_object_type,
-        object_representation_t *found_objects, int limit)
-{
-    int index = 0;
-    void *v_object_type = integer2pointer(matching_object_type);
-    void *v_limit = integer2pointer(limit);
-
-    table_traverse(&parent->children, 
-        get_matching_descendants_tfn,
-        v_object_type, found_objects, &index, v_limit);
-
-    return index;
-}
-
-#if 0
-
-/******************************************************************************
- *
- * event management related functions
- *
- */
-
-static void
-get_both_objects (object_manager_t *omp,
-    event_record_t *evrp,
-    object_t **obj, object_t **related_obj)
-{
-    if (obj) {
-        *obj = get_object_pointer(omp, 
-                    evrp->object_type, evrp->object_instance);
-    }
-    if (related_obj) {
-        *related_obj = get_object_pointer(omp,
-                            evrp->related_object_type,
-                            evrp->related_object_instance);
-    }
-}
-
-static int
-process__om_object_created_event (object_manager_t *omp,
-    event_record_t *evrp)
-{
-    object_t *obj;
-
-    obj = om_object_create_engine(omp, 1,
-                evrp->related_object_type, evrp->related_object_instance,
-                evrp->object_type, evrp->object_instance);
-    return obj ? 0 : -1;
-}
-
-static int
-process__om_object_destroyed_event (object_manager_t *omp,
-    event_record_t *evrp)
-{
-    object_t *obj;
-
-    obj = get_object_pointer(omp, 
-                evrp->object_type, evrp->object_instance);
-    if (obj) {
-        om_object_destroy_engine(obj, 1, 1);
-    }
-    return 0;
-}
-
-static int
-process_attribute_added_event (object_manager_t *omp,
-    event_record_t *evrp)
-{
-    object_t *obj;
-    attribute_instance_t *aitp;
-
-    get_both_objects(omp, evrp, &obj, NULL);
-    if (obj) {
-        aitp = attribute_instance_add(obj, evrp->attribute_id);
-        return aitp ? 0 : -1;
-    }
-    return -1;
-}
-
-static int
-process_attribute_deleted_event (object_manager_t *omp,
-    event_record_t *evrp)
-{
-    object_t *obj;
-
-    get_both_objects(omp, evrp, &obj, NULL);
-    if (obj) {
-        return
-            __om_attribute_destroy(obj, evrp->attribute_id);
-    }
-    return -1;
-}
-
-static int
-process_attribute_value_added_event (object_manager_t *omp,
-    event_record_t *evrp)
-{
-    object_t *obj;
-
-    get_both_objects(omp, evrp, &obj, NULL);
-    if (NULL == obj)
-        return -1;
-    if (evrp->attribute_value_length == 0) {
-        return
-            __om_attribute_add_simple_value(obj, evrp->attribute_id,
-                    evrp->attribute_value_data);
-    } else if (evrp->attribute_value_length > 0) {
-        return
-            __om_attribute_add_complex_value(obj, evrp->attribute_id,
-                    (byte*) &evrp->attribute_value_data, 
-                    evrp->attribute_value_length);
-    }
-    return -1;
-}
-
-static int
-process_attribute_value_deleted_event (object_manager_t *omp,
-    event_record_t *evrp)
-{
-    object_t *obj;
-
-    get_both_objects(omp, evrp, &obj, NULL);
-    if (NULL == obj)
-        return -1;
-    if (evrp->attribute_value_length == 0) {
-        return
-            __om_attribute_delete_simple_value(obj, evrp->attribute_id,
-                    evrp->attribute_value_data);
-    } else if (evrp->attribute_value_length > 0) {
-        return
-            __om_attribute_delete_complex_value(obj, evrp->attribute_id,
-                    (byte*) &evrp->attribute_value_data, 
-                    evrp->attribute_value_length);
-    }
-    return -1;
-}
-
-#endif /* 0 */
-
-/*
- * maximum tolarable times a read or a write call can consecutively fail
- */
-#define MAX_CONSECUTIVE_FAILURES_ALLOWED        64
-
-/*
- * makes sure it reads/writes all the requested size.  It will not
- * give up until it completes every single byte, unless too many 
- * consecutive number of read/write errors have occured.
- *
- * If reading & writing into a pipe or a socket, 'can_block' should
- * be specified as 'true/1'.
- */
-static int 
-relentless_read_write (int perform_read,
-        int fd, void *buffer, int size, int can_block)
-{
-    int total, rc, failed;
-
-    total = failed = 0;
-    while (size > 0) {
-
-        /* read/write maximum requested amount if it can */
-        if (perform_read) {
-            rc = read(fd, &((char*) buffer)[total], size);
-        } else {
-            rc = write(fd, &((char*) buffer)[total], size);
-        }
-
-        /* process the read/written amount */
-        if (rc > 0) {
-            total += rc;
-            size -= rc;
-            failed = 0;
-            continue;
-        }
-
-        /* operation failed; has it failed consecutively many times ? */
-        if (++failed >= MAX_CONSECUTIVE_FAILURES_ALLOWED) {
-            return -1;
-        }
-
-        /*
-         * these errors may occur rarely and should be recovered from,
-         * unless they keep on happening consecutively
-         */
-        if ((can_block && (EWOULDBLOCK == errno)) ||
-            (EINTR == errno) || (EAGAIN == errno)) {
-                continue;
-        }
-
-        /* an unacceptable error occured, cannot continue */
-        return -1;
-    }
-
-    /* everything finished ok */
-    return 0;
-}
-
-static int
-read_exact_size (int fd, void *buffer, int size, int can_block)
-{
-    return
-        relentless_read_write(1, fd, buffer, size, can_block);
-}
-
-/*
- * read an event record which arrived from a remote object manager.
- * the space is assumed to be really big so we do not have to worry
- * about limits...
- */
-int
-read_event_record (int fd, event_record_t *evrp)
-{
-    int to_read = sizeof(event_record_t);
-    int extra_length;
-
-    /* read the basic event record information */
-    if (read_exact_size(fd, evrp, to_read, 1) == 0) {
-        extra_length = evrp->total_length - to_read;
-        if (extra_length > 0) {
-            return
-                read_exact_size(fd, &evrp->extra_data, extra_length, 1);
-        }
-        return 0;
-    }
-    return -1;
-}
-
-static event_record_t *
-create_event_record (object_manager_t *omp,
-        int event,
-        object_t *obj, object_t *obj_related,
-        int attribute_id, attribute_value_t *related_attribute_value)
-{
-    event_record_t *evrp;
-    int size;
-
-    /* this is the 'normal' size */
-    size = sizeof(event_record_t);
-
-    /*
-     * if a complex attribute event, the size may be extended past
-     * the end of the structure to account for a complex attribute
-     */
-    if (is_an_attribute_value_event(event) && related_attribute_value) {
-        if (related_attribute_value->attribute_value_length > 0) {
-            size += related_attribute_value->attribute_value_length;
-
-            /* first 8 bytes of a complex attribute will fit here */
-            size -= sizeof(long long int);
-        }
-    }
-
-    /* now we have the appropriate size, we can create the event record */
-    evrp = malloc(size);
-    if (NULL == evrp) return NULL;
-
-    /* set essentials */
-    evrp->total_length = size;
-    evrp->manager_id = omp->manager_id;
-    evrp->event_type = event;
-    evrp->attribute_id = attribute_id;
-
-    /* set main object if specified */
-    if (obj) {
-        evrp->object_type = obj->object_type;
-        evrp->object_instance = obj->object_instance;
-    }
-
-    /* set related object if specified */
-    if (obj_related) {
-        evrp->related_object_type = obj_related->object_type;
-        evrp->related_object_instance = obj_related->object_instance;
-    }
-
-    /* set attribute value if specified */
-    if (related_attribute_value) {
-
-        /* copy basic attribute */
-        evrp->attribute_value_length = 
-            related_attribute_value->attribute_value_length;
-        evrp->attribute_value_data = 
-            related_attribute_value->attribute_value_data;
-
-        /* overwrite if it was a complex attribute */
-        if (evrp->attribute_value_length > 0) {
-            memcpy((void*) &evrp->attribute_value_data,
-                (void*) &related_attribute_value->attribute_value_data,
-                evrp->attribute_value_length);
-        }
-    }
-
-    return evrp;
-}
-
-static int
-om_announce_event (object_manager_t *omp,
-    int event,
-    object_t *obj, object_t *obj_related, 
-    int attribute_id, attribute_value_t *related_attribute_value)
-{
-    /*
-     * we cannot use a local variable here since we do not know the 
-     * final size of what the event record should be.  So, we malloc it.
-     */
-    event_record_t *evrp;
-
-    /*
-     * STILL TO DO.
-     * Check whether this event should be announced.  This is
-     * controlled by the 'blocked_events' variable.
-     */
-    //if (omp->blocked_events & etc...) etc....;
-
-    evrp = create_event_record(omp, event, obj, obj_related,
-                attribute_id, related_attribute_value);
-    if (NULL == evrp) return ENOMEM;
-
-    /* tell event manager to distribute it */
-    announce_event(&omp->evm, evrp);
-
-    /* we are done */
-    free(evrp);
-
-    return 0;
-}
-
 /*************** Public functions *********************************************/
 
 PUBLIC int
-om_initialize (object_manager_t *omp,
-        int make_it_thread_safe,
+om_init (object_manager_t *omp,
+        boolean make_it_thread_safe,
         int manager_id,
         mem_monitor_t *parent_mem_monitor)
 {
-    object_t *root_obj;
-
     memset(omp, 0, sizeof(object_manager_t));
-
     MEM_MONITOR_SETUP(omp);
     LOCK_SETUP(omp);
-
-    root_obj = &omp->root_object;
-    root_obj->omp = omp;
-
-    root_obj->parent.is_pointer = 1;
-    root_obj->parent.u.object_ptr = NULL;
-
-    root_obj->object_type = ROOT_OBJECT_TYPE;
-    root_obj->object_instance = ROOT_OBJECT_INSTANCE;
-
-    /* initialize the event manager for this object manager */
-    assert(0 == event_manager_init(&omp->evm, 0, omp->mem_mon_p));
-
-    /* initialize object lookup indexes */
-    assert(0 == table_init(&omp->object_index,
-                    0, 
-                    compare_objects,
-                    omp->mem_mon_p,
-                    use_avl_tree_for_manager_object_index));
-
     omp->manager_id = manager_id;
-
-    /* initialize root object indexes */
-    object_indexes_init(omp->mem_mon_p, root_obj);
-
+    omp->should_not_be_modified = false;
+    assert(0 == avl_tree_init(&omp->om_objects, false, compare_objects,
+        omp->mem_mon_p));
     OBJ_WRITE_UNLOCK(omp);
-
-    /* done */
     return 0;
 }
 
 PUBLIC int
 om_object_create (object_manager_t *omp,
         int parent_object_type, int parent_object_instance,
-        int child_object_type, int child_object_instance)
+        int object_type, int object_instance)
 {
     int failed;
     object_t *obj;
 
     OBJ_WRITE_LOCK(omp);
-    obj = om_object_create_engine(omp, 1,
+    obj = om_object_create_engine(omp,
                 parent_object_type, parent_object_instance,
-                child_object_type, child_object_instance);
+                object_type, object_instance);
     failed = (obj ? 0 : EFAULT);
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
-PUBLIC bool
+PUBLIC boolean
 om_object_exists (object_manager_t *omp,
         int object_type, int object_instance)
 {
-    bool exists;
+    boolean exists;
 
     OBJ_READ_LOCK(omp);
     exists = (NULL != get_object_pointer(omp, object_type, object_instance));
@@ -1474,48 +973,30 @@ om_object_exists (object_manager_t *omp,
 
 PUBLIC int
 om_attribute_add (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id)
+        int object_type, int object_instance,
+        int attribute_id)
 {
     int failed;
     object_t *obj;
-    attribute_instance_t *aitp;
+    attribute_t *aip;
 
     OBJ_WRITE_LOCK(omp);
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        aitp = attribute_instance_add(obj, attribute_id);
-        failed = (aitp ? 0 : ENOMEM);
+        aip = obj_attribute_add(obj, attribute_id);
+        failed = (aip ? 0 : ENOMEM);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_attribute_add_simple_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        long long int simple_value)
-{
-    int failed;
-    object_t *obj;
-
-    OBJ_WRITE_LOCK(omp);
-    obj = get_object_pointer(omp, object_type, object_instance);
-    if (NULL == obj) {
-        failed = ENODATA;
-    } else {
-        failed = __om_attribute_add_simple_value(obj,
-                    attribute_id, simple_value);
-    }
-    OBJ_WRITE_UNLOCK(omp);
-    return failed;
-}
-
-PUBLIC int
-om_attribute_set_simple_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        long long int simple_value)
+om_attribute_simple_value_add (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        long long int value, int howmany_extras)
 {
     int failed;
     object_t *obj;
@@ -1525,17 +1006,18 @@ om_attribute_set_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_attribute_set_simple_value(obj,
-                    attribute_id, simple_value);
+        failed = obj_attribute_simple_value_add(obj,
+                        attribute_id, value, howmany_extras);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_attribute_delete_simple_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        long long int simple_value)
+om_attribute_simple_value_set (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        long long int value, int ref_count)
 {
     int failed;
     object_t *obj;
@@ -1545,17 +1027,18 @@ om_attribute_delete_simple_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_attribute_delete_simple_value(obj,
-                    attribute_id, simple_value);
+        failed = obj_attribute_simple_value_set(obj,
+                        attribute_id, value, ref_count);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_attribute_add_complex_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        byte *complex_value_data, int complex_value_data_length)
+om_attribute_simple_value_remove (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        long long int value, int howmany)
 {
     int failed;
     object_t *obj;
@@ -1565,17 +1048,18 @@ om_attribute_add_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_attribute_add_complex_value(obj, attribute_id,
-                    complex_value_data, complex_value_data_length);
+        failed = obj_attribute_simple_value_remove(obj,
+                        attribute_id, value, howmany);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_attribute_set_complex_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        byte *complex_value_data, int complex_value_data_length)
+om_attribute_complex_value_add (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        byte *data, int len, int howmany_extras)
 {
     int failed;
     object_t *obj;
@@ -1585,17 +1069,18 @@ om_attribute_set_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_attribute_set_complex_value(obj, attribute_id,
-                    complex_value_data, complex_value_data_length);
+        failed = obj_attribute_complex_value_add(obj, attribute_id,
+                        data, len, howmany_extras);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_attribute_delete_complex_value (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        byte *complex_value_data, int complex_value_data_length)
+om_attribute_complex_value_set (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        byte *data, int len, int ref_count)
 {
     int failed;
     object_t *obj;
@@ -1605,81 +1090,76 @@ om_attribute_delete_complex_value (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_attribute_delete_complex_value(obj, attribute_id,
-                    complex_value_data, complex_value_data_length);
+        failed = obj_attribute_complex_value_set(obj, attribute_id,
+                    data, len, ref_count);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_attribute_get_value (object_manager_t *omp, 
+om_attribute_complex_value_remove (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id,
+        byte *data, int len, int howmany)
+{
+    int failed;
+    object_t *obj;
+
+    OBJ_WRITE_LOCK(omp);
+    obj = get_object_pointer(omp, object_type, object_instance);
+    if (NULL == obj) {
+        failed = ENODATA;
+    } else {
+        failed = obj_attribute_complex_value_remove(obj, attribute_id,
+                        data, len, howmany);
+    }
+    OBJ_WRITE_UNLOCK(omp);
+    return failed;
+}
+
+PUBLIC int
+om_attribute_values_get (object_manager_t *omp, 
     int object_type, int object_instance,
-    int attribute_id, int nth,
-    attribute_value_t **cloned_avtp)
+    int attribute_id,
+    attribute_value_t *avp_list [], int *limit)
 {
     object_t *obj;
-    attribute_instance_t *aitp;
-    attribute_value_t *avtp;
-    int i;
+    attribute_t *aip;
+    int rc = 0;
+    int n = *limit;
 
+    *limit = 0;
     OBJ_READ_LOCK(omp);
-
-    /* assume failure */
-    *cloned_avtp = NULL;
 
     /* get object */
     obj = get_object_pointer(omp, object_type, object_instance);
     if (NULL == obj) {
-        OBJ_READ_UNLOCK(omp);
-        return ENODATA;
+        rc = ENODATA;
+        goto bail;
     }
 
     /* get attribute */
-    aitp = get_attribute_instance_pointer(obj, attribute_id);
-    if (NULL == aitp) {
-        OBJ_READ_UNLOCK(omp);
-        return ENODATA;
+    aip = get_attribute_pointer(obj, attribute_id);
+    if (NULL == aip) {
+        rc =  ENODATA;
+        goto bail;
     }
 
-    /* trim index to sane limits */
-    if (nth < 0)  {
-        nth = 0;
-    } else if (nth >= aitp->n_attribute_values) {
-        nth = aitp->n_attribute_values - 1;
-    }
+    attribute_values_get_all(aip, avp_list, &n);
+    *limit = n;
 
-    /* find the n'th attribute value now */
-    avtp = aitp->avps;
-    for (i = 0; ((i < nth) && avtp); i++) {
-        avtp = avtp->next_attribute_value;
-    }
-    if (avtp) {
-        *cloned_avtp = clone_attribute_value(avtp);
-        OBJ_READ_UNLOCK(omp);
-        return 0;
-    }
+bail: 
 
     OBJ_READ_UNLOCK(omp);
-    return EFAULT;
+    
+    return rc;
 }
 
 PUBLIC int
-om_attribute_get_all_values (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id,
-        int *how_many, attribute_value_t *returned_attribute_values[])
-{
-    OBJ_READ_LOCK(omp);
-
-    /* LATER */
-
-    OBJ_READ_UNLOCK(omp);
-    return 0;
-}
-
-PUBLIC int
-om_attribute_destroy (object_manager_t *omp,
-        int object_type, int object_instance, int attribute_id)
+om_attribute_remove (object_manager_t *omp,
+        int object_type, int object_instance,
+        int attribute_id)
 {
     int failed;
     object_t *obj;
@@ -1689,14 +1169,14 @@ om_attribute_destroy (object_manager_t *omp,
     if (NULL == obj) {
         failed = ENODATA;
     } else {
-        failed = __om_attribute_destroy(obj, attribute_id);
+        failed = obj_attribute_remove(obj, attribute_id);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
 PUBLIC int
-om_object_destroy (object_manager_t *omp,
+om_object_remove (object_manager_t *omp,
         int object_type, int object_instance)
 {
     int failed;
@@ -1708,108 +1188,61 @@ om_object_destroy (object_manager_t *omp,
         failed = ENODATA;
     } else {
         failed = 0;
-        om_object_destroy_engine(obj, 1, 1);
+        om_object_remove_engine(obj, true, true);
     }
     OBJ_WRITE_UNLOCK(omp);
     return failed;
 }
 
-PUBLIC object_representation_t *
-om_object_get_matching_children (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int matching_object_type, int *returned_count)
+PUBLIC int
+om_parent_get (object_manager_t *omp,
+        int object_type, int object_instance,
+        int *parent_object_type, int* parent_object_instance)
 {
-    int size;
-    object_t *root;
-    object_representation_t *found_objects;
+    object_t *obj;
+    int failed = 0;
 
     OBJ_READ_LOCK(omp);
-    *returned_count = 0;
-    found_objects = NULL;
-    root = get_object_pointer(omp,
-                parent_object_type, parent_object_instance);
-    if (root) {
-        size = table_member_count(&root->children);
-        found_objects = malloc((size + 1) * sizeof(object_representation_t));
-        if (found_objects) {
-            __om_object_get_matching_children(root, 
-                    matching_object_type, found_objects, size+1);
-            *returned_count = size;
-        }
-    }
+    obj = get_object_pointer(omp, object_type, object_instance);
+    if (NULL == obj) failed = ENODATA;
+    get_ot_and_oi(&obj->parent, parent_object_type, parent_object_instance);
     OBJ_READ_UNLOCK(omp);
-    return found_objects;
+    return failed;
 }
 
-PUBLIC object_representation_t *
-om_object_get_children (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int *returned_count)
+PUBLIC int
+om_traverse (object_manager_t *omp,
+        int object_type, int object_instance,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3, void *p4)
 {
-    return
-        om_object_get_matching_children(omp,
-            parent_object_type, parent_object_instance,
-            ALL_OBJECT_TYPES, returned_count);
-}
-
-PUBLIC object_representation_t *
-om_object_get_matching_descendants (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int matching_object_type, int *returned_count)
-{
-    int size;
-    object_t *root;
-    object_representation_t *found_objects;
+    int failed = 0;
+    object_t *obj;
 
     OBJ_READ_LOCK(omp);
-    *returned_count = 0;
-    found_objects = NULL;
-    root = get_object_pointer(omp,
-                parent_object_type, parent_object_instance);
-    if (root) {
-
-        /*
-         * We cannot guess in advance how many of these will be so
-         * allocate the full size of the object manager, just in case.
-         */
-        size = table_member_count(&omp->object_index);
-
-        found_objects = malloc((size + 1) * sizeof(object_representation_t));
-        if (found_objects) {
-            __om_object_get_matching_descendants(root, 
-                    matching_object_type, found_objects, size+1);
-            *returned_count = size;
-        }
+    obj = get_object_pointer(omp, object_type, object_instance);
+    if (NULL == obj) {
+        failed = ENODATA;
+    } else {
+        failed = object_children_traverse (omp, obj, tfn,
+                    p0, p1, p2, p3, p4);
     }
     OBJ_READ_UNLOCK(omp);
-    return found_objects;
-}
-
-PUBLIC object_representation_t *
-om_object_get_descendants (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int *returned_count)
-{
-    return
-        om_object_get_matching_descendants
-            (omp, parent_object_type, parent_object_instance,
-             ALL_OBJECT_TYPES, returned_count);
+    return failed;
 }
 
 PUBLIC void
 om_destroy (object_manager_t *omp)
 {
+    object_t *root = NULL;
+
     OBJ_WRITE_LOCK(omp);
-
-    event_manager_destroy(&omp->evm);
-
-    /*
-     * we cannot unlock since the lock
-     * will also have been destroyed.
-     *
-     * OBJ_WRITE_UNLOCK(omp);
-     *
-     */
+    if (omp->om_objects.root_node != NULL) {
+        root = (object_t*) omp->om_objects.root_node->user_data;
+        om_object_remove_engine(root, false, false);
+    }
+    OBJ_WRITE_UNLOCK(omp);
+    LOCK_OBJ_DESTROY(omp);
 }
 
 /******************************************************************************
@@ -1822,49 +1255,63 @@ om_destroy (object_manager_t *omp)
  */
 static char *object_acronym = "OBJ";
 static char *attribute_id_acronym = "AID";
-static char *complex_attribute_value_acronym = "CAV";
-static char *simple_attribute_value_acronym = "SAV";
+static char *attribute_complex_value_acronym = "CAV";
+static char *attribute_simple_value_acronym = "SAV";
 
 /************* Writing the object manager to a file functions *************/
 
-static int
-om_write_one_attribute_value (FILE *fp, attribute_value_t *avtp)
+static void
+om_write_one_attribute_simple_value (FILE *fp, attribute_value_t *avp)
 {
-    int i;
+    fprintf(fp, "\n    %s %d %lld",
+        attribute_simple_value_acronym,
+        avp->ref_count,
+        SIMPLE_ATTRIBUTE_VALUE(avp));
+
+}
+
+static void
+om_write_one_attribute_complex_value (FILE *fp, attribute_value_t *avp)
+{
     byte *bptr;
+    int i, len;
 
-    /* simple attribute value */
-    if (avtp->attribute_value_length == 0) {
-        fprintf(fp, "\n    %s %lld ",
-            simple_attribute_value_acronym, avtp->attribute_value_data);
-        return 0;
-    }
-
-    /* complex attribute value */
-    fprintf(fp, "\n    %s %d ",
-        complex_attribute_value_acronym, avtp->attribute_value_length);
-    bptr = (byte*) &avtp->attribute_value_data;
-    for (i = 0; i < avtp->attribute_value_length; i++) {
+    len = COMPLEX_ATTRIBUTE_VALUE_LENGTH(avp);
+    fprintf(fp, "\n    %s %d %d ",
+        attribute_complex_value_acronym, avp->ref_count, len);
+    bptr = COMPLEX_ATTRIBUTE_VALUE_PTR(avp);
+    for (i = 0; i < len; i++) {
         fprintf(fp, "%d ", *bptr);
         bptr++;
     }
-
-    return 0;
 }
 
-static int
+static void
+om_write_one_attribute_value (FILE *fp, attribute_value_t *avp)
+{
+    assert(avp->ref_count > 0);
+    if (ATTRIBUTE_VALUE_IS_SIMPLE(avp)) {
+        om_write_one_attribute_simple_value(fp, avp);
+    } else if (ATTRIBUTE_VALUE_IS_COMPLEX(avp)) {
+        om_write_one_attribute_complex_value(fp, avp);
+    } else {
+        FATAL_ERROR(&om_debug, "unknown attribute type 0x%x\n",
+            avp->attribute_flags);
+    }
+}
+
+static void
 om_write_one_attribute (FILE *fp, void *vattr)
 {
-    attribute_instance_t *attr = (attribute_instance_t*) vattr;
-    attribute_value_t *avtp;
+    attribute_t *attr = (attribute_t*) vattr;
+    attribute_value_t *avp;
 
     fprintf(fp, "\n  %s %d ", attribute_id_acronym, attr->attribute_id);
-    avtp = attr->avps;
-    while (avtp) {
-        om_write_one_attribute_value(fp, avtp);
-        avtp = avtp->next_attribute_value;
+    avp = attr->avp_list;
+    while (avp) {
+        om_write_one_attribute_value(fp, avp);
+        avp = avp->next_avp;
     }
-    return 0;
 }
 
 static int
@@ -1874,30 +1321,19 @@ om_write_one_object_tfn (void *utility_object, void *utility_node,
 {
     object_t *obj = (object_t*) v_object;
     FILE *fp = v_FILE;
-    void **attributes = NULL;
-    int attr_count = 0;
+    int i;
+    int pt, pi;
 
-    /* ignore root object, we do not store this */
-    if (obj->object_type == ROOT_OBJECT_TYPE) return 0;
-
+    get_ot_and_oi(&obj->parent, &pt, &pi);
     fprintf(fp, "\n%s %d %d %d %d",
         object_acronym, 
-        obj->parent.u.object_ptr->object_type,
-        obj->parent.u.object_ptr->object_instance,
+        pt, pi,
         obj->object_type, obj->object_instance);
-
-#ifdef USE_DYNAMIC_ARRAYS_FOR_ATTRIBUTES
-    attributes = dynamic_array_get_all(&obj->attributes, &attr_count);
-#else
-    attributes = table_get_all(&obj->attributes, &attr_count);
-#endif
-    if (attributes && attr_count) {
-        while (--attr_count >= 0) {
-            om_write_one_attribute(fp, attributes[attr_count]);
-        }
-        free(attributes);
+    for (i = 0; i < obj->attributes.n; i++) {
+        om_write_one_attribute(fp, obj->attributes.elements[i]);
     }
-    
+
+    /* must return 0 to continue traversing */
     return 0;
 }
 
@@ -1918,21 +1354,18 @@ om_write_one_object_tfn (void *utility_object, void *utility_node,
  * writing the current object out, followed recusively writing out
  * all its children.
  *
- * This is fine and dandy with ONE HUGE PROBLEM.  For very deep object managers,
- * we run out of recursion stack, no matter how hard I tried to extend 
- * the stack and we almost always crash.  
+ * This is fine and dandy with ONE HUGE PROBLEM.  For very deep object
+ * managers, we BADLY run out of recursion stack no matter how big a
+ * stack is allocated.  So, recursion is useless in this case.
  *
- * So, unfortunately, this method of recursively writing objects followed
- * after by their children, although correct, cannot be used.
- *
- * Here is the alternative.  The 'object_index' in the object manager holds 
- * ALL the objects but in random order (not neatly parent followed 
+ * Here is the alternative.  The 'om_objects' in the object manager holds 
+ * ALL the objects but in random order (NOT neatly parent followed 
  * by children as we want).  But since our tree traversal uses morris
  * traversals, it does not use any extra stack or queue or any kind
  * of memory.  This makes it PERFECT for extremely large object managers
  * since we never run out of stack space.  But now, we introduce the
  * problem where we may have to create an object without having yet 
- * created its parent.  So, how do we solve this problem.  This actually
+ * created its parent.  So, how do we solve this problem ? This actually
  * is not as difficult but it just needs a second pass over all the 
  * objects.
  *
@@ -1942,17 +1375,13 @@ om_write_one_object_tfn (void *utility_object, void *utility_node,
  * yet created.  In those cases, we store the parent object identifier
  * (in the form of type, instance) and move to the next object.
  *
- * Now in the second pass, since we have crerated ALL the objects, we simply
+ * In the second pass, since we have created ALL the objects, we simply
  * scan thru all the objects whose parents have not yet been resolved 
  * and associate them.  When the association is complete all objects
- * will have their parents represented as 'pointer' values.
+ * will have their parents represented as 'pointer' values, EXCEPT
+ * for the very first object created, since it will not have a parent.
+ * This is the root of the avl tree.
  *
- * So, in the absolute worst case, we will make 2n object processing 
- * if there are n elements in the object manager.
- * Since both these passes use iterative methods (morris traverse),
- * we will never run out of stack, even for very large object managers.
- * But we will consume more time.  Increasing execution time is a valid
- * solution but crashing due to stack overflow is not.
  */
 
 PUBLIC int
@@ -1960,27 +1389,27 @@ om_write (object_manager_t *omp)
 {
     FILE *fp;
     char om_name [TYPICAL_NAME_SIZE];
-    char backup__om_name [TYPICAL_NAME_SIZE];
-    char backup__om_tmp [TYPICAL_NAME_SIZE];
+    char backup_om_name [TYPICAL_NAME_SIZE];
+    char backup_om_tmp [TYPICAL_NAME_SIZE];
     void *unused = NULL;    // shut the compiler up
 
     OBJ_READ_LOCK(omp);
 
     sprintf(om_name, "om_%d", omp->manager_id);
-    sprintf(backup__om_name, "%s_BACKUP", om_name);
-    sprintf(backup__om_tmp, "%s_tmp", backup__om_name);
+    sprintf(backup_om_name, "%s_BACKUP", om_name);
+    sprintf(backup_om_tmp, "%s_tmp", backup_om_name);
 
     /* does not matter if these fail */
-    unlink(backup__om_tmp);
-    rename(backup__om_name, backup__om_tmp);
-    rename(om_name, backup__om_name);
+    unlink(backup_om_tmp);
+    rename(backup_om_name, backup_om_tmp);
+    rename(om_name, backup_om_name);
 
     fp = fopen(om_name, "w");
     if (NULL == fp) {
         OBJ_READ_UNLOCK(omp);
         return -1;
     }
-    table_traverse(&omp->object_index, om_write_one_object_tfn,
+    avl_tree_traverse(&omp->om_objects, NULL, om_write_one_object_tfn,
         fp, unused, unused, unused);
 
     /* close up the file */
@@ -1990,8 +1419,8 @@ om_write (object_manager_t *omp)
 
 #if 0 // error
     unlink(om_name);
-    rename(backup__om_name, om_name);
-    unlink(backup__om_tmp);
+    rename(backup_om_name, om_name);
+    unlink(backup_om_tmp);
 #endif
     OBJ_READ_UNLOCK(omp);
 
@@ -2011,7 +1440,7 @@ load_object (object_manager_t *omp, FILE *fp,
                 &parent_type, &parent_instance, 
                 &object_type, &object_instance);
     if (4 != count) return -1;
-    *objp = om_object_create_engine(omp, 0,
+    *objp = om_object_create_engine(omp,
                 parent_type, parent_instance,
                 object_type, object_instance);
     return *objp ? 0 : -1;
@@ -2019,7 +1448,7 @@ load_object (object_manager_t *omp, FILE *fp,
 
 static int
 load_attribute_id (object_manager_t *omp, FILE *fp,
-    object_t *obj, attribute_instance_t **aitpp)
+    object_t *obj, attribute_t **aipp)
 {
     int aid;
 
@@ -2028,42 +1457,43 @@ load_attribute_id (object_manager_t *omp, FILE *fp,
 
     if (fscanf(fp, "%d", &aid) != 1)
         return -1;
-    *aitpp = attribute_instance_add(obj, aid);
-    if (NULL == *aitpp)
+    *aipp = obj_attribute_add(obj, aid);
+    if (NULL == *aipp)
         return -1;
 
     return 0;
 }
 
 static int
-load_simple_attribute_value (object_manager_t *omp, FILE *fp,
-    attribute_instance_t *aitp)
+load_attribute_simple_value (object_manager_t *omp, FILE *fp,
+    attribute_t *aip)
 {
     long long int value;
+    int ref_count;
 
     /* we should NOT have a NULL attribute id at this point */
-    if (NULL == aitp) return -1;
+    if (NULL == aip) return -1;
 
-    if (fscanf(fp, "%lld", &value) != 1) return -1;
+    if (fscanf(fp, " %d %lld", &ref_count, &value) != 2) return -1;
     return
-        attribute_add_simple_value(aitp, value);
+        attribute_simple_value_add(aip, value, ref_count-1);
 
     return 0;
 }
 
 static int
-load_complex_attribute_value (object_manager_t *omp, FILE *fp,
-    attribute_instance_t *aitp)
+load_attribute_complex_value (object_manager_t *omp, FILE *fp,
+    attribute_t *aip)
 {
     byte *value;
-    int i, len;
+    int i, len, ref_count;
     int err;
 
     /* we should NOT have a NULL attribute id at this point */
-    if (NULL == aitp) return -1;
+    if (NULL == aip) return -1;
 
-    /* read length */
-    if (fscanf(fp, "%d", &len) != 1) return -1;
+    /* read ref count & length */
+    if (fscanf(fp, "%d %d ", &ref_count, &len) != 2) return -1;
 
     /* allocate temp space */
     value = (byte*) malloc(len + 1);
@@ -2078,7 +1508,7 @@ load_complex_attribute_value (object_manager_t *omp, FILE *fp,
     }
 
     /* add complex value to the attribute */
-    err = attribute_add_complex_value(aitp, value, len);
+    err = attribute_complex_value_add(aip, value, len, ref_count-1);
 
     /* free up temp storage */
     free(value);
@@ -2105,9 +1535,10 @@ resolve_parent_tfn (void *utility_object, void *utility_node,
         parent = get_object_pointer(omp,
                     obj->parent.u.object_id.object_type,
                     obj->parent.u.object_id.object_instance);
-        assert(NULL != parent);
-        obj->parent.is_pointer = 1;
-        obj->parent.u.object_ptr = parent;
+        if (parent) {
+            obj->parent.is_pointer = true;
+            obj->parent.u.object_ptr = parent;
+        }
     }
     return 0;
 }
@@ -2115,9 +1546,9 @@ resolve_parent_tfn (void *utility_object, void *utility_node,
 static int
 om_resolve_all_parents (object_manager_t *omp)
 {
-    void *unused = 0;
+    void *unused = NULL;
 
-    table_traverse(&omp->object_index, resolve_parent_tfn, omp, 
+    avl_tree_traverse(&omp->om_objects, NULL, resolve_parent_tfn, omp, 
         unused, unused, unused);
     return 0;
 }
@@ -2129,7 +1560,7 @@ om_read (int manager_id, object_manager_t *omp)
     FILE *fp;
     int failed, count;
     object_t *obj, *parent;
-    attribute_instance_t *aitp;
+    attribute_t *aip;
     char string [TYPICAL_NAME_SIZE];
 
     sprintf(om_name, "om_%d", manager_id);
@@ -2137,12 +1568,12 @@ om_read (int manager_id, object_manager_t *omp)
     if (NULL == fp) return -1;
 
     //om_destroy(omp);
-    if (om_initialize(omp, 1, manager_id, NULL) != 0) {
+    if (om_init(omp, true, manager_id, NULL) != 0) {
         return -1;
     }
 
     obj = parent = NULL;
-    aitp = NULL;
+    aip = NULL;
     failed = 0;
 
     while ((count = fscanf(fp, "%s", string)) != EOF) {
@@ -2156,17 +1587,17 @@ om_read (int manager_id, object_manager_t *omp)
                 break;
             }
         } else if (strcmp(string, attribute_id_acronym) == 0) {
-            if (load_attribute_id(omp, fp, obj, &aitp) != 0) {
+            if (load_attribute_id(omp, fp, obj, &aip) != 0) {
                 failed = -1;
                 break;
             }
-        } else if (strcmp(string, simple_attribute_value_acronym) == 0) {
-            if (load_simple_attribute_value(omp, fp, aitp) != 0) {
+        } else if (strcmp(string, attribute_simple_value_acronym) == 0) {
+            if (load_attribute_simple_value(omp, fp, aip) != 0) {
                 failed = -1;
                 break;
             }
-        } else if (strcmp(string, complex_attribute_value_acronym) == 0) {
-            if (load_complex_attribute_value(omp, fp, aitp) != 0) {
+        } else if (strcmp(string, attribute_complex_value_acronym) == 0) {
+            if (load_attribute_complex_value(omp, fp, aip) != 0) {
                 failed = -1;
                 break;
             }

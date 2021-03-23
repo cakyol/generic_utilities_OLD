@@ -164,7 +164,7 @@ radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
         parent->n_children--;
 
         /* delete myself */
-        MEM_MONITOR_FREE(ntp, node);
+        MEM_MONITOR_FREE(node);
         ntp->node_count--;
 
         /* go up one more parent & try again */

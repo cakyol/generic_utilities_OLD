@@ -142,7 +142,7 @@ lock_obj_destroy (lock_obj_t *lck);
     do { \
         if (obj->lock) { \
             lock_obj_destroy(obj->lock); \
-            MEM_MONITOR_FREE(obj, obj->lock); \
+            MEM_MONITOR_FREE(obj->lock); \
             obj->lock = 0; \
         } \
     } while (0)
