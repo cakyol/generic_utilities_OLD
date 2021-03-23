@@ -32,7 +32,7 @@
 **
 ** @@@@@ DYNAMIC ARRAY OBJECT
 **
-** This is an array object which can be accessed by ANY index.  As user
+** This is an array object which auto expands to any index.  As user
 ** inserts data into various locations in the array, the array adjusts
 ** to the specified indexes and enlarges itself to accommodate the entire
 ** span of indexes.  The only limit is the memory limit imposed by malloc.

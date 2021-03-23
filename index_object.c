@@ -232,6 +232,7 @@ index_obj_init (index_obj_t *idx,
     idx->cmpf = cmpf;
     idx->n = 0;
     idx->current = 0;
+    reset_stats(idx);
     idx->elements = MEM_MONITOR_ZALLOC(idx, sizeof(void*) * maximum_size);
     if (NULL == idx->elements) {
         failed = EINVAL;
