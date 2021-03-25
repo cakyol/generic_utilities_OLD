@@ -41,12 +41,6 @@ extern "C" {
 
 typedef struct avl_node_s avl_node_t;
 
-/*
- * used while traversing
- */
-#define FOLLOW_LEFT_NODE        0
-#define FOLLOW_RIGHT_NODE       1
-
 struct avl_node_s {
 
     /* used while traversing */
