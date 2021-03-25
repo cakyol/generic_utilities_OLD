@@ -37,15 +37,25 @@ extern "C" {
 #include "common.h"
 #include "mem_monitor_object.h"
 #include "lock_object.h"
+#include "debug_framework.h"
 
 typedef struct avl_node_s avl_node_t;
 
+/*
+ * used while traversing
+ */
+#define FOLLOW_LEFT_NODE        0
+#define FOLLOW_RIGHT_NODE       1
+
 struct avl_node_s {
 
+    /* used while traversing */
+    tinybool left_done, right_done;
+
+    short balance;
     avl_node_t *parent;
     avl_node_t *left, *right;
     void *user_data;
-    int balance;
 };
 
 typedef struct avl_tree_s {
@@ -108,7 +118,12 @@ avl_tree_remove (avl_tree_t *tree,
  *  zero (error code), to stop the traversal.
  */
 extern int
-avl_tree_traverse (avl_tree_t *tree, avl_node_t *root,
+avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3);
+
+extern int
+avl_tree_left_iterate (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3);
 

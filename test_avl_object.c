@@ -5,24 +5,97 @@
 #include "avl_tree_object.h"
 
 #define MAX_SZ          (50 * 1024 * 1024)
-#define EXTRA           (10 * 1024 * 1024)
+#define MAGIC           12344321
+#define ITER            5
 
-int max_value_reached = 0;
 int data [MAX_SZ];
-avl_tree_t avlt;
 timer_obj_t timr;
+int trav_cnt = 0;
+int magic;
 
 int int_compare (void *p1, void *p2)
 { 
     int *i1 = p1;
     int *i2 = p2;
-    return *i1 - *i2;
+    return i1 - i2;
+}
+
+static int
+travfn (void *utility, void *node, void *data,
+        void *p0, void *p1, void *p2, void *p3)
+{
+    int *addr = (int*) data;
+
+    if (*addr != 0) printf("ERROR, expected 0 got %d\n", *addr);
+    *addr = magic;
+    trav_cnt++;
+    return 0;
 }
 
 static void
-user_data_destroy_function (void *user_data, void *extra_arg)
+traverse_test (void)
 {
+    int iter, i, correct;
+    avl_tree_t tree;
+    void *found;
+    timer_obj_t tmr;
+
+    avl_tree_init(&tree, true, int_compare, NULL);
+    printf("inserting %d pieces of data .. ", MAX_SZ); fflush(stdout);
+    timer_start(&tmr);
+    for (i = 0; i < MAX_SZ; i++) {
+        data[i] = 0;
+        if (avl_tree_insert(&tree, &data[i], &found)) {
+            printf("avl_tree_insert failed at iter %d, data %p\n",
+                    i, &data[i]);
+        }
+        if (found) printf("found %p at iter %d\n", found, i);
+    }
+    timer_end(&tmr);
+    printf("ok\n");
+    timer_report(&tmr, MAX_SZ, NULL);
+
+    /* verify all entries are there */
+    printf("\nnow verifying all data in array .. "); fflush(stdout);
+    timer_start(&tmr);
+    for (i = 0; i < MAX_SZ; i++) {
+        if (avl_tree_search(&tree, &data[i], NULL)) {
+            printf("iter %d data %p not found\n",
+                    i, &data[i]);
+        }
+    }
+    timer_end(&tmr);
+    printf("ok\n");
+    timer_report(&tmr, MAX_SZ, NULL);
+
+    /* now traverse */
+    magic = 12345;
+    for (iter = 0; iter < ITER; iter++) {
+        trav_cnt = 0;
+        timer_start(&tmr);
+        printf("\ntraversing with magic %d .. ", magic); fflush(stdout);
+        avl_tree_left_iterate(&tree, NULL, travfn, null, null, null, null);
+        timer_end(&tmr);
+        printf("ok\n"); fflush(stdout);
+        timer_report(&tmr, trav_cnt, NULL);
+
+        printf("\nnow verifying traversal .. "); fflush(stdout);
+        for (i = 0, correct = 0; i < MAX_SZ; i++) {
+            if (data[i] != magic) {
+                printf("data at index %d is not %d (%d)\n",
+                        i, magic, data[i]);
+            } else {
+                correct++;
+            }
+            data[i] = 0;
+        }
+        printf("ok\n"); fflush(stdout);
+        printf("i = %d, correct = %d\n", i, correct);
+        magic *= 2;
+    }
 }
+
+#if 0
 
 void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 {
@@ -37,6 +110,9 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
 
     printf("size of ONE avl node is: %lu bytes\n",
             sizeof(avl_node_t));
+
+    for (i = 0; i < MAX_SZ; i++) {
+    }
 
     /* 
     ** Fill opposing ends of array, converge in middle.
@@ -60,7 +136,7 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
         printf("max value recorded so far is %d\n", max_value_reached);
     }
 
-    avl_tree_init(avlt, 1, int_compare, NULL);
+    avl_tree_init(avlt, true, int_compare, NULL);
 
     /* enter all array data into avl tree */
     printf("now entering all %s number data into the avl tree\n", oddness);
@@ -131,8 +207,6 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     timer_report(&timr, MAX_SZ, NULL);
     printf("%d as expected and %d as NOT expected\n", fine, not_fine);
 
-#if 0
-
 int tree_nodes = avlt->n;
 printf("now deleting the whole tree (%d nodes)\n", tree_nodes);
 timer_start(&timr);
@@ -140,8 +214,6 @@ avl_tree_destroy(avlt);
 timer_end(&timr);
 timer_report(&timr, tree_nodes, NULL);
 return;
-
-#endif // 0
 
     avl_tree_destroy(avlt, user_data_destroy_function, NULL);
     return;
@@ -176,16 +248,21 @@ return;
     avl_tree_destroy(avlt, user_data_destroy_function, NULL);
 }
 
+#endif // 0
+
 int main (argc, argv)
 int argc;
 char *argv [];
 {
-    avl_tree_t avlt;
+    traverse_test();
+    return 0;
 
+#if 0
     perform_avl_tree_test(&avlt, 1);
     printf("\n\n");
     perform_avl_tree_test(&avlt, 0);
     
     return 0;
+#endif // 0
 }
 

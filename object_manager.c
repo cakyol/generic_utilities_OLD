@@ -1411,7 +1411,7 @@ om_write (object_manager_t *omp)
         OBJ_READ_UNLOCK(omp);
         return -1;
     }
-    avl_tree_traverse(&omp->om_objects, NULL, om_write_one_object_tfn,
+    avl_tree_morris_traverse(&omp->om_objects, NULL, om_write_one_object_tfn,
         fp, unused, unused, unused);
 
     /* close up the file */
@@ -1550,7 +1550,8 @@ om_resolve_all_parents (object_manager_t *omp)
 {
     void *unused = NULL;
 
-    avl_tree_traverse(&omp->om_objects, NULL, resolve_parent_tfn, omp, 
+    avl_tree_morris_traverse(&omp->om_objects, NULL,
+        resolve_parent_tfn, omp, 
         unused, unused, unused);
     return 0;
 }

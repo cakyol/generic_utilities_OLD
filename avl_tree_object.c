@@ -30,6 +30,14 @@
 extern "C" {
 #endif
 
+static debug_module_block_t avl_debug = {
+
+    .level = ERROR_DEBUG_LEVEL,
+    .module_name = "AVL_TREE_MODULE",
+    .drf = NULL
+
+};
+
 static inline avl_node_t *
 get_first (avl_node_t *node)
 {
@@ -170,6 +178,7 @@ new_avl_node (avl_tree_t *tree, void *user_data)
     avl_node_t *node = MEM_MONITOR_ALLOC(tree, sizeof(avl_node_t));
 
     if (node) {
+        node->left_done = node->right_done = false;
         node->parent = node->left = node->right = NULL;
         node->balance = 0;
         node->user_data = user_data;
@@ -536,6 +545,47 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     return failed;
 }
 
+static int
+thread_unsafe_left_iterate (avl_tree_t *tree, avl_node_t *root,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3)
+{
+    avl_node_t *node;
+    int failed = 0;
+
+    if (NULL == root) root = tree->root_node;
+    node = root;
+    tree->should_not_be_modified = true;
+    while (true) {
+        if (node->left_done) {
+            if (node->right_done) {
+                node->left_done = node->right_done = false;
+                if (node == root) break;
+                node = node->parent;
+            } else {
+                node->right_done = true;
+                if (node->right) {
+                    node = node->right;
+                }
+            }
+        } else {
+            if (node->right_done) {
+                ERROR(&avl_debug, "left NOT done but right done\n");
+            } else {
+                if (!failed /* && (node != root) */) {
+                    failed = tfn(tree, node, node->user_data, p0, p1, p2, p3);
+                }
+                node->left_done = true;
+                if (node->left) {
+                    node = node->left;
+                }
+            }
+        }
+    }
+    tree->should_not_be_modified = false;
+    return failed;
+}
+
 /*
  * destroy everything below & including the root node.
  * If 'root' is NULL, the entire tree is destroyed.
@@ -665,7 +715,21 @@ avl_tree_remove (avl_tree_t *tree,
 /**************************** Traverse ***************************************/
 
 PUBLIC int
-avl_tree_traverse (avl_tree_t *tree, avl_node_t *root,
+avl_tree_left_iterate (avl_tree_t *tree, avl_node_t *root,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3)
+{
+    int failed;
+
+    OBJ_READ_LOCK(tree);
+    failed = thread_unsafe_left_iterate(tree, root,
+                tfn, p0, p1, p2, p3);
+    OBJ_READ_UNLOCK(tree);
+    return failed;
+}
+
+PUBLIC int
+avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
