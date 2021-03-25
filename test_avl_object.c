@@ -33,12 +33,21 @@ travfn (void *utility, void *node, void *data,
 }
 
 static void
+destroy (void *data, void *unused)
+{
+    int *ip = (int*) data;
+    *ip = 0;
+}
+
+static void
 traverse_test (void)
 {
     int iter, i, correct;
     avl_tree_t tree;
     void *found;
     timer_obj_t tmr;
+    long long int bytes;
+    double mbytes;
 
     avl_tree_init(&tree, true, int_compare, NULL);
     printf("inserting %d pieces of data .. ", MAX_SZ); fflush(stdout);
@@ -93,6 +102,22 @@ traverse_test (void)
         printf("i = %d, correct = %d\n", i, correct);
         magic *= 2;
     }
+
+
+    /* test destruction */
+    OBJECT_MEMORY_USAGE(&tree, bytes, mbytes);
+    printf("\ntotal memory = %lld bytes %f Mbytes",
+            bytes, mbytes);
+    printf("\nnow destroying .. "); fflush(stdout);
+    for (i = 0; i < MAX_SZ; i++) {
+        data[i] = 12345;
+    }
+    avl_tree_destroy(&tree, destroy, NULL);
+    for (i = 0; i < MAX_SZ; i++) {
+        if (data[i]) printf("element %d not destroyed: %d\n",
+            i, data[i]);
+    }
+    printf("ok\n");
 }
 
 #if 0
