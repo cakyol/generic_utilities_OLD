@@ -30,6 +30,9 @@
 extern "C" {
 #endif
 
+/*
+ * default values for avl tree object debugging
+ */
 static debug_module_block_t avl_debug = {
 
     .level = ERROR_DEBUG_LEVEL,
@@ -545,6 +548,9 @@ thread_unsafe_avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     return failed;
 }
 
+/*
+ * Very similar to morris traversal.
+ */
 static int
 thread_unsafe_avl_tree_iterate (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
@@ -651,6 +657,24 @@ avl_tree_init (avl_tree_t *tree,
     OBJ_WRITE_UNLOCK(tree);
 
     return 0;
+}
+
+PUBLIC void
+avl_tree_debug_set_level (int level)
+{
+    debug_module_block_set_level(&avl_debug, level);
+}
+
+PUBLIC void
+avl_tree_debug_set_module_name (char *name)
+{
+    debug_module_block_set_module_name(&avl_debug, name);
+}
+
+PUBLIC void
+avl_tree_debug_set_reporting_function (debug_reporting_function drf)
+{
+    debug_module_block_set_reporting_function(&avl_debug, drf);
 }
 
 /**************************** Insert *****************************************/

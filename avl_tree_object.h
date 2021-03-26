@@ -75,6 +75,15 @@ avl_tree_init (avl_tree_t *tree,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
 
+extern void
+avl_tree_debug_set_level (int level);
+
+extern void
+avl_tree_debug_set_module_name (char *name);
+
+extern void
+avl_tree_debug_set_reporting_function (debug_reporting_function drf);
+
 extern int 
 avl_tree_insert (avl_tree_t *tree,
         void *data_to_be_inserted,
