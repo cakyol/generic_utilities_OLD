@@ -502,7 +502,7 @@ END_OF_DELETE:
  * function for the rest of the traversal.
  */
 static int
-thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
+thread_unsafe_avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
@@ -546,7 +546,7 @@ thread_unsafe_morris_traverse (avl_tree_t *tree, avl_node_t *root,
 }
 
 static int
-thread_unsafe_left_iterate (avl_tree_t *tree, avl_node_t *root,
+thread_unsafe_avl_tree_iterate (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
 {
@@ -715,20 +715,6 @@ avl_tree_remove (avl_tree_t *tree,
 /**************************** Traverse ***************************************/
 
 PUBLIC int
-avl_tree_left_iterate (avl_tree_t *tree, avl_node_t *root,
-        traverse_function_pointer tfn,
-        void *p0, void *p1, void *p2, void *p3)
-{
-    int failed;
-
-    OBJ_READ_LOCK(tree);
-    failed = thread_unsafe_left_iterate(tree, root,
-                tfn, p0, p1, p2, p3);
-    OBJ_READ_UNLOCK(tree);
-    return failed;
-}
-
-PUBLIC int
 avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3)
@@ -736,7 +722,21 @@ avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
     int failed;
 
     OBJ_READ_LOCK(tree);
-    failed = thread_unsafe_morris_traverse(tree, root,
+    failed = thread_unsafe_avl_tree_morris_traverse(tree, root,
+                tfn, p0, p1, p2, p3);
+    OBJ_READ_UNLOCK(tree);
+    return failed;
+}
+
+PUBLIC int
+avl_tree_iterate (avl_tree_t *tree, avl_node_t *root,
+        traverse_function_pointer tfn,
+        void *p0, void *p1, void *p2, void *p3)
+{
+    int failed;
+
+    OBJ_READ_LOCK(tree);
+    failed = thread_unsafe_avl_tree_iterate(tree, root,
                 tfn, p0, p1, p2, p3);
     OBJ_READ_UNLOCK(tree);
     return failed;

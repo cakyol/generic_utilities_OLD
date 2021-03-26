@@ -116,8 +116,12 @@ avl_tree_morris_traverse (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3);
 
+/*
+ * This is a similar iterative way of traversing the tree,
+ * always starting from the leftmost nodes.
+ */
 extern int
-avl_tree_left_iterate (avl_tree_t *tree, avl_node_t *root,
+avl_tree_iterate (avl_tree_t *tree, avl_node_t *root,
         traverse_function_pointer tfn,
         void *p0, void *p1, void *p2, void *p3);
 

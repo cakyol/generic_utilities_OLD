@@ -11,7 +11,6 @@
 int data [MAX_SZ];
 timer_obj_t timr;
 int trav_cnt = 0;
-int magic;
 
 int int_compare (void *p1, void *p2)
 { 
@@ -27,7 +26,7 @@ travfn (void *utility, void *node, void *data,
     int *addr = (int*) data;
 
     if (*addr != 0) printf("ERROR, expected 0 got %d\n", *addr);
-    *addr = magic;
+    *addr = pointer2integer(addr);
     trav_cnt++;
     return 0;
 }
@@ -78,29 +77,27 @@ traverse_test (void)
     timer_report(&tmr, MAX_SZ, NULL);
 
     /* now traverse */
-    magic = 12345;
     for (iter = 0; iter < ITER; iter++) {
         trav_cnt = 0;
+        for (i = 0; i < MAX_SZ; i++) data[i] = 0;
         timer_start(&tmr);
-        printf("\ntraversing with magic %d .. ", magic); fflush(stdout);
-        avl_tree_left_iterate(&tree, NULL, travfn, null, null, null, null);
+        printf("\ntraversing iteration %d .. ", iter); fflush(stdout);
+        avl_tree_iterate(&tree, NULL, travfn, null, null, null, null);
         timer_end(&tmr);
         printf("ok\n"); fflush(stdout);
         timer_report(&tmr, trav_cnt, NULL);
 
         printf("\nnow verifying traversal .. "); fflush(stdout);
         for (i = 0, correct = 0; i < MAX_SZ; i++) {
-            if (data[i] != magic) {
+            if (data[i] != pointer2integer(&data[i])) {
                 printf("data at index %d is not %d (%d)\n",
-                        i, magic, data[i]);
+                        i, (int) pointer2integer(&data[i]), data[i]);
             } else {
                 correct++;
             }
-            data[i] = 0;
         }
         printf("ok\n"); fflush(stdout);
         printf("i = %d, correct = %d\n", i, correct);
-        magic *= 2;
     }
 
 
