@@ -43,7 +43,7 @@ typedef struct avl_node_s avl_node_t;
 
 struct avl_node_s {
 
-    /* used while traversing */
+    /* used while iterating the tree */
     tinybool left_done, right_done;
 
     short balance;
@@ -87,7 +87,8 @@ avl_tree_debug_set_reporting_function (debug_reporting_function drf);
 extern int 
 avl_tree_insert (avl_tree_t *tree,
         void *data_to_be_inserted,
-        void **present_data);
+        void **present_data,
+        boolean overwrite_if_present);
 
 extern int 
 avl_tree_search (avl_tree_t *tree,

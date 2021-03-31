@@ -53,7 +53,7 @@ traverse_test (void)
     timer_start(&tmr);
     for (i = 0; i < MAX_SZ; i++) {
         data[i] = 0;
-        if (avl_tree_insert(&tree, &data[i], &found)) {
+        if (avl_tree_insert(&tree, &data[i], &found, false)) {
             printf("avl_tree_insert failed at iter %d, data %p\n",
                     i, &data[i]);
         }
@@ -165,7 +165,7 @@ void perform_avl_tree_test (avl_tree_t *avlt, int use_odd_numbers)
     timer_start(&timr);
     for (i = 0; i < MAX_SZ; i++) {
         fwdata = &data[i];
-        failed = avl_tree_insert(avlt, fwdata, &found);
+        failed = avl_tree_insert(avlt, fwdata, &found, false);
         if (failed != 0) {
             printf("populate_data: avl_tree_insert error: %d failed\n", i);
         }

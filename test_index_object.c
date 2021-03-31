@@ -57,7 +57,7 @@ printf("FILLING INITIAL DATA\n");
         data [i].first = i;
         data [i].second = i;
         ip1 = &data[i];
-        if (index_obj_insert(&index, ip1, &exists)) {
+        if (index_obj_insert(&index, ip1, &exists, false)) {
             fprintf(stderr, "cannot add entry %d %d to index %d\n",
                 data[i].first, data[i].second, i);
             return -1;
@@ -104,7 +104,7 @@ printf ("BEST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
     timer_start(&timr);
     ip1 = &hidata;
     for (i = 0; i < 3*BIG_ITER; i++) {
-        if (index_obj_insert(&index, ip1, &exists) != 0) {
+        if (index_obj_insert(&index, ip1, &exists, false) != 0) {
             printf("could not insert hidata %d %d",
                 hidata.first, hidata.second);
         }
@@ -131,7 +131,7 @@ printf ("WORST CASE INSERT/DELETE for %d entries\n", MAX_SZ);
     timer_start(&timr);
     ip1 = &lodata;
     for (i = 0; i < ITER * 200; i++) {
-        if (index_obj_insert(&index, ip1, &exists) != 0) {
+        if (index_obj_insert(&index, ip1, &exists, false) != 0) {
             printf("could not insert lodata %d %d",
                 lodata.first, lodata.second);
         }

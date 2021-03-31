@@ -748,7 +748,8 @@ om_object_create_engine (object_manager_t *omp,
     obj->object_instance = object_instance;
 
     /* if the object already exists simply return that */
-    assert(0 == avl_tree_insert(&omp->om_objects, obj, (void**) &exists));
+    assert(0 == avl_tree_insert(&omp->om_objects, obj,
+                    (void**) &exists, false));
     if (exists) {
         get_ot_and_oi(&exists->parent, &pot, &poi);
         TRACE(&om_debug,
@@ -778,7 +779,7 @@ om_object_create_engine (object_manager_t *omp,
         obj->parent.is_pointer = true;
         obj->parent.u.object_ptr = parent;
         assert(0 == index_obj_insert(&parent->children, obj,
-                        (void**) &exists));
+                        (void**) &exists, false));
     } else {
         obj->parent.is_pointer = false;
         obj->parent.u.object_id.object_type = parent_object_type;
@@ -808,7 +809,7 @@ obj_attribute_add (object_t *obj, int attribute_id)
 
     /* if already there, just free up the new one & return */
     aip->attribute_id = attribute_id;
-    if (index_obj_insert(&obj->attributes, aip, &found) == 0) {
+    if (index_obj_insert(&obj->attributes, aip, &found, false) == 0) {
         if (found) {
             mem_monitor_free(aip);
             return found;

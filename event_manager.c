@@ -143,7 +143,7 @@ create_f_and_arg_container (event_manager_t *emp,
         }
         fargcp->object_type = object_type;
         fargcp->my_index = my_index;
-        failed = index_obj_insert(my_index, fargcp, NULL);
+        failed = index_obj_insert(my_index, fargcp, NULL, false);
         if (failed) {
             destroy_f_and_arg_container(emp, fargcp);
             return NULL;

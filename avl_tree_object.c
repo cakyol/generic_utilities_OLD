@@ -192,8 +192,9 @@ new_avl_node (avl_tree_t *tree, void *user_data)
 
 static int 
 thread_unsafe_avl_tree_insert (avl_tree_t *tree,
-    void *data_to_be_inserted,
-    void **present_data)
+    void *data,
+    void **present_data,
+    boolean overwrite_if_present)
 {
     avl_node_t *found, *parent, *unbalanced, *node;
     int is_left;
@@ -211,17 +212,22 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
         return EBUSY;
     }
 
-    found = avl_lookup_engine(tree, data_to_be_inserted,
+    found = avl_lookup_engine(tree, data,
                 &parent, &unbalanced, &is_left);
 
     if (found) {
         safe_pointer_set(present_data, found->user_data);
-        insertion_duplicated(tree);
+        if (overwrite_if_present) {
+            found->user_data = data;
+            insertion_succeeded(tree);
+        } else {
+            insertion_duplicated(tree);
+        }
         return 0;
     }
 
     /* get a new node */
-    node = new_avl_node(tree, data_to_be_inserted);
+    node = new_avl_node(tree, data);
     if (NULL == node) {
         insertion_failed(tree);
         return ENOMEM;
@@ -681,14 +687,15 @@ avl_tree_debug_set_reporting_function (debug_reporting_function drf)
 
 PUBLIC int
 avl_tree_insert (avl_tree_t *tree,
-        void *data_to_be_inserted,
-        void **present_data)
+        void *data,
+        void **present_data,
+        boolean overwrite_if_present)
 {
     int failed;
 
     OBJ_WRITE_LOCK(tree);
     failed = thread_unsafe_avl_tree_insert(tree,
-                data_to_be_inserted, present_data);
+                data, present_data, overwrite_if_present);
     OBJ_WRITE_UNLOCK(tree);
     return failed;
 }

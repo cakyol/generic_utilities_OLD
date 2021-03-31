@@ -78,7 +78,7 @@ typedef struct index_obj_s {
  *
  * This does not need much explanation, except maybe just the 'expansion_size'
  * field.  When an index object is initialized, its size is set to accept
- * 'maximum_size' data pointers.  If more than that number of entries are
+ * 'maximum_size' entries.  If more than that number of entries are
  * needed, then the object self expands by 'expansion_size'.  If this value
  * is specified as 0, then expansion will not be allowed and the insertion
  * will fail.
@@ -98,14 +98,16 @@ index_obj_init (index_obj_t *idx,
  * Inserts 'data' into its appropriate place in the index.  If the data
  * was already in the index, also returns whatever was there in 'present_data'.
  * 'present_data' can be NULL if not needed.  If data was already there,
- * it will NOT be overwritten.
+ * the existing data will be overwritten depending on how 'overwrite_if_present'
+ * is specified.
  *
  * Function return value is errno or 0.
  */
 extern int 
 index_obj_insert (index_obj_t *idx,
         void *data,
-        void **present_data);
+        void **present_data,
+        boolean overwrite_if_present);
 
 /******************************** Search **************************************
  *

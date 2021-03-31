@@ -82,7 +82,8 @@ index_find_position (index_obj_t *idx,
 static int
 thread_unsafe_index_obj_insert (index_obj_t *idx,
         void *data,
-        void **present_data)
+        void **present_data,
+        boolean overwrite_if_present)
 {
     int insertion_point = 0;    /* shut the -Werror up */
     int size, i;
@@ -106,7 +107,12 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
     /* key/data already in index */
     if (i >= 0) {
         safe_pointer_set(present_data, idx->elements[i]);
-        insertion_duplicated(idx);
+        if (overwrite_if_present) {
+            idx->elements[i] = data;
+            insertion_succeeded(idx);
+        } else {
+            insertion_duplicated(idx);
+        }
         return 0;
     }
 
@@ -242,12 +248,14 @@ index_obj_init (index_obj_t *idx,
 PUBLIC int
 index_obj_insert (index_obj_t *idx,
         void *data,
-        void **present_data)
+        void **present_data,
+        boolean overwrite_if_present)
 {
     int failed;
 
     OBJ_WRITE_LOCK(idx);
-    failed = thread_unsafe_index_obj_insert(idx, data, present_data);
+    failed = thread_unsafe_index_obj_insert(idx, data,
+                present_data, overwrite_if_present);
     OBJ_WRITE_UNLOCK(idx);
     return failed;
 }
