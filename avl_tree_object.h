@@ -44,7 +44,7 @@ typedef struct avl_node_s avl_node_t;
 struct avl_node_s {
 
     /* used while iterating the tree */
-    tinybool left_done, right_done;
+    tinybool left_visited, right_visited;
 
     short balance;
     avl_node_t *parent;

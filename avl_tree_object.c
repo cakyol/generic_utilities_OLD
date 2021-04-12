@@ -181,7 +181,7 @@ new_avl_node (avl_tree_t *tree, void *user_data)
     avl_node_t *node = MEM_MONITOR_ALLOC(tree, sizeof(avl_node_t));
 
     if (node) {
-        node->left_done = node->right_done = false;
+        node->left_visited = node->right_visited = false;
         node->parent = node->left = node->right = NULL;
         node->balance = 0;
         node->user_data = user_data;
@@ -569,25 +569,25 @@ thread_unsafe_avl_tree_iterate (avl_tree_t *tree, avl_node_t *root,
     node = root;
     tree->should_not_be_modified = true;
     while (true) {
-        if (node->left_done) {
-            if (node->right_done) {
-                node->left_done = node->right_done = false;
+        if (node->left_visited) {
+            if (node->right_visited) {
+                node->left_visited = node->right_visited = false;
                 if (node == root) break;
                 node = node->parent;
             } else {
-                node->right_done = true;
+                node->right_visited = true;
                 if (node->right) {
                     node = node->right;
                 }
             }
         } else {
-            if (node->right_done) {
+            if (node->right_visited) {
                 ERROR(&avl_debug, "left NOT done but right done\n");
             } else {
                 if (!failed /* && (node != root) */) {
                     failed = tfn(tree, node, node->user_data, p0, p1, p2, p3);
                 }
-                node->left_done = true;
+                node->left_visited = true;
                 if (node->left) {
                     node = node->left;
                 }
