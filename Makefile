@@ -37,6 +37,7 @@ LIB_OBJS =	debug_framework.o \
 		event_manager.o \
 		object_manager.o \
 		tlv_manager.o \
+		another_malloc.o \
 		### test_data_generator.o \
 		### utils_common.o \
 

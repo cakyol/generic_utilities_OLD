@@ -38,6 +38,8 @@
  */
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
+#include <stdlib.h>
 
 /*
  * This file is a collection of the most common types/definitions
