@@ -39,6 +39,72 @@
 extern "C" {
 #endif
 
+typedef struct chunk_s chunk_t;
+typedef struct mempool_s mempool_t;
+
+/*
+ * A memory block/chunk allocated from a pool.
+ * The user sees ONLY the part past the 'start'.
+ * This will be 8 byte aligned.
+ *
+ * The 'next' pointer simply points to the next free available
+ * chunk.  The 'poolp' points to the pool this chunk belongs to,
+ * where it should be returned to when freed.  This makes it
+ * a very fast free operation to simply re-insert it to the head
+ * of the free list of that pool.
+ *
+ * Note that user does NOT see or need anything before 'start'.
+ */
+struct chunk_s {
+
+    /* the memory pool this chunk belongs to (used when freeing) */
+    mempool_t *poolp;
+
+    /* next free chunk in the list (used for allocating) */
+    chunk_t *next;
+
+    /*
+     * This is what the user sees, ONLY,
+     * an 8 byte aligned chunk of memory
+     */
+    unsigned char data [0] __attribute__((aligned(8)));
+};
+
+/*
+ * Defines ONE memory pool
+ */
+struct mempool_s {
+    
+    /*
+     * The original chunk size the user requested.
+     * Note that as the pool is populated, this will be expanded
+     * to the next multiple of 8 bytes.
+     */
+    int user_requested_size;
+
+    /*
+     * Adjusted size of each chunk after the user requested size
+     * has been increased to the next multiple of 8 bytes AND the
+     * pre chunk header has been added to it.
+     */
+    int chunk_size;
+
+    /* how many chunks this pool has */
+    int chunk_count;
+
+    /*
+     * The entire malloced block for this pool.
+     * When destroying a pool, the entire set of
+     * chunks can be destroyed just by freeing this single
+     * block.  One does not have to free traversing
+     * any lists, one chunk at a time.
+     */
+    void *block;
+
+    /* linked list of all the chunks */
+    chunk_t *head;
+};
+
 /*
  * initialize a pool with all its chunks.  Each chunk can hold
  * data of size 'size' and there will be 'count' of these chunks
@@ -97,6 +163,7 @@ memory_initialize (memory_t *memp,
         size_count_tuple_t tuples [], int count)
 {
     int i;
+    mempool_t *pools;
 
     if (count <= 0) return EINVAL;
     
@@ -113,8 +180,8 @@ memory_initialize (memory_t *memp,
     if (NULL == memp->pools) return ENOMEM;
     memp->num_pools = count;
     for (i = 0; i < count; i++) {
-        initialize_one_pool(&memp->pools[i],
-            tuples[i].size, tuples[i].count);
+        pools = (mempool_t*) memp->pools; 
+        initialize_one_pool(&pools[i], tuples[i].size, tuples[i].count);
     }
 
     return 0;
@@ -124,7 +191,7 @@ PUBLIC void *
 memory_allocate (memory_t *memp, int size)
 {
     int i;
-    mempool_t *poolp;
+    mempool_t *poolp, *pools;
     chunk_t *chunkp;
 
     /*
@@ -132,8 +199,9 @@ memory_allocate (memory_t *memp, int size)
      * particular sized pool is exhausted, a chunk is
      * allocated from the next higher sized pool.
      */
+    pools = (mempool_t*) memp->pools;
     for (i = 0; i < memp->num_pools; i++) {
-        poolp = &memp->pools[i];
+        poolp = &pools[i];
         if ((poolp->user_requested_size >= size) && poolp->head) {
             chunkp = poolp->head;
             poolp->head = chunkp->next;
@@ -157,9 +225,10 @@ PUBLIC void
 memory_destroy (memory_t *memp)
 {
     int i;
+    mempool_t *pools = (mempool_t*) memp->pools;
 
     for (i = 0; i < memp->num_pools; i++) {
-        free(memp->pools[i].block);
+        free(pools[i].block);
     }
     free(memp->pools);
     memp->pools = NULL;

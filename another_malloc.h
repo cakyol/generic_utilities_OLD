@@ -43,98 +43,46 @@ extern "C" {
 #endif
 
 /*
- * When allocating, the correct pool with the minimum acceptable
- * size is found and the chunk is allocated from the head of its
- * free list ('head').  Also when freeing a chunk, it is also
- * returned back to the 'head' of the pool.  This makes it extremely
- * fast.
+ * During initialization, signifies a buffer pool.  'size'
+ * is the number of bytes each block in this pool is and
+ * 'count' signifies how many of such blocks are in this pool.
  */
-
 typedef struct size_count_tuple_s {
-
     int size;
     int count;
-
 } size_count_tuple_t;
 
-typedef struct chunk_s chunk_t;
-typedef struct mempool_s mempool_t;
-
 /*
- * A memory block/chunk allocated from a pool.
- * The user sees ONLY the part past the 'start'.
- * This will be 8 byte aligned.
- *
- * The 'next' pointer simply points to the next free available
- * chunk.  The 'poolp' points to the pool this chunk belongs to,
- * where it should be returned to when freed.  This makes it
- * a very fast free operation to simply re-insert it to the head
- * of the free list of that pool.
- *
- * Note that user does NOT see or need anything before 'start'.
- */
-struct chunk_s {
-
-    /* the memory pool this chunk belongs to (used when freeing) */
-    mempool_t *poolp;
-
-    /* next free chunk in the list (used for allocating) */
-    chunk_t *next;
-
-    /*
-     * This is what the user sees, ONLY,
-     * an 8 byte aligned chunk of memory
-     */
-    unsigned char data [0] __attribute__((aligned(8)));
-};
-
-/*
- * Defines ONE memory pool
- */
-struct mempool_s {
-    
-    /*
-     * The original chunk size the user requested.
-     * Note that as the pool is populated, this will be expanded
-     * to the next multiple of 8 bytes.
-     */
-    int user_requested_size;
-
-    /*
-     * Adjusted size of each chunk after the user requested size
-     * has been increased to the next multiple of 8 bytes AND the
-     * pre chunk header has been added to it.
-     */
-    int chunk_size;
-
-    /* how many chunks this pool has */
-    int chunk_count;
-
-    /*
-     * The entire malloced block for this pool.
-     * When destroying a pool, the entire set of
-     * chunks can be destroyed just by freeing this single
-     * block.  One does not have to free traversing
-     * any lists, one chunk at a time.
-     */
-    void *block;
-
-    /* linked list of all the chunks */
-    chunk_t *head;
-};
-
-/*
- * Defines a SET of memory pools
+ * The main user structure
  */
 typedef struct memory_s {
 
     /* how many pools are in this memory object */
     int num_pools;
 
-    /* an array of pools, size defined at initialization time */
-    mempool_t *pools;
+    /*
+     * An array of pools, size defined at initialization time
+     * This is deliberately defined as a void pointer so that
+     * the internal pool structure does not have to be exposed
+     * in this h file
+     * */
+    void *pools;
 
 } memory_t;
+
+extern int
+memory_initialize (memory_t *memp,
+        bool make_it_thread_safe,
+        size_count_tuple_t tuples [], int count);
+
+extern void *
+memory_allocate (memory_t *memp, int size);
+
+extern void
+memory_free (void *ptr);
+
+extern void
+memory_destroy (memory_t *memp);
 
 #ifdef __cplusplus
 } /* extern C */
