@@ -64,7 +64,7 @@ buffer_manager_pool_init (buffer_manager_t *bmp,
 {
     int size = tuple->size;
     int count = tuple->count;
-    int i, total_size, aligned_data_size, buffer_size;
+    int i, total_size, aligned_data_size, actual_buffer_size;
     byte *block, *ptr;
     buffer_t *bufp = NULL;  /* shut the compiler up */
     buffer_pool_t *poolp = &bmp->pools[pool_number];
@@ -74,8 +74,8 @@ buffer_manager_pool_init (buffer_manager_t *bmp,
 
     /* adjusted sizes */
     aligned_data_size = (size + 7) & ~7;
-    buffer_size = aligned_data_size + sizeof(buffer_t);
-    total_size = buffer_size * count;
+    actual_buffer_size = aligned_data_size + sizeof(buffer_t);
+    total_size = actual_buffer_size * count;
 
     /* allocate the big block for the entire pool and fill fields */
     block = MEM_MONITOR_ALLOC(bmp, total_size);
@@ -85,8 +85,8 @@ buffer_manager_pool_init (buffer_manager_t *bmp,
 
     /* we are ok, fill the rest */
     poolp->bmp = bmp;
-    poolp->user_requested_size = size;
-    poolp->buffer_size = buffer_size;
+    poolp->specified_size = size;
+    poolp->actual_buffer_size = actual_buffer_size;
     poolp->buffer_count = count;
     poolp->block = block;
     poolp->head = (buffer_t*) block;
@@ -96,7 +96,7 @@ buffer_manager_pool_init (buffer_manager_t *bmp,
     for (i = 0; i < count; i++) {
         bufp = (buffer_t*) ptr;
         bufp->poolp = poolp;
-        ptr += buffer_size;
+        ptr += actual_buffer_size;
         bufp->next = (buffer_t*) ptr;
     }
 
@@ -121,7 +121,7 @@ buffer_manager_lookup_table_init (buffer_manager_t *bmp)
 
     idx = 0;
     for (p = 0; p < bmp->num_pools; p++) {
-        for (; idx <= bmp->pools[p].user_requested_size; idx++) {
+        for (; idx <= bmp->pools[p].specified_size; idx++) {
             bmp->size_lookup_table[idx] = p;
         }
     }
@@ -242,7 +242,7 @@ buffer_allocate (buffer_manager_t *bmp, int size)
     void *data = NULL;
 
     /* no such buffers */
-    if ((size < 0) || (size >= bmp->max_size)) {
+    if ((size < 0) || (size > bmp->max_size)) {
         return NULL;
     }
 
@@ -252,15 +252,21 @@ buffer_allocate (buffer_manager_t *bmp, int size)
      * pools are ordered based on size so that if a
      * particular sized pool is exhausted, a buffer is
      * allocated from the next higher sized pool.
+     * We normally start from the pool given to us from the
+     * lookup table.  However, if the lookup table was not
+     * allocated (usually due to malloc failure), then we
+     * start from the first pool (0).
      */
-    for (p = bmp->size_lookup_table[size]; p < bmp->num_pools; p++) {
+    p = (bmp->size_lookup_table) ? bmp->size_lookup_table[size] : 0;
+    while (p < bmp->num_pools) {
         poolp = &bmp->pools[p];
-        if (poolp->head) {
+        if ((size <= poolp->specified_size) && poolp->head) {
             bufp = poolp->head;
             poolp->head = bufp->next;
             data = &bufp->data[0];
             break;
         }
+	p++;
     }
 
     OBJ_WRITE_UNLOCK(bmp);

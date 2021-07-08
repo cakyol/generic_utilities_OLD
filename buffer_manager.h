@@ -47,7 +47,7 @@
 * which is user specified.  For example, if the user initializes
 * the object with the following set of tuples (first number is the
 * size of buffer, the second is how many of those buffers are required).
-* Any negative number combination will be the terminating entry.
+* Any negative number combination TOGETHER will be the terminating entry.
 *
 * 128, 1000
 * 512, 2000
@@ -94,8 +94,10 @@ extern "C" {
  * 'count' signifies how many of such blocks are in this pool.
  */
 typedef struct size_count_tuple_s {
+
     int size;
     int count;
+
 } size_count_tuple_t;
 
 typedef struct buffer_s buffer_t;
@@ -141,18 +143,18 @@ struct buffer_pool_s {
     /*
      * The original buffer size the user requested.
      * Note that as the pool is populated, this will be adjusted
-     * to the next multiple of 8 bytes, and stored in 'buffer_size'.
+     * to the next multiple of 8 bytes, and stored in 'actual_buffer_size'.
      */
-    int user_requested_size;
+    int specified_size;
 
     /*
      * Adjusted size of each buffer after the user requested size
      * has been increased to the next multiple of 8 bytes AND the
      * pre buffer header has been added to it.
      */
-    int buffer_size;
+    int actual_buffer_size;
 
-    /* how many buffer this pool has */
+    /* how many buffers this particular pool has */
     int buffer_count;
 
     /*
@@ -169,7 +171,8 @@ struct buffer_pool_s {
 };
 
 /*
- * djust this to taste, but dont go ridiculous
+ * Adjust this to taste, but dont be
+ * ridiculous or your mallocs WILL fail.
  */
 #define MAX_POOLS           16
 
@@ -181,21 +184,20 @@ struct buffer_manager_s {
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
-    /* how many pools are in this memory object */
+    /* how many pools are in this buffer manager */
     int num_pools;
 
-    /* the buffer size of the pool with the largest buffers */
+    /* the buffer size of the pool with the largest buffer size */
     int max_size;
 
     /*
-     * creates a size -> pool number lookup
+     * creates a size -> pool number number lookup
      * table for incredibly fast buffer allocation.
      */
     byte *size_lookup_table;
 
     /* The array of pools for this memory allocator */
     buffer_pool_t pools [MAX_POOLS];
-
 };
 
 /*
