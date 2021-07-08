@@ -297,10 +297,9 @@ buffer_manager_destroy (buffer_manager_t *bmp)
         memset(&pools[i].block, 0, sizeof(buffer_pool_t));
     }
     MEM_MONITOR_FREE(bmp->size_lookup_table);
-    bmp->size_lookup_table = NULL;
-    bmp->num_pools = 0;
     OBJ_WRITE_UNLOCK(bmp);
     LOCK_OBJ_DESTROY(bmp);
+    memset(bmp, 0, sizeof(*bmp));
 }
 
 #ifdef __cplusplus
