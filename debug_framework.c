@@ -58,6 +58,7 @@ _process_debug_message_ (debug_module_block_t *dmbp, int level,
 {
     va_list args;
 
+    OBJ_WRITE_LOCK(dmbp);
     va_start(args, fmt);
     if (dmbp->drf) {
         dmbp->drf(dmbp, level, file_name, function_name,
@@ -69,6 +70,7 @@ _process_debug_message_ (debug_module_block_t *dmbp, int level,
         vfprintf(stderr, fmt, args);
         fflush(stderr);
     }
+    OBJ_WRITE_UNLOCK(dmbp);
 }
 
 #ifdef __cplusplus

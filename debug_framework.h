@@ -107,6 +107,7 @@ typedef void (*debug_reporting_function)
 
 typedef struct debug_module_block_s {
 
+    LOCK_VARIABLES;
     int level;
     char *module_name;
     debug_reporting_function drf;
@@ -139,13 +140,17 @@ debug_module_block_set_reporting_function (debug_module_block_t *dmbp,
     dmbp->drf = drf;
 }
 
-static inline void
+static inline int
 debug_module_block_init (debug_module_block_t *dmbp,
+        bool make_it_thread_safe,
         int level, char *name, debug_reporting_function drf)
 {
+    LOCK_SETUP(dmbp);
     debug_module_block_set_level(dmbp, level);
     debug_module_block_set_module_name(dmbp, name);
     debug_module_block_set_reporting_function(dmbp, drf);
+    OBJ_WRITE_UNLOCK(dmbp);
+    return 0;
 }
 
 #define TRACE(dmbp, fmt, args...) \
@@ -158,7 +163,7 @@ debug_module_block_init (debug_module_block_t *dmbp,
 #define INFO(dmbp, fmt, args...) \
     do { \
         if ((dmbp)->level > INFORM_DEBUG_LEVEL) break; \
-        _process_debug_message_(ddmbp, INFORM_DEBUG_LEVEL, \
+        _process_debug_message_(dmbp, INFORM_DEBUG_LEVEL, \
                 __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
     } while (0)
     

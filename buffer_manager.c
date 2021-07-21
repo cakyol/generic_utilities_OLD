@@ -40,6 +40,7 @@ extern "C" {
 #endif
 
 static debug_module_block_t buffer_manager_debug = {
+    .lock = NULL,
     .level = ERROR_DEBUG_LEVEL,
     .module_name = "BUFFER_MANAGER_MODULE",
     .drf = NULL

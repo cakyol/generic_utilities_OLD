@@ -113,17 +113,21 @@ extern void
 lock_obj_destroy (lock_obj_t *lck);
 
 #define LOCK_VARIABLES \
+    lock_obj_t lock_structure; \
     lock_obj_t *lock; \
 
+/*
+ * If locking is required, set up the object's lock structure and let
+ * the object's 'lock' pointer point to it.  Otherwise, the pointer
+ * is set to NULL (indicating locking is not required).
+ */
 #define LOCK_SETUP(obj) \
     do { \
-        int __failed__; \
-        obj->lock = 0; \
+        obj->lock = NULL; \
         if (make_it_thread_safe) { \
-            obj->lock = MEM_MONITOR_ZALLOC(obj, sizeof(lock_obj_t)); \
-            if (0 == obj->lock) return ENOMEM; \
-            __failed__ = lock_obj_init(obj->lock); \
+            int __failed__ = lock_obj_init(&obj->lock_structure); \
             if (__failed__) return __failed__; \
+            obj->lock = &obj->lock_structure; \
             grab_write_lock(obj->lock); \
         } \
     } while (0)
@@ -142,7 +146,6 @@ lock_obj_destroy (lock_obj_t *lck);
     do { \
         if (obj->lock) { \
             lock_obj_destroy(obj->lock); \
-            MEM_MONITOR_FREE(obj->lock); \
             obj->lock = 0; \
         } \
     } while (0)

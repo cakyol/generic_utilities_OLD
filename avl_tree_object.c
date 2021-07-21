@@ -35,6 +35,7 @@ extern "C" {
  */
 static debug_module_block_t avl_debug = {
 
+    .lock = NULL,
     .level = ERROR_DEBUG_LEVEL,
     .module_name = "AVL_TREE_MODULE",
     .drf = NULL
