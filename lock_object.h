@@ -72,11 +72,11 @@ extern "C" {
 typedef struct lock_obj_s {
 
     /* used with compare & swap, protects rest of the variables */
-    volatile char mtx;
+    volatile sbyte mtx;
 
     short readers;
-    char write_pending;
-    char writing;
+    sbyte write_pending;
+    sbyte writing;
 
 } lock_obj_t;
 
@@ -146,7 +146,7 @@ lock_obj_destroy (lock_obj_t *lck);
     do { \
         if (obj->lock) { \
             lock_obj_destroy(obj->lock); \
-            obj->lock = 0; \
+            obj->lock = NULL; \
         } \
     } while (0)
 

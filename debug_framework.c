@@ -58,7 +58,14 @@ _process_debug_message_ (debug_module_block_t *dmbp, int level,
 {
     va_list args;
 
+    /*
+     * In a multi threaded environment, we dont want the
+     * printing/reporting to be garbled if context
+     * switching occurs while in the middle of printing
+     * an error string.
+     */
     OBJ_WRITE_LOCK(dmbp);
+
     va_start(args, fmt);
     if (dmbp->drf) {
         dmbp->drf(dmbp, level, file_name, function_name,
@@ -70,7 +77,22 @@ _process_debug_message_ (debug_module_block_t *dmbp, int level,
         vfprintf(stderr, fmt, args);
         fflush(stderr);
     }
+
     OBJ_WRITE_UNLOCK(dmbp);
+}
+
+PUBLIC int
+debug_module_block_init (debug_module_block_t *dmbp,
+        boolean make_it_thread_safe,
+        int level, char *name, debug_reporting_function drf)
+{
+    LOCK_SETUP(dmbp);
+    debug_module_block_set_level(dmbp, level);
+    debug_module_block_set_module_name(dmbp, name);
+    debug_module_block_set_reporting_function(dmbp, drf);
+    OBJ_WRITE_UNLOCK(dmbp);
+
+    return 0;
 }
 
 #ifdef __cplusplus

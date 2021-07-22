@@ -58,8 +58,8 @@
 ** is because the user can override the default printing function (which is
 ** simply writing to stderr) by a user specified one.  It is expected that
 ** such a user defined function will typically do some sort of printing but it 
-** can be anything defined by the user.  Note that another debug/error
-** cannot be called inside the user defined function or deadlock will
+** can be anything defined by the user.  Note that another debug/error message
+** should NOT  be called inside the user defined function or deadlock will
 ** result.
 **
 *******************************************************************************
@@ -140,19 +140,6 @@ debug_module_block_set_reporting_function (debug_module_block_t *dmbp,
     dmbp->drf = drf;
 }
 
-static inline int
-debug_module_block_init (debug_module_block_t *dmbp,
-        bool make_it_thread_safe,
-        int level, char *name, debug_reporting_function drf)
-{
-    LOCK_SETUP(dmbp);
-    debug_module_block_set_level(dmbp, level);
-    debug_module_block_set_module_name(dmbp, name);
-    debug_module_block_set_reporting_function(dmbp, drf);
-    OBJ_WRITE_UNLOCK(dmbp);
-    return 0;
-}
-
 #define TRACE(dmbp, fmt, args...) \
     do { \
         if ((dmbp)->level > TRACE_DEBUG_LEVEL) break; \
@@ -192,6 +179,11 @@ debug_module_block_init (debug_module_block_t *dmbp,
             __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
         assert(0); \
     } while (0)
+
+extern int
+debug_module_block_init (debug_module_block_t *dmbp,
+        bool make_it_thread_safe,
+        int level, char *name, debug_reporting_function drf);
 
 /**************************************************************************
  *

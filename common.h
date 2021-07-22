@@ -87,10 +87,21 @@ extern "C" {
 #define false       0
 #endif /* false */
 
+/*
+ * unsigned byte
+ */
 #ifndef TYPEDEF_BYTE
 typedef unsigned char byte;
 #define TYPEDEF_BYTE
 #endif /* TYPEDEF_BYTE */
+
+/*
+ * signed byte
+ */
+#ifndef TYPEDEF_SBYTE
+typedef char sbyte;
+#define TYPEDEF_SBYTE
+#endif /* TYPEDEF_SBYTE */
 
 #ifndef TYPEDEF_BOOL
 typedef char tinybool;
