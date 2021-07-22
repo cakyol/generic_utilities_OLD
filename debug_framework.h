@@ -142,23 +142,23 @@ debug_module_block_set_reporting_function (debug_module_block_t *dmbp,
 
 #define TRACE(dmbp, fmt, args...) \
     do { \
-        if ((dmbp)->level > TRACE_DEBUG_LEVEL) break; \
+        if ((dmbp)->level < TRACE_DEBUG_LEVEL) break; \
         _process_debug_message_(dmbp, TRACE_DEBUG_LEVEL, \
-                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
     } while (0)
 
 #define INFO(dmbp, fmt, args...) \
     do { \
         if ((dmbp)->level > INFORM_DEBUG_LEVEL) break; \
         _process_debug_message_(dmbp, INFORM_DEBUG_LEVEL, \
-                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
     } while (0)
     
 #define WARN(dmbp, fmt, args...) \
     do { \
         if ((dmbp)->level > WARNING_DEBUG_LEVEL) break; \
         _process_debug_message_(dmbp, WARNING_DEBUG_LEVEL, \
-                __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
+            __FILE__, __FUNCTION__, __LINE__, fmt, ## args); \
     } while (0)
     
 /*
