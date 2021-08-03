@@ -72,36 +72,22 @@ extern "C" {
 typedef struct lock_obj_s {
 
     /* used with compare & swap, protects rest of the variables */
-    volatile sbyte mtx;
+    volatile byte mtx;
 
     short readers;
-    sbyte write_pending;
-    sbyte writing;
+    tinybool write_pending;
+    tinybool writing;
 
 } lock_obj_t;
 
 extern int 
 lock_obj_init (lock_obj_t *lck);
 
-/*
- * will return 0 if it DOES get the lock and will return
- * -1 if not.  It will NOT block in either case.
- */
-extern int
-try_read_lock (lock_obj_t *lck);
-
 extern void
 grab_read_lock (lock_obj_t *lck);
 
 extern void 
 release_read_lock (lock_obj_t *lck);
-
-/*
- * will return 0 if it DOES get the lock and will return
- * -1 if not.  It will NOT block in either case.
- */
-extern int
-try_write_lock (lock_obj_t *lck);
 
 extern void
 grab_write_lock (lock_obj_t *lck);

@@ -34,7 +34,7 @@ extern "C" {
  * equivalent of test and test and set
  */
 static inline int
-ttas (volatile sbyte *variable, sbyte checked, sbyte set)
+ttas (volatile byte *variable, sbyte checked, byte set)
 {
     return
         (*variable == 0) &&
@@ -72,11 +72,11 @@ lock_obj_init (lock_obj_t *lck /*, int yield_if_locked */)
 }
 
 static int 
-_read_lock (lock_obj_t *lck, int block)
+_read_lock (lock_obj_t *lck, boolean block)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
-            if (lck->write_pending == 0) {
+            if (!lck->write_pending) {
                 lck->readers++;
                 lck->mtx = 0;
                 return 0;
@@ -91,13 +91,9 @@ _read_lock (lock_obj_t *lck, int block)
     }
 }
 
-PUBLIC int
-try_read_lock (lock_obj_t *lck)
-{ return _read_lock(lck, 0); }
-
 PUBLIC void
 grab_read_lock (lock_obj_t *lck)
-{ (void) _read_lock(lck, 1); }
+{ (void) _read_lock(lck, true); }
 
 PUBLIC void 
 release_read_lock (lock_obj_t *lck)
@@ -113,16 +109,19 @@ release_read_lock (lock_obj_t *lck)
 }
 
 static int
-_write_lock (lock_obj_t *lck, int block)
+_write_lock (lock_obj_t *lck, boolean block)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
 
-            /* dont clear this since 'grab_read_lock' will check it */
-            lck->write_pending = 1;
+            /*
+             * dont clear this since 'grab_read_lock'
+             * will check it
+             */
+            lck->write_pending = true;
 
-            if ((lck->readers <= 0) && (lck->writing == 0)) {
-                lck->writing = 1;
+            if ((lck->readers <= 0) && (!lck->writing)) {
+                lck->writing = true;
                 lck->mtx = 0;
                 return 0;
             }
@@ -136,20 +135,16 @@ _write_lock (lock_obj_t *lck, int block)
     }
 }
 
-PUBLIC int
-try_write_lock (lock_obj_t *lck)
-{ return _write_lock(lck, 0); }
-
 PUBLIC void
 grab_write_lock (lock_obj_t *lck)
-{ return (void) _write_lock(lck, 1); }
+{ return (void) _write_lock(lck, true); }
 
 PUBLIC void 
 release_write_lock (lock_obj_t *lck)
 {
     while (1) {
         if (ttas(&lck->mtx, 0, 1)) {
-            lck->write_pending = lck->writing = 0;
+            lck->write_pending = lck->writing = false;
             lck->mtx = 0;
             return;
         }
