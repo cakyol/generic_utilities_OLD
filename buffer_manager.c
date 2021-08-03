@@ -147,9 +147,13 @@ buffer_manager_initialize (buffer_manager_t *bmp,
 
         int cnt = tuples[pcnt].count;
         int sz = tuples[pcnt].size;
+
+	INFO(&buffer_manager_debug,
+	    "processing %d buffer pools with requested size of %d bytes\n",
+	    cnt, sz);
         
         /*
-         * if end of tuples reached, we are done
+         * if end of tuples is reached (BOTH sz & cnt are negative), we are done
          */
         if ((sz < 0) && (cnt < 0)) {
 
@@ -167,11 +171,11 @@ buffer_manager_initialize (buffer_manager_t *bmp,
         /* too many pools */
         if (pcnt >= MAX_POOLS) {
             ERROR(&buffer_manager_debug,
-                "too many pools, max is %d\n", MAX_POOLS);
+                "too many pools, max allowed is %d\n", MAX_POOLS);
             return EINVAL;
         }
 
-        /* the number of buffers in a pool cannot be <= zero */
+        /* the number of buffers in a pool must be > 0 */
         if (cnt <= 0) {
             ERROR(&buffer_manager_debug,
                 "pool %d number of buffers (%d) must be > 0\n",
@@ -179,7 +183,7 @@ buffer_manager_initialize (buffer_manager_t *bmp,
             return EINVAL;
         }
 
-        /* buffer size (of any pool) cannot be <= zero */
+        /* buffer size (of any pool) must be > 0 */
         if (sz <= 0) {
             ERROR(&buffer_manager_debug,
                 "pool %d buffer size (%d) must be > 0\n", pcnt, sz);
@@ -214,9 +218,9 @@ buffer_manager_initialize (buffer_manager_t *bmp,
 
     /*
      * set the buffer size of the pool with the largest buffer size, 
-     * which will always be the last pool processed since
-     * their buffer sizes are always increasing.  What this means is
-     * that if a memory allocation request of size > than this number
+     * which will always be the last pool processed since the buffer
+     * sizes of each consecutive pool are increasing.  What this means is
+     * that if a buffer allocation request of size > than this number
      * is required, we cannot honor it.
      */
     bmp->max_size = tuples[pcnt -1].size;

@@ -216,19 +216,19 @@ struct attribute_s {
  * to address an object is thru this.  This reduces the chance of a
  * user program corrupting pointers or accessing them incorrectly.
  */
-typedef struct object_identifier_s {
+struct object_identifier_s {
 
     int object_type;
     int object_instance;
 
-} object_identifier_t;
+};
 
 /*
  * Internal APIs mostly use pointers since they are more protected.
  * and pointers are safe to use.  So, this one type can be used both 
  * for user facing APIs as well as internal uses.
  */
-typedef struct object_representation_s {
+struct object_representation_s {
 
     /* set if the representation is a pointer */
     tinybool is_pointer;
@@ -239,9 +239,9 @@ typedef struct object_representation_s {
         object_t *object_ptr;
     } u;
 
-} object_representation_t;
+};
 
-typedef struct object_s {
+struct object_s {
 
     /* which object manager this object belongs to */
     object_manager_t *omp;
@@ -266,7 +266,7 @@ typedef struct object_s {
     /* All the attributes of this object */
     index_obj_t attributes;
 
-} object_t;
+};
 
 /******************************************************************************
  *
@@ -274,7 +274,7 @@ typedef struct object_s {
  *
  */
 
-typedef struct object_manager_s {
+struct object_manager_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
@@ -293,7 +293,7 @@ typedef struct object_manager_s {
      */
     avl_tree_t om_objects;
 
-} object_manager_t;
+}; 
 
 /************* User functions ************************************************/
 

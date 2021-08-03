@@ -105,14 +105,14 @@ typedef void (*debug_reporting_function)
      const char *file_name, const char *function_name, const int line_number,
      char *fmt, va_list args);
 
-typedef struct debug_module_block_s {
+struct debug_module_block_s {
 
     LOCK_VARIABLES;
     int level;
     char *module_name;
     debug_reporting_function drf;
 
-} debug_module_block_t;
+};
 
 static inline
 void debug_module_block_set_level (debug_module_block_t *dmbp, int level)
