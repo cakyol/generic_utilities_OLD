@@ -66,7 +66,7 @@ compare_attributes (void *aip1, void *aip2)
 
 static inline object_t*
 get_object_pointer (object_manager_t *omp,
-        int object_type, int object_instance)
+    int object_type, int object_instance)
 {
     object_t searched;
     void *found;
@@ -377,8 +377,7 @@ attribute_simple_value_remove (attribute_t *aip,
     long long int value, int howmany)
 {
     return
-        attribute_value_remove_engine(aip, false,
-            value, NULL, 0, howmany);
+        attribute_value_remove_engine(aip, false, value, NULL, 0, howmany);
 }
 
 static inline int
@@ -386,8 +385,7 @@ attribute_complex_value_remove (attribute_t *aip,
     byte *data, int len, int howmany)
 {
     return
-        attribute_value_remove_engine(aip, true,
-            0, data, len, howmany);
+        attribute_value_remove_engine(aip, true, 0, data, len, howmany);
 }
 
 /*
@@ -450,18 +448,16 @@ object_indexes_init (object_t *obj)
 {
     mem_monitor_t *memp = obj->omp->mem_mon_p;
 
-    assert(0 == index_obj_init(&obj->children, 
-                    false, compare_objects,
-                    8, 8, memp));
-    assert(0 == index_obj_init(&obj->attributes,
-                    false, compare_attributes,
-                    8, 8, memp));
+    assert(0 == index_obj_init(&obj->children, false,
+        compare_objects, 8, 8, memp));
+    assert(0 == index_obj_init(&obj->attributes, false,
+        compare_attributes, 8, 8, memp));
 }
 
 /*
  * get object type and object instance values of an object.
  */
-static void
+static inline void
 get_ot_and_oi (object_representation_t *reprp,
         int *otp, int *oip)
 {
@@ -511,7 +507,7 @@ object_children_traverse (object_manager_t *omp, object_t *root,
      * cannot change anything in this object manager while
      * the traversal is taking place.
      */
-    omp->should_not_be_modified = true;
+    omp->busy = true;
 
     obj = root;
     idxp = &obj->children;
@@ -549,7 +545,7 @@ object_children_traverse (object_manager_t *omp, object_t *root,
     }
 
     /* ok traversal ended */
-    omp->should_not_be_modified = false;
+    omp->busy = false;
 
     return failed;
 }
@@ -939,7 +935,7 @@ om_init (object_manager_t *omp,
     MEM_MONITOR_SETUP(omp);
     LOCK_SETUP(omp);
     omp->manager_id = manager_id;
-    omp->should_not_be_modified = false;
+    omp->busy = false;
     assert(0 == avl_tree_init(&omp->om_objects, false, compare_objects,
         omp->mem_mon_p));
     OBJ_WRITE_UNLOCK(omp);

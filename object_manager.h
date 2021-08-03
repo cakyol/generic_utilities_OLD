@@ -283,7 +283,7 @@ struct object_manager_s {
     int manager_id;
 
     /* if a traversal is taking place, the object manager cannot be modified */
-    boolean should_not_be_modified;
+    boolean busy;
 
     /*
      * Objects are always uniquely indexed by 'object_type' & 
@@ -305,9 +305,9 @@ extern debug_module_block_t om_debug;
  */
 extern int
 om_init (object_manager_t *omp,
-        boolean make_it_thread_safe,
-        int manager_id,
-        mem_monitor_t *parent_mem_monitor);
+    boolean make_it_thread_safe,
+    int manager_id,
+    mem_monitor_t *parent_mem_monitor);
 
 /*
  * creates an object with given id & type under the
@@ -318,15 +318,15 @@ om_init (object_manager_t *omp,
  */
 extern int
 om_object_create (object_manager_t *omp,
-        int parent_object_type, int parent_object_instance,
-        int object_type, int object_instance);
+    int parent_object_type, int parent_object_instance,
+    int object_type, int object_instance);
 
 /*
  * returns true if the specified object exists in the object manager.
  */
 extern bool
 om_object_exists (object_manager_t *omp,
-        int object_type, int object_instance);
+    int object_type, int object_instance);
 
 static inline int
 om_object_count (object_manager_t *omp)
@@ -339,8 +339,8 @@ om_object_count (object_manager_t *omp)
  */
 extern int
 om_attribute_add (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id);
+    int object_type, int object_instance,
+    int attribute_id);
 
 /*
  * adds a simple value to the attribute (id).  Same exact value can
@@ -352,9 +352,9 @@ om_attribute_add (object_manager_t *omp,
  */
 extern int
 om_attribute_simple_value_add (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        long long int value, int howmany_extras);
+    int object_type, int object_instance,
+    int attribute_id,
+    long long int value, int howmany_extras);
 
 /*
  * This function deletes all existing values of the attribute (id) 
@@ -363,9 +363,9 @@ om_attribute_simple_value_add (object_manager_t *omp,
  */
 extern int
 om_attribute_simple_value_set (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        long long int value, int ref_count);
+    int object_type, int object_instance,
+    int attribute_id,
+    long long int value, int ref_count);
 
 /*
  * Deletes a simple attribute value from the attribute (id).
@@ -375,30 +375,30 @@ om_attribute_simple_value_set (object_manager_t *omp,
  */
 extern int
 om_attribute_simple_value_remove (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        long long int value, int howmany);
+    int object_type, int object_instance,
+    int attribute_id,
+    long long int value, int howmany);
 
 /*
  * same as above but for complex values.
  */
 extern int
 om_attribute_complex_value_add (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        byte *data, int len, int howmany_extras);
+    int object_type, int object_instance,
+    int attribute_id,
+    byte *data, int len, int howmany_extras);
 
 extern int
 om_attribute_complex_value_set (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        byte *data, int len, int ref_count);
+    int object_type, int object_instance,
+    int attribute_id,
+    byte *data, int len, int ref_count);
 
 extern int
 om_attribute_complex_value_remove (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        byte *data, int len, int howmany);
+    int object_type, int object_instance,
+    int attribute_id,
+    byte *data, int len, int howmany);
 
 /*
  * This will return all the attribute value pointers in the
@@ -408,9 +408,9 @@ om_attribute_complex_value_remove (object_manager_t *omp,
  */
 extern int
 om_attribute_values_get (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id,
-        attribute_value_t *avp_list [], int *limit);
+    int object_type, int object_instance,
+    int attribute_id,
+    attribute_value_t *avp_list [], int *limit);
 
 /*
  * destroys the attribute (id) and all associated values
@@ -418,8 +418,8 @@ om_attribute_values_get (object_manager_t *omp,
  */
 extern int
 om_attribute_remove (object_manager_t *omp,
-        int object_type, int object_instance,
-        int attribute_id);
+    int object_type, int object_instance,
+    int attribute_id);
 
 /*
  * get the parent type & instance of an object and
@@ -429,8 +429,8 @@ om_attribute_remove (object_manager_t *omp,
  */
 extern int
 om_parent_get (object_manager_t *omp,
-        int object_type, int object_instance,
-        int *parent_object_type, int *parent_object_instance);
+    int object_type, int object_instance,
+    int *parent_object_type, int *parent_object_instance);
 
 /*
  * destroys an object and all its children, including attributes,
@@ -438,7 +438,7 @@ om_parent_get (object_manager_t *omp,
  */
 extern int
 om_object_remove (object_manager_t *omp,
-        int object_type, int object_instance);
+    int object_type, int object_instance);
 
 /*
  * traverses the object AND all its children applying the
@@ -458,9 +458,9 @@ om_object_remove (object_manager_t *omp,
  */
 extern int
 om_traverse (object_manager_t *omp,
-        int object_type, int object_instance,
-        traverse_function_pointer tfn,
-        void *p0, void *p1, void *p2, void *p3, void *p4);
+    int object_type, int object_instance,
+    traverse_function_pointer tfn,
+    void *p0, void *p1, void *p2, void *p3, void *p4);
 
 /*
  * destroys the entire object manager.  It cannot be used again
