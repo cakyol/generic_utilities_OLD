@@ -148,9 +148,9 @@ buffer_manager_initialize (buffer_manager_t *bmp,
         int cnt = tuples[pcnt].count;
         int sz = tuples[pcnt].size;
 
-	INFO(&buffer_manager_debug,
-	    "processing %d buffer pools with requested size of %d bytes\n",
-	    cnt, sz);
+        INFO(&buffer_manager_debug,
+            "processing %d buffer pools with requested size of %d bytes\n",
+            cnt, sz);
         
         /*
          * if end of tuples is reached (BOTH sz & cnt are negative), we are done
@@ -160,7 +160,7 @@ buffer_manager_initialize (buffer_manager_t *bmp,
             /* there must be at least one pool defined */
             if (pcnt == 0) {
                 ERROR(&buffer_manager_debug,
-                    "memory has no pools and/or buffers defined\n");
+                    "buffer manager has no pools and/or buffers defined\n");
                 return EINVAL;
             }
 
@@ -271,7 +271,7 @@ buffer_allocate (buffer_manager_t *bmp, int size)
             data = &bufp->data[0];
             break;
         }
-	p++;
+        p++;
     }
 
     OBJ_WRITE_UNLOCK(bmp);
