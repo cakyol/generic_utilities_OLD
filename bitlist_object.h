@@ -33,7 +33,8 @@
 *******************************************************************************
 *******************************************************************************
 **
-** Bit list/map object, first bit is always 0.
+** Bit list/map object, FIRST BIT IS ALWAYS 0.
+**
 ** All answers are adjusted to the offset
 ** Return values are 0 for success or an errorcode, except
 ** for the functions which return a position as value.
@@ -107,6 +108,46 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number);
 
 extern void
 bitlist_destroy (bitlist_t *bl);
+
+/*
+ * Extracts the value of bits from 'data', starting from bit number 'start'
+ * extending 'size' number of bits.  The returned value is placed into
+ * two separate ull_ints.  The 'raw' value is the raw bits in the exact
+ * position they were in.  The 'normalized' value is the returned bits
+ * shifted to the right as much as possible so they can be accessed as
+ * a number starting from 0.  Both 'raw' and 'normalized' CAN be NULL
+ * altho calling this function then would be pointless.
+ *
+ * REMEMBER ALL BIT NUMBERS START FROM ZERO (0) LSB.
+ *
+ * For example if we want to return 4 bits
+ * starting at bit number 6 from the bit pattern below:
+ *
+ *      .......1011110011100111
+ *                      ^^^^^^^
+ *                      6543210 (bit numbers)
+ *
+ *  In 'raw', you would have .....0000000 1100 000.
+ *                                        ^^^^
+ *  And in 'normalized, you would have .....00000 1100.
+ *                                                ^^^^
+ * Return value is 0 if everything is ok and errno if the parameters do
+ * not make sense, for example asking for the 80 th bit when at most
+ * the maximum can be only be 63.
+ */
+extern int
+get_bit_group (ull_int data, byte start, byte size,
+    ull_int *raw, ull_int *normalized);
+
+/*
+ * Similar to above but places the specified bit pattern (value) into
+ * bit position starting at 'start' up to 'size' bits, into 'data'.
+ * Return value is the same.  Note that if the vlaue specified does
+ * not fint into 'size' bits, it will be an error.
+ */
+extern int
+set_bit_group (ull_int *data,
+    byte start, byte size, ull_int value);
 
 #ifdef __cplusplus
 } // extern C

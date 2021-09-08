@@ -95,6 +95,16 @@ typedef unsigned char byte;
 #define TYPEDEF_BYTE
 #endif /* TYPEDEF_BYTE */
 
+#ifndef LL_INT
+typedef long long int ll_int;
+#define LL_INT
+#endif /* LL_INT */
+
+#ifndef ULL_INT
+typedef unsigned long long int ull_int;
+#define ULL_INT
+#endif /* ULL_INT */
+
 /*
  * signed byte
  */

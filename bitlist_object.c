@@ -277,6 +277,20 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
     return failed;
 }
 
+PUBLIC int
+get_bit_group (ull_int data, byte start, byte size,
+    ull_int *raw, ull_int *normalized)
+{
+    return 0;
+}
+
+PUBLIC int
+set_bit_group (ull_int *data,
+    byte start, byte size, ull_int value)
+{
+    return 0;
+}
+
 PUBLIC void
 bitlist_destroy (bitlist_t *bl)
 {
