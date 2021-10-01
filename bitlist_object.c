@@ -48,6 +48,7 @@
 #else
     #error "What kind of weird system are you on?"
 #endif
+#define MAX_BIT_NUMBER                  (BITS_PER_INT - 1)
 
 #define PUBLIC
 
@@ -277,17 +278,54 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
     return failed;
 }
 
-PUBLIC int
-get_bit_group (ull_int data, byte start, byte size,
-    ull_int *raw, ull_int *normalized)
+static bool
+error_in_bit_numbers (int start, int size,
+    bool check_value, uint64_t value)
 {
+    return false;
+}
+
+PUBLIC int
+get_bit_group (uint64_t data,
+    byte start, byte size, bool check,
+    uint64_t *raw, uint64_t *normalized)
+{
+    int sr = start - size + 1;
+    int sl = MAX_BIT_NUMBER - start;
+    uint64_t new;
+
+    if (check) {
+        if (error_in_bit_numbers(start, size, false, 0)) {
+            return EINVAL;
+        }
+    }
+
+    new = (data >> sr) << sr;
+    new = (new << sl) >> sl;
+    safe_pointer_set(raw, new);
+    safe_pointer_set(normalized, (new >> sr));
+
     return 0;
 }
 
 PUBLIC int
-set_bit_group (ull_int *data,
-    byte start, byte size, ull_int value)
+set_bit_group (uint64_t *data,
+    byte start, byte size, uint64_t value, bool check)
 {
+    uint64_t left, right;
+    int ls, rs;
+
+    if (check) {
+        if (error_in_bit_numbers(start, size, true, value)) {
+            return EINVAL;
+        }
+    }
+
+    ls = start + 1;
+    rs = MAX_BIT_NUMBER - (start - size);
+    left = (*data >> ls) << ls;
+    right = (*data << rs) >> rs;
+
     return 0;
 }
 

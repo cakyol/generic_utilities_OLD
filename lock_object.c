@@ -34,7 +34,7 @@ extern "C" {
  * equivalent of test and test and set
  */
 static inline int
-ttas (volatile byte *variable, sbyte checked, byte set)
+ttas (volatile byte *variable, byte checked, byte set)
 {
     return
         (*variable == 0) &&

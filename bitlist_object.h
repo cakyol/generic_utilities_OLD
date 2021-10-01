@@ -112,7 +112,7 @@ bitlist_destroy (bitlist_t *bl);
 /*
  * Extracts the value of bits from 'data', starting from bit number 'start'
  * extending 'size' number of bits.  The returned value is placed into
- * two separate ull_ints.  The 'raw' value is the raw bits in the exact
+ * two separate uint64_t.  The 'raw' value is the raw bits in the exact
  * position they were in.  The 'normalized' value is the returned bits
  * shifted to the right as much as possible so they can be accessed as
  * a number starting from 0.  Both 'raw' and 'normalized' CAN be NULL
@@ -136,8 +136,9 @@ bitlist_destroy (bitlist_t *bl);
  * the maximum can be only be 63.
  */
 extern int
-get_bit_group (ull_int data, byte start, byte size,
-    ull_int *raw, ull_int *normalized);
+get_bit_group (uint64_t data,
+    byte start, byte size, bool check,
+    uint64_t *raw, uint64_t *normalized);
 
 /*
  * Similar to above but places the specified bit pattern (value) into
@@ -146,8 +147,8 @@ get_bit_group (ull_int data, byte start, byte size,
  * not fint into 'size' bits, it will be an error.
  */
 extern int
-set_bit_group (ull_int *data,
-    byte start, byte size, ull_int value);
+set_bit_group (uint64_t *data,
+    byte start, byte size, uint64_t value, bool check);
 
 #ifdef __cplusplus
 } // extern C

@@ -33,13 +33,11 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-/*
- * for printing etc..
- */
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /*
  * This file is a collection of the most common types/definitions
@@ -94,24 +92,6 @@ extern "C" {
 typedef unsigned char byte;
 #define TYPEDEF_BYTE
 #endif /* TYPEDEF_BYTE */
-
-#ifndef LL_INT
-typedef long long int ll_int;
-#define LL_INT
-#endif /* LL_INT */
-
-#ifndef ULL_INT
-typedef unsigned long long int ull_int;
-#define ULL_INT
-#endif /* ULL_INT */
-
-/*
- * signed byte
- */
-#ifndef TYPEDEF_SBYTE
-typedef char sbyte;
-#define TYPEDEF_SBYTE
-#endif /* TYPEDEF_SBYTE */
 
 #ifndef TYPEDEF_BOOL
 typedef char tinybool;
