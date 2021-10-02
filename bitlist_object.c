@@ -278,6 +278,9 @@ bitlist_first_clear_bit (bitlist_t *bl, int *returned_bit_number)
     return failed;
 }
 
+/*
+ * put all the sanity checks in this function.
+ */
 static bool
 error_in_bit_numbers (int start, int size,
     bool check_value, uint64_t value)
@@ -325,6 +328,9 @@ set_bit_group (uint64_t *data,
     rs = MAX_BIT_NUMBER - (start - size);
     left = (*data >> ls) << ls;
     right = (*data << rs) >> rs;
+
+    /* FIX THIS */
+    *data = left | right | (value << start);
 
     return 0;
 }

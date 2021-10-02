@@ -25,6 +25,7 @@ LIB_OBJS =	debug_framework.o \
 		stack_object.o \
 		qobject.o \
 		ordered_list.o \
+		list_object.o \
 		dl_list_object.o \
 		ez_sprintf.o \
 		line_counters.o \
