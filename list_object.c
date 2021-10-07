@@ -51,6 +51,7 @@ list_object_create_node (list_object_t *list, void *data)
 
     node = (list_node_t*) MEM_MONITOR_ALLOC(list, sizeof(list_node_t));
     if (node) {
+        node->list = list;
         node->data = data;
         node->next = NULL;
     }
@@ -58,7 +59,7 @@ list_object_create_node (list_object_t *list, void *data)
 }
 
 static list_node_t *
-thread_unsafe_list_object_search_identical_pointers (list_object_t *list,
+thread_unsafe_list_object_search (list_object_t *list,
     void *searched)
 {
     int n;
@@ -66,47 +67,30 @@ thread_unsafe_list_object_search_identical_pointers (list_object_t *list,
 
     n = 0;
     node = list->head;
-    while (n < list->n) {
-        if (node->data == searched) return node;
-        n++;
-        node = node->next;
-    }
-    return NULL;
-}
-
-static list_node_t *
-thread_unsafe_list_object_cmp_search (list_object_t *list,
-    void *searched)
-{
-    int n;
-    list_node_t *node;
-
-    n = 0;
-    node = list->head;
-    while (n < list->n) {
-        if (list->cmp(node->data, searched) == 0) return node;
-        n++;
-        node = node->next;
-    }
-    return NULL;
-}
-
-static list_node_t *
-thread_unsafe_list_object_search (list_object_t *list, void *searched)
-{
     if (list->cmp) {
-        return
-            thread_unsafe_list_object_cmp_search(list, searched);
+        while (n < list->n) {
+            if (list->cmp(node->data, searched) == 0)
+                return node;
+            n++;
+            node = node->next;
+        }
+    } else {
+        while (n < list->n) {
+            if (node->data == searched)
+                return node;
+            n++;
+            node = node->next;
+        }
     }
-    return
-        thread_unsafe_list_object_search_identical_pointers(list, searched);
+    return null;
 }
 
 /*
  * Insert to head of list, used for a lifo implementation.
  */
 static int
-thread_unsafe_list_object_insert_head (list_object_t *list, void *data)
+thread_unsafe_list_object_insert_head (list_object_t *list,
+    void *data, list_node_t **inserted_node)
 {
     int err;
     list_node_t *node;
@@ -119,9 +103,11 @@ thread_unsafe_list_object_insert_head (list_object_t *list, void *data)
     if (node) {
         node->next = list->head;
         list->head = node;
+        safe_pointer_set(inserted_node, node);
         list->n++;
         err = 0;
     } else {
+        safe_pointer_set(inserted_node, null);
         err = ENOMEM;
     }
     return err;
@@ -132,9 +118,12 @@ thread_unsafe_list_object_insert_head (list_object_t *list, void *data)
  * Used for a fifo implementation.
  */
 static int
-thread_unsafe_list_object_insert_tail (list_object_t *list, void *data)
+thread_unsafe_list_object_insert_tail (list_object_t *list,
+    void *data, list_node_t **inserted_node)
 {
     list_node_t *new_tail;
+
+    safe_pointer_set(inserted_node, null);
 
     /* no more space in list */
     if (list->n_max && (list->n >= list->n_max))
@@ -147,6 +136,7 @@ thread_unsafe_list_object_insert_tail (list_object_t *list, void *data)
     /* copy the new info onto old tail and make new tail the list tail */
     list->tail->data = data;
     list->tail->next = new_tail;
+    safe_pointer_set(inserted_node, list->tail);
     list->tail = new_tail;
     (list->n)++;
 
@@ -238,24 +228,26 @@ list_object_init (list_object_t *list,
 }
 
 PUBLIC int
-list_object_insert_head (list_object_t *list, void *data)
+list_object_insert_head (list_object_t *list,
+    void *data, list_node_t **inserted_node)
 {
     int rc;
 
     OBJ_WRITE_LOCK(list);
-    rc = thread_unsafe_list_object_insert_head(list, data);
+    rc = thread_unsafe_list_object_insert_head(list, data, inserted_node);
     OBJ_WRITE_UNLOCK(list);
 
     return rc;
 }
 
 PUBLIC int
-list_object_insert_tail (list_object_t *list, void *data)
+list_object_insert_tail (list_object_t *list,
+    void *data, list_node_t **inserted_node)
 {
     int rc;
 
     OBJ_WRITE_LOCK(list);
-    rc = thread_unsafe_list_object_insert_tail(list, data);
+    rc = thread_unsafe_list_object_insert_tail(list, data, inserted_node);
     OBJ_WRITE_UNLOCK(list);
 
     return rc;
@@ -274,16 +266,19 @@ list_object_search (list_object_t *list, void *searched)
 }
 
 PUBLIC boolean
-list_object_contains (list_object_t *list, void *searched)
+list_object_contains (list_object_t *list,
+    void *searched, list_node_t **found)
 {
     list_node_t *node;
 
     OBJ_READ_LOCK(list);
     node = thread_unsafe_list_object_search(list, searched);
+    safe_pointer_set(found, node);
     OBJ_READ_UNLOCK(list);
 
     return (node != NULL);
 }
+
 
 PUBLIC int
 list_object_remove_data (list_object_t *list, void *data)
@@ -293,6 +288,18 @@ list_object_remove_data (list_object_t *list, void *data)
     OBJ_WRITE_LOCK(list);
     rc = thread_unsafe_list_object_remove_data(list, data);
     OBJ_WRITE_UNLOCK(list);
+
+    return rc;
+}
+
+PUBLIC int
+list_object_remove_node (list_node_t *node)
+{
+    int rc;
+
+    OBJ_WRITE_LOCK(node->list);
+    rc = thread_unsafe_list_object_remove_node(node->list, node);
+    OBJ_WRITE_UNLOCK(node->list);
 
     return rc;
 }
@@ -314,6 +321,20 @@ list_object_pop_data (list_object_t *list)
 PUBLIC void
 list_object_destroy (list_object_t *list)
 {
+    list_node_t *node, *next;
+
+    /* make sure that the end of list marker is also removed */
+
+    OBJ_WRITE_LOCK(list);
+    node = list->head;
+    while (node) {
+        next = node->next;
+        MEM_MONITOR_FREE(node);
+        node = next;
+    }
+    OBJ_WRITE_UNLOCK(list);
+    LOCK_OBJ_DESTROY(list);
+    memset(list, 0, sizeof(list_object_t));
 }
 
 #ifdef __cplusplus

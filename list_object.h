@@ -83,6 +83,9 @@ typedef struct list_object_s list_object_t;
  */
 struct list_node_s {
 
+    /* The list this node belogs to */
+    list_object_t *list;
+
     /* user data */
     void *data;
 
@@ -95,36 +98,38 @@ typedef struct list_object_s {
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
-    /* how many elements are currently in the list */
-    int n;
-
     /* how many elements can the list hold as a maximum, 0 means no limit */
     int n_max;
 
-    /* start of list, and the end node of list */
+    /* how many elements are currently in the list */
+    int n;
+
+    /* start and the end node of list */
     list_node_t *head, *tail;
 
-    /* to search a certain object in the list; May be NULL */
+    /* to search user data in the list; May be NULL */
     object_comparer cmp;
 
     statistics_block_t stats;
 
 } list_object_t;
 
-/*
- * initialize a list object.  The comparison function is used to
+/******************************************************************************
+ * Initialize a list object.  The comparison function is used to
  * search the list to see if matching data is found.  It is
  * supplied by the user.  The comparison is just performed by the
  * list object & checks equality.  It should return 0 for equal
  * data or non zero otherwise.
  *
- * If the comparison function is NULL, the list object compares
- * just the pointers and decides based only on that.
+ * If the comparison function provided is NULL, then only the pointer
+ * values are compared for equality.
  *
  * 'n_max' is the maximum number of data entities the list can
- * hold.  If this is <=0, there is no limit (excepy malloc failure),
- * Otherwise, it specifies the maximum number of user data 
- * objects in the list.
+ * hold.  If this is (<= 0), there is no limit (except malloc failure),
+ * Otherwise, it specifies the maximum number of user data entries
+ * in the list.
+ *
+ * Return value is 0 for success or a non zero error code.
  */
 extern int
 list_object_init (list_object_t *list,
@@ -133,54 +138,100 @@ list_object_init (list_object_t *list,
     int n_max,
     mem_monitor_t *parent_mem_monitor);
 
-/*
- * Insert the user data to the head of list,
- * typically to be used as a lifo.
+/******************************************************************************
+ * Insert the user data to the head of list, typically to be used as a lifo.
+ *
+ * Note the use of 'inserted_node'.  If the user data is successfully
+ * inserted into the list, the 'node' which has been inserted is also
+ * returned in this parameter (pointer may be NULL if not needed).
+ * This may be used later as a simple handle if the data ever needs to be
+ * removed from the list, it can be done extremely fast eliminating
+ * lengthy searches in the list.
+ *
+ * Return value is 0 for success or a non zero error code.
  */
 extern int
-list_object_insert_head (list_object_t *list, void *data);
+list_object_insert_head (list_object_t *list,
+    void *data, list_node_t **inserted_node);
 
-/*
- * Insert the user data to the end of list,
- * typically to be used as a fifo.
+/******************************************************************************
+ * Insert the user data to the end of list, typically to be used as a fifo.
+ * The use of the parameter 'inserted_node' is the same as it is in
+ * the funtion 'list_object_insert_head'.
+ *
+ * Return value is 0 for success or a non zero error code.
  */
 extern int
-list_object_insert_tail (list_object_t *list, void *data);
+list_object_insert_tail (list_object_t *list,
+    void *data, list_node_t **inserted_node);
 
-/*
+/******************************************************************************
  * Returns true if the user data is already in the list.
  * This uses the comparison function specified at the list
  * initialization.  It is a linear search and is therefore
  * likely to be slow.
+ *
+ * If the comparison function specified at initialization
+ * was NULL, then just a simple pointer comparison is made.
+ *
+ * 'found' contains the node pointer if the data is found,
+ * otherwise NULL.  If this is not required, the pointer
+ * can be specified as NULL.
+ *
+ * Returns true if the data is in the list, false otherwise.
+ *
+ * This function performs a linear search and is therefore very slow.
  */
 extern boolean
-list_object_contains (list_object_t *list, void *searched);
+list_object_contains (list_object_t *list,
+    void *searched, list_node_t **found);
 
+/******************************************************************************
+ * Does this need any explaining ?
+ */
 static inline int
-list_object_size (list_object_t *list)
+list_object_content_count (list_object_t *list)
 {
     return list->n;
 }
 
-/*
+/******************************************************************************
  * searches & then removes the data from the list.  Returns 0
  * if data was indeed in the list.  Returns error if not.
  */
 extern int
 list_object_remove_data (list_object_t *list, void *data);
 
-/*
+/******************************************************************************
+ * If the user knows exactly the node in which the data he wants to
+ * remove from the list, he can simply call this function which would
+ * remove the entry very fast, without having to perform any lengthy
+ * searches in the list to find the data before he can remove it 
+ * (like the 'list_object_remove_data' functions performs).
+ * This provides a very fast shortcut to remove the data from the list.
+ *
+ * The 'node' parameter here is typically the node which would have
+ * been returned from either of the 'list_object_insert_head', 
+ * 'list_object_insert_tail' or 'list_object_contains' functions.
+ *
+ * Returns a non zero error code if un-successful.
+ */
+extern int
+list_object_remove_node (list_node_t *node);
+
+/******************************************************************************
  * Always pops the user data from the head of list.  Depending
  * on how the user data was inserted into the list, this can be
- * useful as a fifo or a lifo.
+ * useful as a fifo or a lifo.  NULL is returned if there is no
+ * data in the list.
  */
 extern void *
 list_object_pop_data (list_object_t *list);
 
-/*
- * Completely destroys the list.  Note that the actual user data items
+/******************************************************************************
+ * Completely obliterates the list.  Note that the actual user data items
  * in the list are not touched.  The list becomes un-usable and needs
- * to be re-initialized for further use.
+ * to be re-initialized again if further use is required.
  */
 extern void
 list_object_destroy (list_object_t *list);
