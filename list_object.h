@@ -83,14 +83,6 @@ typedef struct list_object_s list_object_t;
  */
 struct list_node_s {
 
-    /*
-     * The list this node belongs to (NOT CURRENTLY USED).
-     * In the future, it can potentially be used to ensure that
-     * a node requested to be deleted is indeed a member in the
-     * list that it is being deleted from.
-     */
-    list_object_t *list;
-
     /* user data */
     void *data;
 
@@ -102,9 +94,6 @@ typedef struct list_object_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
-
-    /* where the list elements will come from */
-    chunk_manager_t cmgr;
 
     /* how many elements are currently in the list */
     int n;
@@ -119,6 +108,16 @@ typedef struct list_object_s {
 
 } list_object_t;
 
+/*
+ * initialize a list object.  The comparison function is used to
+ * search the list to see if matching data is found.  It is
+ * supplied by the user.  The comparison is just performed by the
+ * list object & checks equality.  It should return 0 for equal
+ * data or non zero otherwise.
+ *
+ * If the comparison function is NULL, the list object compares
+ * just the pointers and decides based only on that.
+ */
 extern int
 list_object_init (list_object_t *list,
     boolean make_it_thread_safe,
@@ -131,29 +130,17 @@ list_object_insert_head (list_object_t *list, void *data);
 extern int
 list_object_insert_tail (list_object_t *list, void *data);
 
-#if 0
-/* should not really be used externally */
-extern list_node_t *
-list_object_search (list_object_t *list, void *searched);
-#endif // 0
-
 extern boolean
 list_object_contains (list_object_t *list, void *searched);
 
-#if 0
-/* should not really be used externally */
-extern int
-list_object_remove_node (list_object_t *list, list_node_t *node);
-#endif // 0
+static inline int
+list_object_size (list_object_t *list)
+{
+    return list->n;
+}
 
 extern int
 list_object_remove_data (list_object_t *list, void *data);
-
-#if 0
-/* should not really be used externally */
-extern list_node_t *
-list_object_pop_node (list_object_t *list);
-#endif // 0
 
 extern void *
 list_object_pop_data (list_object_t *list);

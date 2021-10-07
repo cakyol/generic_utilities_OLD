@@ -49,9 +49,8 @@ list_object_create_node (list_object_t *list, void *data)
 {
     list_node_t *node;
 
-    node = (list_node_t*) chunk_manager_alloc(&(list->cmgr));
+    node = (list_node_t*) MEM_MONITOR_ALLOC(list, sizeof(list_node_t));
     if (node) {
-        node->list = list;
         node->data = data;
         node->next = NULL;
     }
@@ -165,7 +164,7 @@ thread_unsafe_list_object_remove_node (list_object_t *list,
     if (next == list->tail) list->tail = node;
 
     /* return the next node back to storage */
-    chunk_manager_free(&list->cmgr, next);
+    MEM_MONITOR_FREE(next);
 
     return 0;
 }
@@ -207,7 +206,7 @@ list_object_init (list_object_t *list,
     object_comparer cmpf,
     mem_monitor_t *parent_mem_monitor)
 {
-    int err, number_of_initial_nodes;
+    int err = 0;
 
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
@@ -215,20 +214,12 @@ list_object_init (list_object_t *list,
     list->n = 0;
     list->cmp = cmpf;
 
-    /* create the initial fast cache of nodes */
-    err = chunk_manager_init(&(list->cmgr), FALSE, sizeof(list_node_t),
-            64, 256, &number_of_initial_nodes, parent_mem_monitor);
-    if (err) goto bail;
-
     /* now append the last tail node to the list */
-    err = 0;
     list->tail = list_object_create_node(list, NULL);
     if (NULL == list->tail) {
         err = ENOMEM;
-        goto bail;
     }
-    
-bail:
+
     OBJ_WRITE_UNLOCK(list);
 
     return err;
@@ -273,20 +264,13 @@ list_object_search (list_object_t *list, void *searched)
 PUBLIC boolean
 list_object_contains (list_object_t *list, void *searched)
 {
-    return
-        list_object_search(list, searched) != NULL;
-}
+    list_node_t *node;
 
-PUBLIC int
-list_object_remove_node (list_object_t *list, list_node_t *node)
-{
-    int rc;
+    OBJ_READ_LOCK(list);
+    node = thread_unsafe_list_object_search(list, searched);
+    OBJ_READ_UNLOCK(list);
 
-    OBJ_WRITE_LOCK(list);
-    rc = thread_unsafe_list_object_remove_node(list, node);
-    OBJ_WRITE_UNLOCK(list);
-
-    return rc;
+    return (node != NULL);
 }
 
 PUBLIC int
@@ -299,18 +283,6 @@ list_object_remove_data (list_object_t *list, void *data)
     OBJ_WRITE_UNLOCK(list);
 
     return rc;
-}
-
-PUBLIC list_node_t *
-list_object_pop_node (list_object_t *list)
-{
-    list_node_t *node;
-
-    OBJ_WRITE_LOCK(list);
-    node = thread_unsafe_list_object_pop_node(list);
-    OBJ_WRITE_UNLOCK(list);
-
-    return node;
 }
 
 PUBLIC void *
