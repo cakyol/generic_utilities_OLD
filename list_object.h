@@ -98,6 +98,9 @@ typedef struct list_object_s {
     /* how many elements are currently in the list */
     int n;
 
+    /* how many elements can the list hold as a maximum, 0 means no limit */
+    int n_max;
+
     /* start of list, and the end node of list */
     list_node_t *head, *tail;
 
@@ -117,11 +120,17 @@ typedef struct list_object_s {
  *
  * If the comparison function is NULL, the list object compares
  * just the pointers and decides based only on that.
+ *
+ * 'n_max' is the maximum number of data entities the list can
+ * hold.  If this is <=0, there is no limit (excepy malloc failure),
+ * Otherwise, it specifies the maximum number of user data 
+ * objects in the list.
  */
 extern int
 list_object_init (list_object_t *list,
     boolean make_it_thread_safe,
     object_comparer cmpf,
+    int n_max,
     mem_monitor_t *parent_mem_monitor);
 
 /*
@@ -143,7 +152,7 @@ list_object_insert_tail (list_object_t *list, void *data);
  * This uses the comparison function specified at the list
  * initialization.  It is a linear search and is therefore
  * likely to be slow.
- * /
+ */
 extern boolean
 list_object_contains (list_object_t *list, void *searched);
 

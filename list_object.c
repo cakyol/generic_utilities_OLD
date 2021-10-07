@@ -111,6 +111,10 @@ thread_unsafe_list_object_insert_head (list_object_t *list, void *data)
     int err;
     list_node_t *node;
 
+    /* no more space in list */
+    if (list->n_max && (list->n >= list->n_max))
+        return ENOSPC;
+
     node = list_object_create_node(list, data);
     if (node) {
         node->next = list->head;
@@ -131,6 +135,10 @@ static int
 thread_unsafe_list_object_insert_tail (list_object_t *list, void *data)
 {
     list_node_t *new_tail;
+
+    /* no more space in list */
+    if (list->n_max && (list->n >= list->n_max))
+        return ENOSPC;
 
     /* if we cannot allocate a new tail, we cannot proceed */
     new_tail = list_object_create_node(list, NULL);
@@ -204,6 +212,7 @@ PUBLIC int
 list_object_init (list_object_t *list,
     boolean make_it_thread_safe,
     object_comparer cmpf,
+    int n_max,
     mem_monitor_t *parent_mem_monitor)
 {
     int err = 0;
@@ -213,6 +222,9 @@ list_object_init (list_object_t *list,
 
     list->n = 0;
     list->cmp = cmpf;
+
+    /* set list content limit */
+    list->n_max = (n_max <= 0) ? 0 : n_max;
 
     /* now append the last tail node to the list */
     list->tail = list_object_create_node(list, NULL);
