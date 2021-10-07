@@ -124,12 +124,26 @@ list_object_init (list_object_t *list,
     object_comparer cmpf,
     mem_monitor_t *parent_mem_monitor);
 
+/*
+ * Insert the user data to the head of list,
+ * typically to be used as a lifo.
+ */
 extern int
 list_object_insert_head (list_object_t *list, void *data);
 
+/*
+ * Insert the user data to the end of list,
+ * typically to be used as a fifo.
+ */
 extern int
 list_object_insert_tail (list_object_t *list, void *data);
 
+/*
+ * Returns true if the user data is already in the list.
+ * This uses the comparison function specified at the list
+ * initialization.  It is a linear search and is therefore
+ * likely to be slow.
+ * /
 extern boolean
 list_object_contains (list_object_t *list, void *searched);
 
@@ -139,12 +153,26 @@ list_object_size (list_object_t *list)
     return list->n;
 }
 
+/*
+ * searches & then removes the data from the list.  Returns 0
+ * if data was indeed in the list.  Returns error if not.
+ */
 extern int
 list_object_remove_data (list_object_t *list, void *data);
 
+/*
+ * Always pops the user data from the head of list.  Depending
+ * on how the user data was inserted into the list, this can be
+ * useful as a fifo or a lifo.
+ */
 extern void *
 list_object_pop_data (list_object_t *list);
 
+/*
+ * Completely destroys the list.  Note that the actual user data items
+ * in the list are not touched.  The list becomes un-usable and needs
+ * to be re-initialized for further use.
+ */
 extern void
 list_object_destroy (list_object_t *list);
 
