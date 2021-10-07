@@ -41,8 +41,7 @@ extern "C" {
 
 /*
  * creates a new list node with the fields correctly filled in.
- * The node will be returned in 'ret'.  Can fail only if no
- * memory is left.
+ * Can fail only if no memory is left.
  */
 static inline list_node_t *
 list_object_create_node (list_object_t *list, void *data)
@@ -95,6 +94,8 @@ thread_unsafe_list_object_insert_head (list_object_t *list,
     int err;
     list_node_t *node;
 
+    safe_pointer_set(inserted_node, null);
+
     /* no more space in list */
     if (list->n_max && (list->n >= list->n_max))
         return ENOSPC;
@@ -107,9 +108,9 @@ thread_unsafe_list_object_insert_head (list_object_t *list,
         list->n++;
         err = 0;
     } else {
-        safe_pointer_set(inserted_node, null);
         err = ENOMEM;
     }
+
     return err;
 }
 

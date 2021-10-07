@@ -168,13 +168,10 @@ list_object_insert_tail (list_object_t *list,
 /******************************************************************************
  * Returns true if the user data is already in the list.
  * This uses the comparison function specified at the list
- * initialization.  It is a linear search and is therefore
- * likely to be slow.
+ * initialization.  If the comparison function specified at
+ * initialization, then just a simple pointer comparison is made.
  *
- * If the comparison function specified at initialization
- * was NULL, then just a simple pointer comparison is made.
- *
- * 'found' contains the node pointer if the data is found,
+ * 'found' returns the list node pointer if the data is found,
  * otherwise NULL.  If this is not required, the pointer
  * can be specified as NULL.
  *
@@ -208,7 +205,8 @@ list_object_remove_data (list_object_t *list, void *data);
  * remove the entry very fast, without having to perform any lengthy
  * searches in the list to find the data before he can remove it 
  * (like the 'list_object_remove_data' functions performs).
- * This provides a very fast shortcut to remove the data from the list.
+ * This function provides a fast shortcut to remove the data from
+ * the list.
  *
  * The 'node' parameter here is typically the node which would have
  * been returned from either of the 'list_object_insert_head', 
