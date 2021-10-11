@@ -184,38 +184,53 @@ typedef struct statistics_block_s {
 
 } statistics_block_t;
 
+#define STATISTICS_VARIABLES \
+    statistics_block_t stats, *stats_p
+
+#define STATISTICS_SETUP(objp) \
+    if (statistics_wanted) { \
+        objp->stats_p = &(objp->stats); \
+    } else { \
+        objp->stats_p = NULL; \
+    }
+
 /*
  * update/increment values
  */
-#define insertion_succeeded(objp)       objp->stats.insertion_successes++
-#define insertion_duplicated(objp)      objp->stats.insertion_duplicates++
-#define insertion_failed(objp)          objp->stats.insertion_failures++
-#define search_succeeded(objp)          objp->stats.search_successes++
-#define search_failed(objp)             objp->stats.search_failures++
-#define deletion_succeeded(objp)        objp->stats.deletion_successes++
-#define deletion_failed(objp)           objp->stats.deletion_failures++
+#define insertion_succeeded(objp) \
+    if (objp->stats_p) objp->stats_p.insertion_successes++
 
-/*
- * read/get values
- */
-#define get_insertion_successes(objp)   objp->stats.insertion_successes
-#define get_insertion_duplicates(objp)  objp->stats.insertion_duplicates
-#define get_insertion_failures(objp)    objp->stats.insertion_failures
-#define get_search_successes(objp)      objp->stats.search_successes
-#define get_search_failures(objp)       objp->stats.search_failures
-#define get_deletion_successes(objp)    objp->stats.deletion_successes
-#define get_deletion_failures(objp)     objp->stats.deletion_failures
+#define insertion_duplicated(objp) \
+    if (objp->stats_p) objp->stats_p.insertion_duplicates++
+
+#define insertion_failed(objp) \
+    if (objp->stats_p) objp->stats_p.insertion_failures++
+
+#define search_succeeded(objp) \
+    if (objp->stats_p) objp->stats_p.search_successes++
+
+#define search_failed(objp) \
+    if (objp->stats_p) objp->stats_p.search_failures++
+
+#define deletion_succeeded(objp) \
+    if (objp->stats_p) objp->stats_p.deletion_successes++
+
+#define deletion_failed(objp) \
+    if (objp->stats_p) objp->stats_p.deletion_failures++
 
 /*
  * reset all stats counters
  */
 #define reset_stats(objp) \
-    memset(&objp->stats, 0, sizeof(statistics_block_t))
+    memset(&(objp->stats), 0, sizeof(statistics_block_t))
 
 #else /* !INCLUDE_STATISTICS */
 
 typedef struct statistics_block_s {
 } statistics_block_t;
+
+#define STATISTICS_VARIABLES
+#define STATISTICS_SETUP(objp)
 
 #define insertion_succeeded(objp)
 #define insertion_duplicated(objp)
