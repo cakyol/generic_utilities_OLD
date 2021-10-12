@@ -215,6 +215,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 PUBLIC int
 index_obj_init (index_obj_t *idx,
         boolean make_it_thread_safe,
+        boolean statistics_wanted,
         object_comparer cmpf,
         int maximum_size,
         int expansion_size,
@@ -228,6 +229,8 @@ index_obj_init (index_obj_t *idx,
 
     MEM_MONITOR_SETUP(idx);
     LOCK_SETUP(idx);
+    STATISTICS_SETUP(idx);
+
     idx->should_not_be_modified = false;
     idx->maximum_size = maximum_size;
     idx->expansion_size = expansion_size;

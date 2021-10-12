@@ -72,16 +72,17 @@ typedef struct dynamic_array_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     int lowest, highest;
     void **elements;
-    statistics_block_t stats;
 
 } dynamic_array_t;
 
 extern int
 dynamic_array_init (dynamic_array_t *datp,
-        bool make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         int initial_size,
         mem_monitor_t *parent_mem_monitor);
 

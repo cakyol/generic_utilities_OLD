@@ -157,11 +157,14 @@ thread_unsafe_dl_list_append_object (dl_list_t *list, void *object)
 
 int
 dl_list_init (dl_list_t *list,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
+    STATISTICS_SETUP(list);
+
     list->head = list->tail = 0;
     list->n = 0;
     OBJ_WRITE_UNLOCK(list);

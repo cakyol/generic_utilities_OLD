@@ -137,7 +137,8 @@ thread_unsafe_qobj_dequeue (qobj_t *qobj,
 
 PUBLIC int
 qobj_init (qobj_t *qobj,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         int element_size,
         int maximum_size, int expansion_increment,
         mem_monitor_t *parent_mem_monitor)
@@ -153,6 +154,7 @@ qobj_init (qobj_t *qobj,
 
     MEM_MONITOR_SETUP(qobj);
     LOCK_SETUP(qobj);
+    STATISTICS_SETUP(qobj);
 
     qobj->element_size = element_size;
     qobj->maximum_size = maximum_size;

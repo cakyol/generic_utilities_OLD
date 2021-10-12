@@ -64,11 +64,11 @@ typedef struct dl_list_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     dl_list_element_t *head, *tail;
     int should_not_be_modified;
     int n;
-    statistics_block_t stats;
 
 } dl_list_t;
 
@@ -77,7 +77,8 @@ typedef struct dl_list_s {
  */
 extern int
 dl_list_init (dl_list_t *list,
-    int make_it_thread_safe,
+    boolean make_it_thread_safe,
+    boolean statistics_wanted,
     mem_monitor_t *parent_mem_monitor);
 
 /*

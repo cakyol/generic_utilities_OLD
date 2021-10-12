@@ -202,6 +202,7 @@ thread_unsafe_list_object_pop_node (list_object_t *list)
 PUBLIC int
 list_object_init (list_object_t *list,
     boolean make_it_thread_safe,
+    boolean statistics_wanted,
     object_comparer cmpf,
     int n_max,
     mem_monitor_t *parent_mem_monitor)
@@ -210,6 +211,7 @@ list_object_init (list_object_t *list,
 
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
+    STATISTICS_SETUP(list);
 
     list->n = 0;
     list->cmp = cmpf;

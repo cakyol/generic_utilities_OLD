@@ -97,6 +97,7 @@ typedef struct list_object_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     /* how many elements can the list hold as a maximum, 0 means no limit */
     int n_max;
@@ -109,8 +110,6 @@ typedef struct list_object_s {
 
     /* to search user data in the list; May be NULL */
     object_comparer cmp;
-
-    statistics_block_t stats;
 
 } list_object_t;
 
@@ -134,6 +133,7 @@ typedef struct list_object_s {
 extern int
 list_object_init (list_object_t *list,
     boolean make_it_thread_safe,
+    boolean statistics_wanted,
     object_comparer cmpf,
     int n_max,
     mem_monitor_t *parent_mem_monitor);

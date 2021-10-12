@@ -198,25 +198,25 @@ typedef struct statistics_block_s {
  * update/increment values
  */
 #define insertion_succeeded(objp) \
-    if (objp->stats_p) objp->stats_p.insertion_successes++
+    if (objp->stats_p) objp->stats_p->insertion_successes++
 
 #define insertion_duplicated(objp) \
-    if (objp->stats_p) objp->stats_p.insertion_duplicates++
+    if (objp->stats_p) objp->stats_p->insertion_duplicates++
 
 #define insertion_failed(objp) \
-    if (objp->stats_p) objp->stats_p.insertion_failures++
+    if (objp->stats_p) objp->stats_p->insertion_failures++
 
 #define search_succeeded(objp) \
-    if (objp->stats_p) objp->stats_p.search_successes++
+    if (objp->stats_p) objp->stats_p->search_successes++
 
 #define search_failed(objp) \
-    if (objp->stats_p) objp->stats_p.search_failures++
+    if (objp->stats_p) objp->stats_p->search_failures++
 
 #define deletion_succeeded(objp) \
-    if (objp->stats_p) objp->stats_p.deletion_successes++
+    if (objp->stats_p) objp->stats_p->deletion_successes++
 
 #define deletion_failed(objp) \
-    if (objp->stats_p) objp->stats_p.deletion_failures++
+    if (objp->stats_p) objp->stats_p->deletion_failures++
 
 /*
  * reset all stats counters

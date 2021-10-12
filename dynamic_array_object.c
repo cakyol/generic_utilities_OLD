@@ -134,12 +134,15 @@ thread_unsafe_dynamic_array_delete (dynamic_array_t *datp, int index)
 
 PUBLIC int
 dynamic_array_init (dynamic_array_t *datp,
-        bool make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         int initial_size,
         mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(datp);
     LOCK_SETUP(datp);
+    STATISTICS_SETUP(datp);
+
     if (0 >= initial_size) return EINVAL;
     datp->elements = MEM_MONITOR_ZALLOC(datp,
                         (initial_size * sizeof(void*)));

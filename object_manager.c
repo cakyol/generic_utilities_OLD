@@ -448,9 +448,9 @@ object_indexes_init (object_t *obj)
 {
     mem_monitor_t *memp = obj->omp->mem_mon_p;
 
-    assert(0 == index_obj_init(&obj->children, false,
+    assert(0 == index_obj_init(&obj->children, false, false,
         compare_objects, 8, 8, memp));
-    assert(0 == index_obj_init(&obj->attributes, false,
+    assert(0 == index_obj_init(&obj->attributes, false, false,
         compare_attributes, 8, 8, memp));
 }
 
@@ -936,8 +936,8 @@ om_init (object_manager_t *omp,
     LOCK_SETUP(omp);
     omp->manager_id = manager_id;
     omp->busy = false;
-    assert(0 == avl_tree_init(&omp->om_objects, false, compare_objects,
-        omp->mem_mon_p));
+    assert(0 == avl_tree_init(&omp->om_objects, false, false,
+                compare_objects, omp->mem_mon_p));
     OBJ_WRITE_UNLOCK(omp);
     return 0;
 }

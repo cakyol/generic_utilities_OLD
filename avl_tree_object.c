@@ -647,12 +647,14 @@ thread_unsafe_iterative_destroy (avl_tree_t *tree, avl_node_t *root,
 PUBLIC int
 avl_tree_init (avl_tree_t *tree,
         boolean make_it_thread_safe,
+        boolean statistics_wanted,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
     if (NULL == cmpf) return EINVAL;
     MEM_MONITOR_SETUP(tree);
     LOCK_SETUP(tree);
+    STATISTICS_SETUP(tree);
 
     reset_stats(tree);
     tree->cmpf = cmpf;

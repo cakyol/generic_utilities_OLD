@@ -60,6 +60,8 @@ typedef struct index_obj_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
+
     boolean should_not_be_modified;
     object_comparer cmpf;
     int maximum_size;
@@ -69,8 +71,6 @@ typedef struct index_obj_s {
 
     /* used for traversing */
     int current;
-
-    statistics_block_t stats;
 
 } index_obj_t;
 
@@ -88,6 +88,7 @@ typedef struct index_obj_s {
 extern int 
 index_obj_init (index_obj_t *idx,
         boolean make_it_thread_safe,
+        boolean statistics_wanted,
         object_comparer cmpf,
         int maximum_size,
         int expansion_size,

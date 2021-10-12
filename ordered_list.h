@@ -89,6 +89,7 @@ struct ordered_list_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     /* start of list */
     ordered_list_node_t *head;
@@ -101,8 +102,6 @@ struct ordered_list_s {
 
     /* number of elements in the list */
     int n;
-
-    statistics_block_t stats;
 
 };
 
@@ -142,7 +141,8 @@ not_endof_ordered_list (ordered_list_node_t *olnp)
  */
 extern int
 ordered_list_init (ordered_list_t *listp,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
 

@@ -43,12 +43,12 @@ radix_tree_node_init (radix_tree_node_t *node, int value)
 }
 
 static inline radix_tree_node_t *
-radix_tree_new_node (radix_tree_t *ntp, int value)
+radix_tree_new_node (radix_tree_t *rtp, int value)
 {
     radix_tree_node_t *node;
 
     node = (radix_tree_node_t*)
-	MEM_MONITOR_ZALLOC(ntp, sizeof(radix_tree_node_t));
+	MEM_MONITOR_ZALLOC(rtp, sizeof(radix_tree_node_t));
     if (node) {
         node->value = value;
     }
@@ -56,7 +56,7 @@ radix_tree_new_node (radix_tree_t *ntp, int value)
 }
 
 static inline radix_tree_node_t *
-radix_tree_add_nibble (radix_tree_t *ntp, radix_tree_node_t *parent, int nibble)
+radix_tree_add_nibble (radix_tree_t *rtp, radix_tree_node_t *parent, int nibble)
 {
     radix_tree_node_t *node;
 
@@ -68,38 +68,38 @@ radix_tree_add_nibble (radix_tree_t *ntp, radix_tree_node_t *parent, int nibble)
     }
 
     /* new entry */
-    node = radix_tree_new_node(ntp, nibble);
+    node = radix_tree_new_node(rtp, nibble);
     if (node) {
         node->parent = parent;
         parent->children[nibble] = node;
         parent->n_children++;
-        ntp->node_count++;
+        rtp->node_count++;
     }
 
     return node;
 }
 
 static radix_tree_node_t *
-radix_tree_add_byte (radix_tree_t *ntp, radix_tree_node_t *parent, int value)
+radix_tree_add_byte (radix_tree_t *rtp, radix_tree_node_t *parent, int value)
 {
     radix_tree_node_t *new_node;
 
-    new_node = radix_tree_add_nibble(ntp, parent, LO_NIBBLE(value));
+    new_node = radix_tree_add_nibble(rtp, parent, LO_NIBBLE(value));
     if (NULL == new_node) {
         return NULL;
     }
-    new_node = radix_tree_add_nibble(ntp, new_node, HI_NIBBLE(value));
+    new_node = radix_tree_add_nibble(rtp, new_node, HI_NIBBLE(value));
     return new_node;
 }
 
 static radix_tree_node_t *
-radix_tree_node_insert (radix_tree_t *ntp, byte *key, int key_length)
+radix_tree_node_insert (radix_tree_t *rtp, byte *key, int key_length)
 {
     radix_tree_node_t *new_node = NULL, *parent;
 
-    parent = &ntp->radix_tree_root;
+    parent = &rtp->radix_tree_root;
     while (key_length-- > 0) {
-        new_node = radix_tree_add_byte(ntp, parent, *key);
+        new_node = radix_tree_add_byte(rtp, parent, *key);
         if (new_node) {
             parent = new_node;
             key++;
@@ -111,9 +111,9 @@ radix_tree_node_insert (radix_tree_t *ntp, byte *key, int key_length)
 }
 
 static radix_tree_node_t *
-radix_tree_node_find (radix_tree_t *ntp, byte *key, int key_length)
+radix_tree_node_find (radix_tree_t *rtp, byte *key, int key_length)
 {
-    radix_tree_node_t *node = &ntp->radix_tree_root;
+    radix_tree_node_t *node = &rtp->radix_tree_root;
 
     while (1) {
 
@@ -145,7 +145,7 @@ radix_tree_node_find (radix_tree_t *ntp, byte *key, int key_length)
 ** This is tricky, be careful
 */
 static void 
-radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
+radix_tree_remove_node (radix_tree_t *rtp, radix_tree_node_t *node)
 {
     radix_tree_node_t *parent;
 
@@ -165,7 +165,7 @@ radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
 
         /* delete myself */
         MEM_MONITOR_FREE(node);
-        ntp->node_count--;
+        rtp->node_count--;
 
         /* go up one more parent & try again */
         node = parent;
@@ -173,7 +173,7 @@ radix_tree_remove_node (radix_tree_t *ntp, radix_tree_node_t *node)
 }
 
 static int
-thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
+thread_unsafe_radix_tree_insert (radix_tree_t *rtp,
         void *key, int key_length, 
         void *data_to_be_inserted, void **present_data)
 {
@@ -186,9 +186,9 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
     if (NULL == data_to_be_inserted) return EINVAL;
 
     /* being traversed, cannot access */
-    if (ntp->should_not_be_modified) return EBUSY;
+    if (rtp->should_not_be_modified) return EBUSY;
 
-    node = radix_tree_node_insert(ntp, key, key_length);
+    node = radix_tree_node_insert(rtp, key, key_length);
     if (node) {
 
         /*
@@ -209,7 +209,7 @@ thread_unsafe_radix_tree_insert (radix_tree_t *ntp,
 }
 
 static int
-thread_unsafe_radix_tree_search (radix_tree_t *ntp,
+thread_unsafe_radix_tree_search (radix_tree_t *rtp,
         void *key, int key_length,
         void **present_data)
 {
@@ -218,7 +218,7 @@ thread_unsafe_radix_tree_search (radix_tree_t *ntp,
     /* assume failure */
     safe_pointer_set(present_data, NULL);
 
-    node = radix_tree_node_find(ntp, key, key_length);
+    node = radix_tree_node_find(rtp, key, key_length);
     if (node && node->user_data) {
         safe_pointer_set(present_data, node->user_data);
         return 0;
@@ -228,7 +228,7 @@ thread_unsafe_radix_tree_search (radix_tree_t *ntp,
 }
 
 static int 
-thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
+thread_unsafe_radix_tree_remove (radix_tree_t *rtp,
         void *key, int key_length, 
         void **removed_data)
 {
@@ -238,13 +238,13 @@ thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
     safe_pointer_set(removed_data, NULL);
 
     /* being traversed, cannot access */
-    if (ntp->should_not_be_modified) return EBUSY;
+    if (rtp->should_not_be_modified) return EBUSY;
 
-    node = radix_tree_node_find(ntp, key, key_length);
+    node = radix_tree_node_find(rtp, key, key_length);
     if (node && node->user_data) {
         safe_pointer_set(removed_data, node->user_data);
         node->user_data = NULL;
-        radix_tree_remove_node(ntp, node);
+        radix_tree_remove_node(rtp, node);
         return 0;
     }
     return ENODATA;
@@ -253,55 +253,58 @@ thread_unsafe_radix_tree_remove (radix_tree_t *ntp,
 /**************************** Public *****************************************/
 
 PUBLIC int 
-radix_tree_init (radix_tree_t *ntp,
-        int make_it_thread_safe,
+radix_tree_init (radix_tree_t *rtp,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         mem_monitor_t *parent_mem_monitor)
 {
-    MEM_MONITOR_SETUP(ntp);
-    LOCK_SETUP(ntp);
-    ntp->node_count = 0;
-    radix_tree_node_init(&ntp->radix_tree_root, 0);
-    OBJ_WRITE_UNLOCK(ntp);
+    MEM_MONITOR_SETUP(rtp);
+    LOCK_SETUP(rtp);
+    STATISTICS_SETUP(rtp);
+
+    rtp->node_count = 0;
+    radix_tree_node_init(&rtp->radix_tree_root, 0);
+    OBJ_WRITE_UNLOCK(rtp);
     return 0;
 }
 
 PUBLIC int
-radix_tree_insert (radix_tree_t *ntp,
+radix_tree_insert (radix_tree_t *rtp,
         void *key, int key_length,
         void *data_to_be_inserted, void **present_data)
 {
     int failed;
 
-    OBJ_WRITE_LOCK(ntp);
-    failed = thread_unsafe_radix_tree_insert(ntp, key, key_length,
+    OBJ_WRITE_LOCK(rtp);
+    failed = thread_unsafe_radix_tree_insert(rtp, key, key_length,
                 data_to_be_inserted, present_data);
-    OBJ_WRITE_UNLOCK(ntp);
+    OBJ_WRITE_UNLOCK(rtp);
     return failed;
 }
 
 PUBLIC int
-radix_tree_search (radix_tree_t *ntp,
+radix_tree_search (radix_tree_t *rtp,
         void *key, int key_length,
         void **present_data)
 {
     int failed;
 
-    OBJ_READ_LOCK(ntp);
-    failed = thread_unsafe_radix_tree_search(ntp, key, key_length, present_data);
-    OBJ_READ_UNLOCK(ntp);
+    OBJ_READ_LOCK(rtp);
+    failed = thread_unsafe_radix_tree_search(rtp, key, key_length, present_data);
+    OBJ_READ_UNLOCK(rtp);
     return failed;
 }
 
 PUBLIC int
-radix_tree_remove (radix_tree_t *ntp,
+radix_tree_remove (radix_tree_t *rtp,
         void *key, int key_length,
         void **removed_data)
 {
     int failed;
 
-    OBJ_WRITE_LOCK(ntp);
-    failed = thread_unsafe_radix_tree_remove(ntp, key, key_length, removed_data);
-    OBJ_WRITE_UNLOCK(ntp);
+    OBJ_WRITE_LOCK(rtp);
+    failed = thread_unsafe_radix_tree_remove(rtp, key, key_length, removed_data);
+    OBJ_WRITE_UNLOCK(rtp);
     return failed;
 }
 
@@ -321,7 +324,7 @@ radix_tree_remove (radix_tree_t *ntp,
  * function for the rest of the tree.
  */
 PUBLIC void
-radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
+radix_tree_traverse (radix_tree_t *rtp, traverse_function_pointer tfn,
         void *extra_arg_1, void *extra_arg_2)
 {
     radix_tree_node_t *node, *prev;
@@ -336,15 +339,15 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
      * changes nodes (and restores) them.  So a recursive traveral cannot 
      * be allowed.
      */
-    if (ntp->should_not_be_modified) return;
+    if (rtp->should_not_be_modified) return;
 
     /* start traversal */
-    ntp->should_not_be_modified = 1;
+    rtp->should_not_be_modified = 1;
 
     key = malloc(8192);
     if (NULL == key) return;
-    OBJ_READ_LOCK(ntp);
-    node = &ntp->radix_tree_root;
+    OBJ_READ_LOCK(rtp);
+    node = &rtp->radix_tree_root;
     node->current = 0;
     while (node) {
         if (node->current < NTRIE_ALPHABET_SIZE) {
@@ -367,7 +370,7 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
             // Do your thing with the node here as long as no error occured so far
             key_len = integer2pointer(index/2);
             if (node->user_data && (0 == failed)) {
-                failed = tfn(ntp, node, node->user_data, key, key_len,
+                failed = tfn(rtp, node, node->user_data, key, key_len,
                     extra_arg_1, extra_arg_2);
             }
             node->current = 0;  // Reset counter for next traversal.
@@ -375,18 +378,18 @@ radix_tree_traverse (radix_tree_t *ntp, traverse_function_pointer tfn,
             index--;
         }
     }
-    OBJ_READ_UNLOCK(ntp);
+    OBJ_READ_UNLOCK(rtp);
 
     /* ok traversal finished */
-    ntp->should_not_be_modified = 0;
+    rtp->should_not_be_modified = 0;
 
     free(key);
 }
 
 PUBLIC void
-radix_tree_destroy (radix_tree_t *ntp)
+radix_tree_destroy (radix_tree_t *rtp)
 {
-    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(ntp);
+    SUPPRESS_UNUSED_VARIABLE_COMPILER_WARNING(rtp);
 }
 
 #ifdef __cplusplus

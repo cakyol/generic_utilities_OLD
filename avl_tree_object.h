@@ -56,12 +56,12 @@ typedef struct avl_tree_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     avl_node_t *root_node;
     object_comparer cmpf;
     bool should_not_be_modified;
     int n;
-    statistics_block_t stats;
 
 } avl_tree_t;
 
@@ -71,7 +71,8 @@ avl_tree_size (avl_tree_t *tree)
 
 extern int 
 avl_tree_init (avl_tree_t *tree,
-        bool make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
 

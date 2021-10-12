@@ -43,19 +43,20 @@ typedef struct stack_obj_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     int maximum_size;
     int expansion_size;
     int expansion_count;
     int n;
     void **elements;
-    statistics_block_t stats;
 
 } stack_obj_t;
 
 extern int
 stack_obj_init (stack_obj_t *stk,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         int maximum_size,
         int expansion_size,
         mem_monitor_t *parent_mem_monitor);

@@ -264,7 +264,8 @@ thread_unsafe_ordered_list_delete (ordered_list_t *listp,
 
 PUBLIC int
 ordered_list_init (ordered_list_t *listp,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {
@@ -275,6 +276,7 @@ ordered_list_init (ordered_list_t *listp,
 
     MEM_MONITOR_SETUP(listp);
     LOCK_SETUP(listp);
+    STATISTICS_SETUP(listp);
 
     last_node = (ordered_list_node_t*) 
                     MEM_MONITOR_ZALLOC(listp, sizeof(ordered_list_node_t));

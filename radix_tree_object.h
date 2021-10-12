@@ -92,16 +92,18 @@ typedef struct radix_tree_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
+
     int should_not_be_modified;
     int node_count;
     radix_tree_node_t radix_tree_root;
-    statistics_block_t stats;
 
 } radix_tree_t;
 
 extern int 
 radix_tree_init (radix_tree_t *ntp, 
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         mem_monitor_t *parent_mem_monitor);
 
 extern int 

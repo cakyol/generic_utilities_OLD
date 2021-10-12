@@ -80,7 +80,8 @@ thread_unsafe_stack_obj_pop (stack_obj_t *stk,
 
 PUBLIC int
 stack_obj_init (stack_obj_t *stk,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         int maximum_size,
         int expansion_size,
         mem_monitor_t *parent_mem_monitor)
@@ -93,8 +94,11 @@ stack_obj_init (stack_obj_t *stk,
     if (expansion_size < 0) {
         return EINVAL;
     }
+
     MEM_MONITOR_SETUP(stk);
     LOCK_SETUP(stk);
+    STATISTICS_SETUP(stk);
+
     stk->maximum_size = maximum_size;
     stk->expansion_size = expansion_size;
     stk->expansion_count = 0;

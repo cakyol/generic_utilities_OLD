@@ -55,6 +55,7 @@ typedef struct qobj_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     /* queues may expand by the specified size, if non zero */
     int maximum_size;
@@ -72,8 +73,6 @@ typedef struct qobj_s {
 
     /* actual queue elements */
     byte *elements;
-
-    statistics_block_t stats;
 
 } qobj_t;
 
@@ -113,7 +112,8 @@ typedef void (*queue_event_function_pointer)
  */
 extern int
 qobj_init (qobj_t *qobj,
-        int make_it_thread_safe,
+        boolean make_it_thread_safe,
+        boolean statistics_wanted,
         int element_size,
         int maximum_size, int expansion_increment,
         mem_monitor_t *parent_mem_monitor);
