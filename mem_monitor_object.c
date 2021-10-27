@@ -110,15 +110,20 @@ mem_monitor_free (void *ptr)
 }
 
 void *
-mem_monitor_reallocate (void *ptr, int new_data_size,
+mem_monitor_reallocate (mem_monitor_t *mmp,
+    void *ptr, int new_data_size,
     bool initialize_to_zero)
 {
     byte *old_data = (byte*) ptr;
     byte *new_data;
-    mem_monitor_t *mmp;
     int old_total_size, old_data_size, copy_size;
 
-    if (NULL == ptr) return NULL;
+    /* for a null pointer, it just becomes a new alloc */
+    if (NULL == ptr) {
+        return
+            mem_monitor_allocate(mmp, new_data_size, initialize_to_zero);
+    }
+
     get_memory_info(ptr, &mmp, &old_total_size);
     old_data_size = old_total_size - sizeof(mem_aligner_t);
 
