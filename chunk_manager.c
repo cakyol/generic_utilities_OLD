@@ -224,6 +224,23 @@ chunk_manager_trim (chunk_manager_t *cmgrp)
     return chunks_returned;
 }
 
+PUBLIC void
+chunk_manager_destroy (chunk_manager_t *cmgrp)
+{
+    chunk_group_t *grp, *next;
+
+    OBJ_WRITE_LOCK(cmgrp);
+    grp = cmgrp->groups;
+    while (grp) {
+        next = grp->next;
+        MEM_MONITOR_FREE(grp->chunks_block);
+        MEM_MONITOR_FREE(grp);
+        grp = next;
+    }
+    MEM_MONITOR_FREE(cmgrp->free_chunks_stack);
+    memset(cmgrp, 0, sizeof(chunk_manager_t));
+}
+
 #ifdef __cplusplus
 } // extern C
 #endif

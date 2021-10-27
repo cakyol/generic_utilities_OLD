@@ -74,7 +74,7 @@ mem_monitor_free (void *ptr);
     mem_monitor_reallocate(objp->mem_mon_p, oldp, newsize, true)
 
 #define MEM_MONITOR_FREE(ptr) \
-    mem_monitor_free(ptr)
+    if (ptr) mem_monitor_free(ptr)
 
 #define OBJECT_MEMORY_USAGE(objp, size_in_bytes, size_in_megabytes) \
     do { \

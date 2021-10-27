@@ -183,6 +183,9 @@ chunk_manager_free (void *chunk);
 extern int
 chunk_manager_trim (chunk_manager_t *cmgrp);
 
+extern void
+chunk_manager_destroy (chunk_manager_t *cmgrp);
+
 #ifdef __cplusplus
 } // extern C
 #endif
