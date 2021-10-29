@@ -158,9 +158,9 @@ struct chunk_manager_s {
      */
     int n_cmgr_total;
 
-    /* a stack of all the free chunks in the entire manager */
+    /* a stack of all the free chunks and the stack index */
     chunk_header_t **free_chunks_stack;
-    int free_chunks_stack_index;
+    int fcsi;
 
     /* a linked list of all the groups */
     chunk_group_t *groups;

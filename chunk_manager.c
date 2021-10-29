@@ -45,7 +45,7 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
     byte *bp;
     chunk_header_t *chp;
     chunk_group_t *cgp;
-    int new_stack_size, i, stack_idx;
+    int new_stack_size, i, si;
     chunk_header_t **new_stack;
 
     /* allocate chunk group structure itself */
@@ -93,11 +93,11 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
      * free chunks on the top manager structure.
      */
     bp = cgp->chunks_block;
-    stack_idx = cmgrp->free_chunks_stack_index;
+    si = cmgrp->fcsi;
     for (i = 0; i < cmgrp->chunks_per_group; i++) {
         chp = (chunk_header_t*) bp;
         chp->my_group = cgp;
-        cmgrp->free_chunks_stack[stack_idx++] = chp;
+        cmgrp->free_chunks_stack[si++] = chp;
         bp += cmgrp->actual_chunk_size;
     }
 
@@ -122,9 +122,7 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
 
     /* If there are any free chunks available on the stack, pop one */
     if (cmgrp->n_cmgr_free > 0) {
-        assert(cmgrp->free_chunks_stack_index <= cmgrp->n_cmgr_total);
-        chp = cmgrp->free_chunks_stack[cmgrp->free_chunks_stack_index];
-        (cmgrp->free_chunks_stack_index)++;
+        chp = cmgrp->free_chunks_stack[(cmgrp->fcsi)++];
         (chp->my_group->n_grp_free)--;
         (cmgrp->n_cmgr_free)--;
         return &(chp->data[0]);
@@ -144,14 +142,91 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
 }
 
 /*
- * Returns how many chunks were returned back to the os
- * This must be a multiple of chunks_per_group since when
- * chunks are returned back to the OS, entire groups are
- * freed up.
+ * All the groups which need freeing up back to the OS are
+ * now in this array with the count.
+ * They have been removed from the chunk manager groups list
+ * and instead placed into this array.
+ */
+static void
+chunk_groups_trim (chunk_manager_t *cmgrp,
+    chunk_group_t *grps[], int count )
+{
+}
+
+/*
+ * Returns how many chunk groups were returned back to the os
+ * since none of their chunks were used.
  */
 static int
 thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
 {
+    chunk_group_t *cgp, *prev_grp, **free_grps;
+    int free_grp_count;
+
+    /*
+     * since we free up entire groups of chunks, there must at least
+     * be cmgrp->chunks_per_group free chunks before we even bother
+     * checking.  If this is not the case, it is impossible for any
+     * group to have all its chunks free.
+     */
+    if (cmgrp->n_cmgr_free < cmgrp->chunks_per_group)
+        return 0;
+
+    /*
+     * Every group which has all its chunks free is taken off the
+     * chunk manager's list and added to a local array here.  The
+     * array expands as more groups are added.  At the end, this
+     * array will have all the groups whose chunks are all free
+     * so that they can be released back to the OS.
+     *
+     * Remember one little detail :-)  As we take these groups
+     * off, their free chunks (all of them), must also be removed
+     * from the chunk manager's free_chunks_stack.  They are no
+     * longer available or free.
+     */
+    cgp = cmgrp->groups;
+    free_grps = null;
+    free_grp_count = 0;
+    prev_grp = null;
+    while (cgp) {
+
+        /* this group must have all its chunks free */
+        if (cgp->n_grp_free >= cmgrp->chunks_per_group) {
+
+            /* add it to the self expanding array */
+            free_grp_count++;
+            free_grps = realloc(free_grps,
+                    (free_grp_count * sizeof(chunk_group_t*)));
+            if (free_grps) {
+                free_grps[free_grp_count - 1] = cgp;
+            } else {
+                /* no more array memory, break out of loop */
+                break;
+            }
+
+            /* take it off the chunk manager's group list */
+            if (prev_grp) {
+                prev_grp->next = cgp->next;
+            } else {
+                assert(cmgrp->groups == cgp);
+                cmgrp->groups = cgp->next;
+            }
+        }
+        prev_grp = cgp;
+        cgp = cgp->next;
+    }
+
+    /*
+     * all groups to be freed are now unlinked from the chunk manager
+     * and are all in the free_grps array.  There are 'free_grp_count'
+     * many of them.
+     */
+    if (free_grps && free_grp_count) {
+        chunk_groups_trim(cmgrp, free_grps, free_grp_count);
+        free(free_grps);
+        return free_grp_count;
+    }
+
     return 0;
 }
 
@@ -222,8 +297,7 @@ chunk_manager_free (void *chunk)
     (cmgrp->n_cmgr_free)++;
 
     /* place it into the free chunks stack */
-    (cmgrp->free_chunks_stack_index)--;
-    cmgrp->free_chunks_stack[cmgrp->free_chunks_stack_index] = chp;
+    cmgrp->free_chunks_stack[--(cmgrp->fcsi)] = chp;
 
     OBJ_WRITE_UNLOCK(cmgrp);
 }
