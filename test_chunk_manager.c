@@ -19,7 +19,7 @@ int main (int argc, char *argv[])
     printf("initializing chunk object .. ");
     fflush(stdout);
     int rc = chunk_manager_init(&cmgr, 
-                0, CHUNK_SIZE, 20, MAX_CHUNKS+1, NULL, NULL);
+                false, CHUNK_SIZE, 1024, NULL);
     if (rc != 0) {
         printf("chunk_manager_init failed for %d chunks\n",
             MAX_CHUNKS);
@@ -57,7 +57,7 @@ int main (int argc, char *argv[])
 #ifdef USE_MALLOC
                 free(chunks[i]);
 #else
-                chunk_manager_free(&cmgr, chunks[i]);
+                chunk_manager_free(chunks[i]);
 #endif
                 //printf("chunk %d addr 0x%p freed\n", i, chunks[i]);
                 iter++;

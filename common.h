@@ -38,6 +38,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <assert.h>
 
 /*
  * This file is a collection of the most common types/definitions

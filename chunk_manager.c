@@ -42,10 +42,11 @@ extern "C" {
 static int
 chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
 {
-    chunk_group_t *cgp;
     byte *bp;
     chunk_header_t *chp;
-    int i;
+    chunk_group_t *cgp;
+    int new_stack_size, i, stack_idx;
+    chunk_header_t **new_stack;
 
     /* allocate chunk group structure itself */
     cgp = MEM_MONITOR_ALLOC(cmgrp, sizeof(chunk_group_t));
@@ -59,29 +60,44 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
         return ENOMEM;
     }
 
-    /* now expand the free chunks stack on the main chunk manager */
-    cmgrp->free_chunks_stack = MEM_MONITOR_REALLOC(cmgrp,
-	cmgrp->free_chunks_stack, cmgrp->n_cmgr_free + cmgrp->chunks_per_group);
-    if (NULL == cmgrp->free_chunks_stack) {
+    /*
+     * now expand the free chunks stack on the main chunk manager so
+     * that we can add the new chunks to it from this new group.
+     * Note that what we are adding to the stack are pointers to
+     * chunk headers.
+     */
+    new_stack_size = (cmgrp->n_cmgr_total + cmgrp->chunks_per_group) *
+        sizeof(chunk_header_t*);
+    new_stack = MEM_MONITOR_REALLOC(cmgrp,
+            cmgrp->free_chunks_stack, new_stack_size);
+    if (NULL == new_stack) {
         MEM_MONITOR_FREE(cgp->chunks_block);
         MEM_MONITOR_FREE(cgp);
         return ENOMEM;
     }
+    cmgrp->free_chunks_stack = new_stack;
 
     /* All the needed memory is allocated, now update everything else */
 
+    /* update group related stuff */
     cgp->my_manager = cmgrp;
     cgp->n_grp_free = cmgrp->chunks_per_group;
 
+    /* update the top manager related stuff */
     cmgrp->n_cmgr_free += cmgrp->chunks_per_group;
+    cmgrp->n_cmgr_total += cmgrp->chunks_per_group;
     cmgrp->n_groups += 1;
 
-    /* add all the new chunk addresses to the stack of free chunks */
+    /*
+     * add all the new chunk addresses to the stack of
+     * free chunks on the top manager structure.
+     */
     bp = cgp->chunks_block;
+    stack_idx = cmgrp->free_chunks_stack_index;
     for (i = 0; i < cmgrp->chunks_per_group; i++) {
         chp = (chunk_header_t*) bp;
         chp->my_group = cgp;
-        cmgrp->free_chunks_stack[i + cmgrp->free_chunks_stack_index] = chp;
+        cmgrp->free_chunks_stack[stack_idx++] = chp;
         bp += cmgrp->actual_chunk_size;
     }
 
@@ -106,7 +122,7 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
 
     /* If there are any free chunks available on the stack, pop one */
     if (cmgrp->n_cmgr_free > 0) {
-        assert(cmgrp->free_chunks_stack_index < cmgrp->n_cmgr_free);
+        assert(cmgrp->free_chunks_stack_index <= cmgrp->n_cmgr_total);
         chp = cmgrp->free_chunks_stack[cmgrp->free_chunks_stack_index];
         (cmgrp->free_chunks_stack_index)++;
         (chp->my_group->n_grp_free)--;

@@ -53,7 +53,7 @@ char *argv [];
     void *found;
 
     printf("\nPOPULATING FASTMAP\n");
-    radix_tree_init(&radix_tree_obj, 0, NULL);
+    radix_tree_init(&radix_tree_obj, false, false, NULL);
     printf("\nSIZE OF FASTMAP NODE = %d BYTES\n", (int) sizeof(radix_tree_node_t));
     for (i = 0; i < (int) MAX_STRINGS; i++) {
         radix_tree_insert(&radix_tree_obj, strings[i], strlen(strings[i]),

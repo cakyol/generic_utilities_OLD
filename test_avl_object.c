@@ -48,7 +48,7 @@ traverse_test (void)
     long long int bytes;
     double mbytes;
 
-    avl_tree_init(&tree, true, int_compare, NULL);
+    avl_tree_init(&tree, true, false, int_compare, NULL);
     printf("inserting %d pieces of data .. ", MAX_SZ); fflush(stdout);
     timer_start(&tmr);
     for (i = 0; i < MAX_SZ; i++) {

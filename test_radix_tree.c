@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
 
     printf("\nSIZE OF RADIX TREE NODE = %lu BYTES\n", sizeof(radix_tree_node_t));
     total = valid = failed = found = 0;
-    radix_tree_init(&radix_tree_obj, 0, NULL);
+    radix_tree_init(&radix_tree_obj, false, false, NULL);
     printf("\nPOPULATING RADIX TREE\n");
     timer_start(&timr);
     for (iter = 0; iter < ITER; iter++) {

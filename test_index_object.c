@@ -45,7 +45,7 @@ int main (int argc, char *argv[])
 
     /* create the index first */
     if (index_obj_init(&index, 
-            1, compareData, MAX_SZ/4, 1000, NULL) != 0) {
+            true, false, compareData, MAX_SZ/4, 1000, NULL) != 0) {
         printf ("could not create index\n");
         return -1;
     }

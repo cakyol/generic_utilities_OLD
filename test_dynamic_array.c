@@ -24,7 +24,7 @@ int main (int argc, char *argv[])
 
     for (i = 0; i < SIZE; i++) array[i] = i * 3;
 
-    dynamic_array_init(&dyn, 0, 8, NULL);
+    dynamic_array_init(&dyn, false, false, 8, NULL);
     printf("initialized dynamic array\n");
     fflush(stdout);
 

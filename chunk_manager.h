@@ -89,6 +89,9 @@ typedef struct chunk_header_s chunk_header_t;
 typedef struct chunk_group_s chunk_group_t;
 typedef struct chunk_manager_s chunk_manager_t;
 
+/*
+ * variable sized chunk header
+ */
 struct chunk_header_s {
 
     /*
@@ -149,6 +152,11 @@ struct chunk_manager_s {
      * manager.
      */
     int n_cmgr_free;
+
+    /*
+     * Total of all the used AND free chunks
+     */
+    int n_cmgr_total;
 
     /* a stack of all the free chunks in the entire manager */
     chunk_header_t **free_chunks_stack;

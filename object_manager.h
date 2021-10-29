@@ -101,10 +101,6 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <unistd.h>
-#include <assert.h>
-
 #include "common.h"
 #include "debug_framework.h"
 #include "mem_monitor_object.h"

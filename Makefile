@@ -22,9 +22,7 @@ LIB_OBJS =	debug_framework.o \
 		mem_monitor_object.o \
 		lock_object.o \
 		bitlist_object.o \
-		stack_object.o \
 		qobject.o \
-		ordered_list.o \
 		list_object.o \
 		dl_list_object.o \
 		ez_sprintf.o \
@@ -34,13 +32,15 @@ LIB_OBJS =	debug_framework.o \
 		avl_tree_object.o \
 		dynamic_array_object.o \
 		radix_tree_object.o \
-		scheduler.o \
-		event_manager.o \
 		object_manager.o \
 		tlv_manager.o \
 		buffer_manager.o \
 		### test_data_generator.o \
 		### utils_common.o \
+		# event_manager.o \
+		# scheduler.o \
+		# ordered_list.o \
+		# stack_object.o \
 
 %.o:		%.c %.h common.h
 		$(CC) -c $(CFLAGS) $<
@@ -140,10 +140,7 @@ test_tlvm:		test_tlvm.c $(LIBNAME)
 
 TESTS =		test_lock_object \
 		test_lock_speed \
-		test_stack_object \
 		test_bitlist \
-		test_ordered_list \
-		test_qobject \
 		test_chunk_manager \
 		test_malloc \
 		test_chunk_integrity \
@@ -153,11 +150,14 @@ TESTS =		test_lock_object \
 		test_radix_tree \
 		test_radix_tree2 \
 		test_om \
-		test_om_load \
-		test_om_speed \
 		test_delay \
-		test_scheduler \
 		test_tlvm \
+		# test_om_load \
+		# test_om_speed \
+		# test_scheduler \
+		# test_qobject \
+		# test_ordered_list \
+		# test_stack_object \
 		\
 
 tests:		$(TESTS)

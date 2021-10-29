@@ -22,91 +22,74 @@ extern "C" {
 #endif
 
 /*
- * All we need to process memory requests.  It is a cheat sheet
- * inserted in front of the memory returned to user.  It cannot
- * however be directly inserted but instead enclosed in the
- * mem_aligner_t structure to make sure it is 64 bytes long & aligned.
+ * All we need to process memory requests.  It is a cheat structure
+ * inserted in front of the memory returned to user.  
+ * It has to be 8 bytes aligned so that it works with all
+ * alignments hence the use of 'unsigned long long data [0]'.
  */
-typedef struct mem_cheat_s {
+typedef struct mem_header_s {
 
     /* the relevant mem monitor */
     mem_monitor_t *mmp;
 
-    /* total size of bytes used INCLUDING the secret header */
+    /* total size of bytes used INCLUDING THIS header */
     int total_size;
 
-} mem_cheat_t;
+    /* make the whole size of the structure a mult of 8 bytes */
+    unsigned long long data [0];
+
+} mem_header_t;
 
 /*
- * This is secretly inserted to the front of the memory
- * returned to the user to store the relevant information.
- *
- * It MUST be 8 byte aligned and hence the funky structure
- * definition below, which guarantees that.
+ * extract the mem_header_t given the user pointer
  */
-typedef struct mem_aligner_s {
-
-    union {
-        byte aligner[8];
-        mem_cheat_t mc;
-    } u;
-
-} mem_aligner_t;
-
-/*
- * extract 'mmp' and TOTAL size given the user data pointer.
- */
-static inline void
-get_memory_info (void *ptr,
-    mem_monitor_t **mmp, int *total_sizep)
+static inline mem_header_t *
+get_mem_header_ptr (void *ptr)
 {
-    mem_aligner_t* map = (mem_aligner_t*)
-        ((byte*) ptr - sizeof(mem_aligner_t));
-
-    *mmp = map->u.mc.mmp;
-    *total_sizep = map->u.mc.total_size;
+    return
+        (mem_header_t*) (((byte*) ptr) - sizeof(mem_header_t));
 }
 
 /*
- * An extra mem_aligner_t is inserted into the front
- * of all memory returrned to the user so we have that information
- * available for the rest of the operations.
+ * An extra mem_header_t is inserted into the front
+ * of all memory returrned to the user so we have all
+ * the necessary information when the pointer gets freed.
  */
 void *
 mem_monitor_allocate (mem_monitor_t *mmp,
         int size, bool initialize_to_zero)
 {
-    int total_size = size + sizeof(mem_aligner_t);
-    mem_aligner_t *map;
+    int total_size = size + sizeof(mem_header_t);
+    mem_header_t *mhp;
     byte *block;
 
     block = malloc(total_size);
     if (block) {
         if (initialize_to_zero) memset(block, 0, total_size);
-        map = (mem_aligner_t*) block;
-        map->u.mc.mmp = mmp;
-        map->u.mc.total_size = total_size;
+        mhp = (mem_header_t*) block;
+        mhp->mmp = mmp;
+        mhp->total_size = total_size;
         if (mmp) {
             mmp->bytes_used += total_size;
             mmp->allocations++;
         }
-        return (void*) (block + sizeof(mem_aligner_t));
+        return &(mhp->data[0]);
     }
-    return NULL;
+    return null;
 }
 
 void
 mem_monitor_free (void *ptr)
 {
-    mem_monitor_t *mmp;
-    int total_size;
+    mem_header_t *mhp;
 
-    get_memory_info(ptr, &mmp, &total_size);
-    if (mmp) {
-        mmp->bytes_used -= total_size;
-        mmp->frees++;
+    mhp = get_mem_header_ptr(ptr);
+    if (mhp->mmp) {
+        mhp->mmp->bytes_used -= mhp->total_size;
+        mhp->mmp->frees++;
     }
-    free((byte*) ptr - sizeof(mem_aligner_t));
+
+    free(mhp);
 }
 
 void *
@@ -114,37 +97,36 @@ mem_monitor_reallocate (mem_monitor_t *mmp,
     void *ptr, int new_data_size,
     bool initialize_to_zero)
 {
-    byte *old_data = (byte*) ptr;
+    mem_header_t *mhp;
+    int old_total_size, new_total_size;
     byte *new_data;
-    int old_total_size, old_data_size, copy_size;
 
-    /* for a null pointer, it just becomes a new alloc */
+    /* for a null pointer, this just becomes a new alloc */
     if (NULL == ptr) {
         return
             mem_monitor_allocate(mmp, new_data_size, initialize_to_zero);
     }
 
-    get_memory_info(ptr, &mmp, &old_total_size);
-    old_data_size = old_total_size - sizeof(mem_aligner_t);
+    /* record old stuff */
+    mhp = get_mem_header_ptr(ptr);
+    assert(mmp == mhp->mmp);
+    old_total_size = mhp->total_size;
+    new_total_size = new_data_size + sizeof(mem_header_t);
 
-    new_data = mem_monitor_allocate(mmp, new_data_size, initialize_to_zero);
-    if (NULL == new_data) return NULL;
+    /* get new memory */
+    new_data = realloc(mhp, new_total_size);
+    if (new_data) {
+        if (initialize_to_zero) memset(mhp, 0, new_total_size);
+        mmp->bytes_used -= old_total_size;
+        mmp->bytes_used += new_total_size;
+        mhp = (mem_header_t*) new_data;
+        mhp->mmp = mmp;
+        mhp->total_size = new_total_size;
+        return &(mhp->data[0]);
+    }
 
-    /*
-     * copy existing data to the new block.  Note that
-     * the new data size may be LESS than the old data size
-     * meaning the block is shrinking.  Take the min value
-     * of new_data_size & old_data_size to copy.
-     */
-    copy_size = (new_data_size > old_data_size) ?
-                    old_data_size : new_data_size;
-    memmove(new_data, old_data, copy_size);
-
-    /* free the old block */
-    mem_monitor_free(ptr);
-
-    /* done */
-    return (void*) new_data;
+    /* if we are here, realloc failed, nothing we can do */
+    return null;
 }
 
 #ifdef __cplusplus

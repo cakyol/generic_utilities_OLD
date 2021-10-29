@@ -44,8 +44,8 @@ int main (int argc, char *argv[])
     int i, j;
     unsigned long long iter = 0;
 
-    int rc = chunk_manager_init(&cmgr, 0, 
-                CHUNK_SIZE, MAX_CHUNKS/64, 1024, NULL, NULL);
+    int rc = chunk_manager_init(&cmgr, false,
+                CHUNK_SIZE, MAX_CHUNKS/64, NULL);
     if (rc != 0) {
         printf("chunk_manager_init failed for %d chunks\n",
             MAX_CHUNKS);
@@ -74,7 +74,7 @@ int main (int argc, char *argv[])
         for (i = 0; i < MAX_CHUNKS; i++) {
             if (NULL != chunks[i]) {
                 validate_chunk(chunks[i], i);
-                chunk_manager_free(&cmgr, chunks[i]);
+                chunk_manager_free(chunks[i]);
                 //printf("chunk %d addr 0x%p freed\n", i, chunks[i]);
                 iter++;
             }
