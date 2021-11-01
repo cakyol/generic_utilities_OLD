@@ -90,7 +90,9 @@ typedef struct chunk_group_s chunk_group_t;
 typedef struct chunk_manager_s chunk_manager_t;
 
 /*
- * variable sized chunk header
+ * Variable sized chunk header.
+ * Each chunk is added to a linked list (of free chunks) on the
+ * main structure.
  */
 struct chunk_header_s {
 
@@ -99,6 +101,9 @@ struct chunk_header_s {
      * I will return to the same group.
      */
     chunk_group_t *my_group;
+
+    /* next free chunk */
+    chunk_header_t *next;
 
     /*
      * this is what is returned back to the user and it must
@@ -109,11 +114,8 @@ struct chunk_header_s {
 
 /*
  * Each group has a big memory block which is divided into chunk size
- * sections.  Addresses of each of these chunks are stored in the main
- * chunk manager's free_chunks_stack array, which grows by using alloc
- * & realloc.  When the chunks in a group are all used up, a new group
- * is created and the new chunks are all added to this stack of free
- * chunks.
+ * sections.  Each chunk is then added to a linked list (of free chunks)
+ * on the main structure.
  */
 struct chunk_group_s {
 
@@ -158,9 +160,8 @@ struct chunk_manager_s {
      */
     int n_cmgr_total;
 
-    /* a stack of all the free chunks and the stack index */
-    chunk_header_t **free_chunks_stack;
-    int fcsi;
+    /* a linked list of all the free chunks */
+    chunk_header_t *free_chunks_list;
 
     /* a linked list of all the groups */
     chunk_group_t *groups;

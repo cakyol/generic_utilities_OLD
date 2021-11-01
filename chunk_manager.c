@@ -45,8 +45,7 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
     byte *bp;
     chunk_header_t *chp;
     chunk_group_t *cgp;
-    int new_stack_size, i, si;
-    chunk_header_t **new_stack;
+    int i;
 
     /* allocate chunk group structure itself */
     cgp = MEM_MONITOR_ALLOC(cmgrp, sizeof(chunk_group_t));
@@ -61,45 +60,27 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
     }
 
     /*
-     * now expand the free chunks stack on the main chunk manager so
-     * that we can add the new chunks to it from this new group.
-     * Note that what we are adding to the stack are pointers to
-     * chunk headers.
+     * run thru the newly allocated block and partition each chunk
+     * and add it to the head of the free chunks list in the main
+     * structure.
      */
-    new_stack_size = (cmgrp->n_cmgr_total + cmgrp->chunks_per_group) *
-        sizeof(chunk_header_t*);
-    new_stack = MEM_MONITOR_REALLOC(cmgrp,
-            cmgrp->free_chunks_stack, new_stack_size);
-    if (NULL == new_stack) {
-        MEM_MONITOR_FREE(cgp->chunks_block);
-        MEM_MONITOR_FREE(cgp);
-        return ENOMEM;
+    bp = cgp->chunks_block;
+    for (i = 0; i < cmgrp->chunks_per_group; i++) {
+        chp = (chunk_header_t*) bp;
+        chp->my_group = cgp;
+        chp->next = cmgrp->free_chunks_list;
+        cmgrp->free_chunks_list = chp;
+        bp += cmgrp->actual_chunk_size;
     }
-    cmgrp->free_chunks_stack = new_stack;
-
-    /* All the needed memory is allocated, now update everything else */
 
     /* update group related stuff */
     cgp->my_manager = cmgrp;
     cgp->n_grp_free = cmgrp->chunks_per_group;
 
-    /* update the top manager related stuff */
+    /* update the main manager related stuff */
     cmgrp->n_cmgr_free += cmgrp->chunks_per_group;
     cmgrp->n_cmgr_total += cmgrp->chunks_per_group;
     cmgrp->n_groups += 1;
-
-    /*
-     * add all the new chunk addresses to the stack of
-     * free chunks on the top manager structure.
-     */
-    bp = cgp->chunks_block;
-    si = cmgrp->fcsi;
-    for (i = 0; i < cmgrp->chunks_per_group; i++) {
-        chp = (chunk_header_t*) bp;
-        chp->my_group = cgp;
-        cmgrp->free_chunks_stack[si++] = chp;
-        bp += cmgrp->actual_chunk_size;
-    }
 
     /*
      * Everything in the group is now initialised, now
@@ -120,9 +101,10 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
 {
     chunk_header_t *chp;
 
-    /* If there are any free chunks available on the stack, pop one */
+    /* pop the first chunk from the free chunks list */
     if (cmgrp->n_cmgr_free > 0) {
-        chp = cmgrp->free_chunks_stack[(cmgrp->fcsi)++];
+        chp = cmgrp->free_chunks_list;
+        cmgrp->free_chunks_list = chp->next;
         (chp->my_group->n_grp_free)--;
         (cmgrp->n_cmgr_free)--;
         return &(chp->data[0]);
@@ -140,6 +122,8 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
     return
         thread_unsafe_chunk_manager_alloc(cmgrp);
 }
+
+#if 0
 
 /*
  * All the groups which need freeing up back to the OS are
@@ -182,7 +166,10 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
      * Remember one little detail :-)  As we take these groups
      * off, their free chunks (all of them), must also be removed
      * from the chunk manager's free_chunks_stack.  They are no
-     * longer available or free.
+     * longer available or free.  Unfortunately, this is a very
+     * heavy operation and every free chunk in the free chunks stack
+     * must be checked if it belongs to any group being freed and
+     * if so, it must be removed from the stack.
      */
     cgp = cmgrp->groups;
     free_grps = null;
@@ -229,6 +216,7 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
 
     return 0;
 }
+#endif // 0
 
 /***************************** 80 column separator ****************************/
 
@@ -296,8 +284,9 @@ chunk_manager_free (void *chunk)
     /* chunk manager is being returned one */
     (cmgrp->n_cmgr_free)++;
 
-    /* place it into the free chunks stack */
-    cmgrp->free_chunks_stack[--(cmgrp->fcsi)] = chp;
+    /* place it back into the free chunks list */
+    chp->next = cmgrp->free_chunks_list;
+    cmgrp->free_chunks_list = chp;
 
     OBJ_WRITE_UNLOCK(cmgrp);
 }
@@ -305,10 +294,10 @@ chunk_manager_free (void *chunk)
 PUBLIC int
 chunk_manager_trim (chunk_manager_t *cmgrp)
 {
-    int chunks_returned;
+    int chunks_returned = 0;
 
     OBJ_WRITE_LOCK(cmgrp);
-    chunks_returned = thread_unsafe_chunk_manager_trim(cmgrp);
+    //chunks_returned = thread_unsafe_chunk_manager_trim(cmgrp);//
     OBJ_WRITE_UNLOCK(cmgrp);
 
     return chunks_returned;
@@ -327,7 +316,6 @@ chunk_manager_destroy (chunk_manager_t *cmgrp)
         MEM_MONITOR_FREE(grp);
         grp = next;
     }
-    MEM_MONITOR_FREE(cmgrp->free_chunks_stack);
     memset(cmgrp, 0, sizeof(chunk_manager_t));
 }
 
