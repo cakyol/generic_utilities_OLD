@@ -103,7 +103,7 @@ struct chunk_header_s {
     chunk_group_t *my_group;
 
     /* next free chunk */
-    chunk_header_t *next;
+    chunk_header_t *next_chunk_header;
 
     /*
      * this is what is returned back to the user and it must
@@ -129,7 +129,7 @@ struct chunk_group_s {
     int n_grp_free;
 
     /* next group in list */
-    chunk_group_t *next;
+    chunk_group_t *next_chunk_group;
 
 };
 
@@ -145,23 +145,12 @@ struct chunk_manager_s {
     /* how many chunks per group is needed */
     int chunks_per_group;
 
-    /* total number of groups so far in the manager */
-    int n_groups;
-
     /*
-     * Total free chunks in all of the groups of the manager.  If this
-     * is zero, it is time to create another group & add it to the
-     * manager.
+     * a linked list of all the free chunks in all the
+     * groups and their count
      */
-    int n_cmgr_free;
-
-    /*
-     * Total of all the used AND free chunks
-     */
-    int n_cmgr_total;
-
-    /* a linked list of all the free chunks */
     chunk_header_t *free_chunks_list;
+    int n_cmgr_free;
 
     /* a linked list of all the groups */
     chunk_group_t *groups;
