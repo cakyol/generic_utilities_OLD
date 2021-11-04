@@ -78,7 +78,7 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
     cgp->n_grp_free = cmgrp->chunks_per_group;
 
     /* update the main manager related stuff */
-    cmgrp->n_cmgr_free += cmgrp->chunks_per_group;
+    // cmgrp->n_cmgr_free += cmgrp->chunks_per_group;
 
     /*
      * Everything in the group is now initialised, now
@@ -100,11 +100,12 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
     chunk_header_t *chp;
 
     /* pop the first chunk from the free chunks list */
-    if (cmgrp->n_cmgr_free > 0) {
-        chp = cmgrp->free_chunks_list;
+    //if (cmgrp->n_cmgr_free > 0) {
+    chp = cmgrp->free_chunks_list;
+    if (chp) {
         cmgrp->free_chunks_list = chp->next_chunk_header;
         (chp->my_group->n_grp_free)--;
-        (cmgrp->n_cmgr_free)--;
+        //(cmgrp->n_cmgr_free)--;
         return &(chp->data[0]);
     }
 
@@ -149,13 +150,13 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
      * checking.  If this is not the case, it is impossible for any
      * group to have all its chunks free.
      */
-    if (cmgrp->n_cmgr_free < cmgrp->chunks_per_group)
-        return 0;
+    //if (cmgrp->n_cmgr_free < cmgrp->chunks_per_group)
+        //return 0;
 
     chunks_tobe_freed = grps_tobe_freed = 0;
     chp = cmgrp->free_chunks_list;
     cmgrp->free_chunks_list = null;
-    cmgrp->n_cmgr_free = 0;
+    //cmgrp->n_cmgr_free = 0;
     while (chp) {
 
         next_chp = chp->next_chunk_header;
@@ -169,7 +170,7 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
         if (chp->my_group->n_grp_free < cmgrp->chunks_per_group) {
             chp->next_chunk_header = cmgrp->free_chunks_list;
             cmgrp->free_chunks_list = chp;
-            (cmgrp->n_cmgr_free)++;
+            //(cmgrp->n_cmgr_free)++;
         } else {
             chunks_tobe_freed++;
         }
@@ -238,7 +239,7 @@ chunk_manager_init (chunk_manager_t *cmgrp,
 }
 
 PUBLIC void *
-chunk_manager_alloc (chunk_manager_t *cmgrp)
+chunk_alloc (chunk_manager_t *cmgrp)
 {
     void *ptr;
 
@@ -250,7 +251,7 @@ chunk_manager_alloc (chunk_manager_t *cmgrp)
 }
 
 PUBLIC void
-chunk_manager_free (void *chunk)
+chunk_free (void *chunk)
 {
     chunk_header_t *chp;
     chunk_manager_t *cmgrp;
@@ -265,7 +266,7 @@ chunk_manager_free (void *chunk)
     (chp->my_group->n_grp_free)++;
 
     /* main chunk manager is being returned one */
-    (cmgrp->n_cmgr_free)++;
+    //(cmgrp->n_cmgr_free)++;
 
     /* place it back into the head of free chunks list */
     chp->next_chunk_header = cmgrp->free_chunks_list;

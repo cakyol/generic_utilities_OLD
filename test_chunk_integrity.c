@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
         /* allocate chunks */
         //printf("allocating..\n");
         for (i = 0; i < MAX_CHUNKS; i++) {
-            chunks[i] = chunk_manager_alloc(&cmgr);
+            chunks[i] = chunk_alloc(&cmgr);
             if (NULL == chunks[i]) {
                 printf("chunk alloc failed outer loop %d inner loop %d\n",
                     j, i);
@@ -74,7 +74,7 @@ int main (int argc, char *argv[])
         for (i = 0; i < MAX_CHUNKS; i++) {
             if (NULL != chunks[i]) {
                 validate_chunk(chunks[i], i);
-                chunk_manager_free(chunks[i]);
+                chunk_free(chunks[i]);
                 //printf("chunk %d addr 0x%p freed\n", i, chunks[i]);
                 iter++;
             }

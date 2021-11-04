@@ -49,7 +49,10 @@ extern "C" {
  * This is a chunk manager which manages a many same sized chunks, 
  * dynamically allocated & freed.  It is like malloc & free but much
  * faster since most chunks are pre-allocated and disbursing them
- * is therefore quite fast.
+ * is therefore quite fast.  Comparing the speed to malloc/free,
+ * for chunk sizes of up to about 64 bytes, the performance is up
+ * to about 2.5 times faster.  For chunk sizes above 64 bytes, it is
+ * up to about 7-8 times faster.
  *
  * There is one VERY important requirement of this implementation.
  * It is the fact that when this dynamically grows, the addresses of
@@ -68,7 +71,7 @@ extern "C" {
  * provide this expansion requirement, an expanding list of chunk groups
  * is therefore maintained.  When all the chunks in a group are exhausted,
  * a new group is created.  When a new chunk group is created, all the
- * available chunk addresses are added to the stack of free chunks in the
+ * available chunk addresses are added to the list of free chunks in the
  * main chunk manager structure.  This causes the chunk manager to
  * pause and add new chunks to the free chunks stack when the current
  * set of chunks are depleted.
@@ -167,23 +170,71 @@ struct chunk_manager_s {
 #define MIN_CHUNK_SIZE          8
 #define MAX_CHUNK_SIZE          256
 #define MIN_CHUNKS_PER_GROUP    64
-#define MAX_CHUNKS_PER_GROUP    (0x3FFF)
+#define MAX_CHUNKS_PER_GROUP    (0xFFFF)
 
+/*
+ * initialize the chunk manager.  'chunk_size' is the size
+ * of each chunk guaranteed when returned to the user.
+ * 'chunks_per_group' defines how many chunks will be created
+ * all at once, in advance of calling the allocation function.
+ * The higher this number, the more efficient the chunk manager
+ * will run, but if you do not use all the chunks, memory will
+ * have been wastefully allocated.  It is up to the user to
+ * fine tune this value.
+ *
+ * Return value is 0 for success or a non zero errno if the
+ * function fails.  The only failures which can occur during
+ * initialization are if either the chunk_size specified or
+ * the chunks_per_group specified is outside the valid limits.
+ * The memory block allocations actually do NOT start until
+ * the very first call to 'chunk_manager_alloc" is made.
+ */
 extern int
 chunk_manager_init (chunk_manager_t *cmgrp,
     boolean make_it_thread_safe,
     int chunk_size, int chunks_per_group,
     mem_monitor_t *parent_mem_monitor);
 
+/*
+ * returns a pointer to a memory block with a size specified
+ * at the initialization of the chunk manager.  Do NOT access
+ * past either end of this chunk.  NULL will be returned if
+ * no more chunks are available or cannot be created.
+ */
 extern void *
-chunk_manager_alloc (chunk_manager_t *cmgrp);
+chunk_alloc (chunk_manager_t *cmgrp);
 
+/*
+ * Frees a chunk which was supplied by the call to 'chunk_manager_alloc'.
+ * Do NOT pass any other pointer to this function except only the ones
+ * returned by the call to chunk_manager_alloc, with the same manager.
+ */
 extern void
-chunk_manager_free (void *chunk);
+chunk_free (void *chunk);
 
+/*
+ * When chunks are allocated, they are also internally cached so that
+ * they can be re allocated very quickly.  So, if the user allocates
+ * lots of chunks and then frees them up, even tho they are free to
+ * be used, they will linger around in the cache and will not have
+ * been returned to the OS.
+ *
+ * To eliminate this, if the user decides that the caches can be
+ * cleared and the chunks can be returned back to the OS so that
+ * the chunk manager does not become a memory hog (becoz of its cache),
+ * this function can be called.
+ *
+ * Return value is the number of 'chunk_group_t' groups returned
+ * back to the OS.
+ */
 extern int
 chunk_manager_trim (chunk_manager_t *cmgrp);
 
+/*
+ * destroys the chunk manager object.  The object can no longer
+ * be used until the next initialization.  The entire memory it uses
+ * will be returned back to the OS.
+ */
 extern void
 chunk_manager_destroy (chunk_manager_t *cmgrp);
 
