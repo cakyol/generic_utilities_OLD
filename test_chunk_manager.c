@@ -67,8 +67,10 @@ int main (int argc, char *argv[])
     timer_end(&tp);
     timer_report(&tp, iter, NULL);
 #ifndef USE_MALLOC
-    chunk_manager_trim(&cmgr);
-    chunk_manager_trim(&cmgr);
+    int trim = chunk_manager_trim(&cmgr);
+    printf("1: trimmed %d groups\n", trim);
+    trim = chunk_manager_trim(&cmgr);
+    printf("2: trimmed %d groups\n", trim);
 
     /* allocate more again just to se if it works after a trim */
     void *ch1 = chunk_manager_alloc(&cmgr);

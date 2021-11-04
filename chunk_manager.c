@@ -123,40 +123,25 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
 
 /*
  * This function tries to return unused chunks back to the OS.
- * It does this by returning the groups (chunk_group_t) whose
- * n_grp_free value is equal to chunk manager's chunks_per_group
- * value.  If a group has 'n_grp_free' chunks which is equal
- * to 'chunks_per_group' number, it means that none of its chunks
- * are in use, and they are all in the free list.  When this is
- * so, the whole group can be returned to the OS in one big swoop,
- * by simply freeing the 'chunks_block' pointer and later also
- * freeing the group itself.
+ * How does it do this ?  It makes a single pass thru all the
+ * free chunks checking their groups.  If the group that
+ * the chunk belongs to has all its chunks free, this indicates
+ * that that specific group will be deleted and hence this chunk
+ * also must be removed from the main manager's stack.  During this
+ * pass, the functions reconstructs the new free list of chunks by
+ * excluding the ones which will be deleted (since their group
+ * will be deleted).
  *
- * The function does this with the following algorithm.  It first
- * scans all the groups whose 'n_grp_free' value is the same as
- * the 'cmgrp->chunks_per_group' value.  It removes these groups
- * from the main manager's group list and places them into a new
- * temporary list.  At the end of the scan, this temp list contains
- * all the groups which can be returned back to the OS.
- *
- * There is one more important step here.  We have to make sure
- * that as we free up those groups, since all their chunks are
- * also in the main manager's free list, each one must be removed 
- * from the main manager.
- *
- * At the end of all this, all groups whose chunks are unused and
- * all those chunks themselves will have been removed from the
- * main manager.
- *
- * The return value of the function is the number of chunk_group_t
- * structures which have been returned back to the OS.
+ * Once this pass finishes, then we also make a single pass thru
+ * the groups and free the ones up whose free chunk count is
+ * complete.
  */
 static int
 thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
 {
-    chunk_group_t *cgp, *tmp_free_groups, *next_cgp;
     chunk_header_t *chp, *next_chp;
-    int grps_freed;
+    chunk_group_t *cgp, *next_cgp;
+    int chunks_freed, grps_freed;
 
     /*
      * since we free up entire groups of chunks, there must at least
@@ -167,98 +152,50 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
     if (cmgrp->n_cmgr_free < cmgrp->chunks_per_group)
         return 0;
 
-    /*
-     * Every group which has all its chunks free is taken off the
-     * chunk manager's list and added to 'tmp_free_groups' here.
-     * What we do here is unlink the entire group chain and iterate
-     * thru it one by one.  If the condition matches, we add it to
-     * the temp free list, otherwise we add it back to the main
-     * manager's free group list.  It is much easier to do such a
-     * pass thru the list than messing around trying to delete
-     * list nodes.
-     */
-    cgp = cmgrp->groups;
-    cmgrp->groups = null;
-    tmp_free_groups = null;
-    grps_freed = 0;
-    while (cgp) {
-
-        next_cgp = cgp->next_chunk_group;
-
-        /* add it to the temporary free groups list */
-        if (cgp->n_grp_free >= cmgrp->chunks_per_group) {
-            cgp->next_chunk_group = tmp_free_groups;
-            tmp_free_groups = cgp;
-            grps_freed++;
-        /* put it back into the main structure's list */
-        } else {
-            cgp->next_chunk_group = cmgrp->groups;
-            cmgrp->groups = cgp;
-        }
-        cgp = next_cgp;
-    }
-
-    printf("found %d groups to free\n", grps_freed);
-
-    /*
-     * Now, all groups whose chunks are all unused are in a linked
-     * list headed by the 'tmp_free_groups' pointer and the rest of
-     * the groups (whose chunks may have been used) are now chained
-     * back to the 'cmgrp->groups'.
-     *
-     * We now have to go thru and take all the chunks of these
-     * free groups out of the main chunk manager's free chunks list.
-     *
-     * For every free chunk in the main manager's list, check if
-     * it belongs to any of the groups.  If it does, remove it from
-     * the main manager's list.  To make this simple, we unlink the
-     * main manager's 'free_chunks_list' completely and add all the
-     * non free chunks back reconstructing the list.  Since we now 
-     * do not include any of the ones which are in those groups, at
-     * the end, we end up only with all the chunks which do not belong
-     * to any of the groups about to be returned to the OS.
-     */
-    printf("reconstructing free_chunks_list\n");
+    chunks_freed = grps_freed = 0;
     chp = cmgrp->free_chunks_list;
-    cmgrp->n_cmgr_free = 0;
     cmgrp->free_chunks_list = null;
+    cmgrp->n_cmgr_free = 0;
     while (chp) {
-        next_chp = chp->next_chunk_header;
-        cgp = tmp_free_groups;
-        while (cgp) {
 
-            /* this chp IS in a group to be returned, so skip it */
-            if (chp->my_group == cgp) {
-                goto try_next_chp;
-            }
-            cgp = cgp->next_chunk_group;
-        }
+        next_chp = chp->next_chunk_header;
 
         /*
-         * if we are here, this chp is not in any group to be freed,
-         * so we can safely insert it back into the main manager's
-         * list of free chunks.
+         * if this chunk does not belong to a group whose chunks
+         * are all free (will be deleted), then re-add it to the
+         * free list.  The rest will be left 'dangling' but they
+         * will soon be all deleted anyway so it does not matter.
          */
-        chp->next_chunk_header = cmgrp->free_chunks_list;
-        cmgrp->free_chunks_list = chp;
-        (cmgrp->n_cmgr_free)++;
-try_next_chp:
+        if (chp->my_group->n_grp_free < cmgrp->chunks_per_group) {
+            chp->next_chunk_header = cmgrp->free_chunks_list;
+            cmgrp->free_chunks_list = chp;
+            (cmgrp->n_cmgr_free)++;
+        } else {
+            chunks_freed++;
+        }
+
         chp = next_chp;
     }
-    printf("reconstructing finished\n");
 
     /*
-     * we have now taken all the chunks out of the main manager's free
-     * list which belonged to any of the groups to be returned.
-     * We no longer need those groups now, so return them back to
-     * the OS.
+     * now free up all the groups whose chunks are all free
+     * and which we just took off the main managers' free list
      */
-    cgp = tmp_free_groups;
-    while (cgp) {
-        next_cgp = cgp->next_chunk_group;
-        MEM_MONITOR_FREE(cgp->chunks_block);
-        MEM_MONITOR_FREE(cgp);
-        cgp = next_cgp;
+    if (chunks_freed) {
+        cgp = cmgrp->groups;
+        cmgrp->groups = null;
+        while (cgp) {
+            next_cgp = cgp->next_chunk_group;
+            if (cgp->n_grp_free < cmgrp->chunks_per_group) {
+                cgp->next_chunk_group = cmgrp->groups;
+                cmgrp->groups = cgp;
+            } else {
+                MEM_MONITOR_FREE(cgp->chunks_block);
+                MEM_MONITOR_FREE(cgp);
+                grps_freed++;
+            }
+            cgp = next_cgp;
+        }
     }
 
     return grps_freed;
