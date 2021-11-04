@@ -138,7 +138,10 @@ struct chunk_manager_s {
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
 
-    /* size of each chunk the user wants and how much it internally takes*/
+    /*
+     * size of each chunk the user wants and how
+     * many bytes it internally occupies
+     */
     int chunk_size;
     int actual_chunk_size;
 

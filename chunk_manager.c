@@ -62,7 +62,7 @@ chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
     /*
      * run thru the newly allocated block and partition each chunk
      * and add it to the head of the free chunks list in the main
-     * structure.
+     * manager.
      */
     bp = cgp->chunks_block;
     for (i = 0; i < cmgrp->chunks_per_group; i++) {
@@ -141,7 +141,7 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
 {
     chunk_header_t *chp, *next_chp;
     chunk_group_t *cgp, *next_cgp;
-    int chunks_freed, grps_freed;
+    int chunks_tobe_freed, grps_tobe_freed;
 
     /*
      * since we free up entire groups of chunks, there must at least
@@ -152,7 +152,7 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
     if (cmgrp->n_cmgr_free < cmgrp->chunks_per_group)
         return 0;
 
-    chunks_freed = grps_freed = 0;
+    chunks_tobe_freed = grps_tobe_freed = 0;
     chp = cmgrp->free_chunks_list;
     cmgrp->free_chunks_list = null;
     cmgrp->n_cmgr_free = 0;
@@ -171,7 +171,7 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
             cmgrp->free_chunks_list = chp;
             (cmgrp->n_cmgr_free)++;
         } else {
-            chunks_freed++;
+            chunks_tobe_freed++;
         }
 
         chp = next_chp;
@@ -181,7 +181,7 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
      * now free up all the groups whose chunks are all free
      * and which we just took off the main managers' free list
      */
-    if (chunks_freed) {
+    if (chunks_tobe_freed) {
         cgp = cmgrp->groups;
         cmgrp->groups = null;
         while (cgp) {
@@ -192,13 +192,13 @@ thread_unsafe_chunk_manager_trim (chunk_manager_t *cmgrp)
             } else {
                 MEM_MONITOR_FREE(cgp->chunks_block);
                 MEM_MONITOR_FREE(cgp);
-                grps_freed++;
+                grps_tobe_freed++;
             }
             cgp = next_cgp;
         }
     }
 
-    return grps_freed;
+    return grps_tobe_freed;
 }
 
 /***************************** 80 column separator ****************************/
@@ -264,7 +264,7 @@ chunk_manager_free (void *chunk)
     /* group is being returned a chunk */
     (chp->my_group->n_grp_free)++;
 
-    /* chunk manager is being returned one */
+    /* main chunk manager is being returned one */
     (cmgrp->n_cmgr_free)++;
 
     /* place it back into the head of free chunks list */
@@ -277,13 +277,13 @@ chunk_manager_free (void *chunk)
 PUBLIC int
 chunk_manager_trim (chunk_manager_t *cmgrp)
 {
-    int grps_freed;
+    int grps_tobe_freed;
 
     OBJ_WRITE_LOCK(cmgrp);
-    grps_freed = thread_unsafe_chunk_manager_trim(cmgrp);
+    grps_tobe_freed = thread_unsafe_chunk_manager_trim(cmgrp);
     OBJ_WRITE_UNLOCK(cmgrp);
 
-    return grps_freed;
+    return grps_tobe_freed;
 }
 
 PUBLIC void
