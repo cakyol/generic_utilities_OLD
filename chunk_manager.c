@@ -127,7 +127,7 @@ thread_unsafe_chunk_manager_alloc (chunk_manager_t *cmgrp)
  * free chunks checking their groups.  If the group that
  * the chunk belongs to has all its chunks free, this indicates
  * that that specific group will be deleted and hence this chunk
- * also must be removed from the main manager's stack.  During this
+ * also must be removed from the main manager's list.  During this
  * pass, the functions reconstructs the new free list of chunks by
  * excluding the ones which will be deleted (since their group
  * will be deleted).
