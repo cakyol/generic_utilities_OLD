@@ -52,65 +52,90 @@ extern "C" {
 #include "mem_monitor_object.h"
 #include "lock_object.h"
 
-typedef struct dl_list_element_s dl_list_element_t;
+typedef struct dl_list_node_s dl_list_node_t;
 
-struct dl_list_element_s {
+struct dl_list_node_s {
 
-    dl_list_element_t *next, *prev;
-    void *object;
+    dl_list_node_t *next, *prev;
+    void *data;
 };
 
 typedef struct dl_list_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
-    STATISTICS_VARIABLES;
 
-    dl_list_element_t *head, *tail;
-    int should_not_be_modified;
+    dl_list_node_t *head, *tail;
+
+    /*
+     * used to order the list and/or search the list
+     * for a specific data which matches.  Supplied
+     * by the user at init time.  Can be null.
+     */
+    object_comparer cmp;
+
+    /* how many nodes are in the list currently */
     int n;
 
 } dl_list_t;
 
 /*
- * initialize a doubly linked list
+ * initialize the list.  Return value is 0 for success
+ * or a non zero errno.
  */
 extern int
 dl_list_init (dl_list_t *list,
     boolean make_it_thread_safe,
-    boolean statistics_wanted,
+    object_comparer cmp,
     mem_monitor_t *parent_mem_monitor);
 
 /*
- * add an object to the beginning of the list
+ * Add user data to the beginning of the list.
+ * Return value is 0 for success or a non zero
+ * errno value.
  */
 extern int 
-dl_list_prepend_object (dl_list_t *list, void *object);
+dl_list_prepend_data (dl_list_t *list, void *data);
 
 /*
- * add an object to the end of the list
+ * Add user data to the end of the list.
+ * Return value is 0 for success or a non zero
+ * errno value.
  */
 extern int
-dl_list_append_object (dl_list_t *list, void *object);
+dl_list_append_data (dl_list_t *list, void *data);
 
 /*
- * Traverse the list one element at a time, starting at the head
- * till the end or until the user supplied function returns a
- * non zero (indicating an error).  What this means is that
- * if the user finds what is being looked for, a non zero should
- * be returned, terminating the traversal.
- *
- * The positional parameters passed to the traversal function are:
- * - The list object
- * - the list element,
- * - the user object stored at that element
- * - the rest of the parameters p[0-3]
+ * Finds the data stored in the list and if found, returns
+ * the node in which it is srtored.  If not found, it returns
+ * null.
+ */
+extern dl_list_node_t *
+dl_list_find_data_node (dl_list_t *list, void *data);
+
+/*
+ * Delete a node in the list, used when you
+ * already know the node to be deleted.
  */
 extern void
-dl_list_traverse (dl_list_t *list,
-    traverse_function_pointer tfn,
-    void *p0, void *p1, void *p2, void *p3);
+dl_list_delete_node (dl_list_t *list, dl_list_node_t *node);
 
+/*
+ * Delete the user data from the list.  If a comparison function
+ * to compare user data pointers was defined at the init time of the
+ * list, then that is used to find the node/data which is then
+ * deleted.  If the function was not specified at the initialization
+ * time, then just a simple pointer comparison is done.
+ * Return value is 0 for success or a non zero
+ * errno value.
+ */
+extern int
+dl_list_delete_data (dl_list_t *list, void *data);
+
+/*
+ * Destruction is complete, list cannot be used until
+ * it is re-initialized again properly.
+ */
 extern void
 dl_list_destroy (dl_list_t *list);
 

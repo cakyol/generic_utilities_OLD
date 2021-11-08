@@ -47,200 +47,208 @@
 extern "C" {
 #endif
 
-static dl_list_element_t *
-dl_list_new_element (dl_list_t *list, void *object)
+static inline dl_list_node_t *
+dl_list_new_node (dl_list_t *list, void *data)
 {
-    dl_list_element_t *elem;
+    dl_list_node_t *node;
 
-    elem = MEM_MONITOR_ZALLOC(list, sizeof(dl_list_element_t));
-    if (0 == elem) return 0;
-    elem->next = elem->prev = 0;
-    elem->object = object;
-    return elem;
+    node = MEM_MONITOR_ALLOC(list, sizeof(dl_list_node_t));
+    if (node) {
+        node->next = node->prev = null;
+        node->data = data;
+    }
+    return node;
 }
 
-/*
- * adds it to the head of the list.
- */
-static void
-thread_unsafe_dl_list_prepend_element (dl_list_t *list,
-        dl_list_element_t *elem)
+static inline void
+thread_unsafe_dl_list_prepend_node (dl_list_t *list,
+    dl_list_node_t *node)
 {
     if (list->n <= 0) {
-        list->head = list->tail = elem;
+        list->head = list->tail = node;
     } else {
-        elem->next = list->head;
-        list->head->prev = elem;
-        list->head = elem;
+        node->next = list->head;
+        list->head->prev = node;
+        list->head = node;
     }
     list->n++;
 }
 
-/*
- * adds it to the end of the list.
- */
-static void
-thread_unsafe_dl_list_append_element (dl_list_t *list,
-        dl_list_element_t *elem)
+static inline void
+thread_unsafe_dl_list_append_node (dl_list_t *list,
+    dl_list_node_t *node)
 {
     if (list->n <= 0) {
-        list->head = list->tail = elem;
+        list->head = list->tail = node;
     } else {
-        elem->prev = list->tail;
-        list->tail->next = elem;
-        list->tail = elem;
+        node->prev = list->tail;
+        list->tail->next = node;
+        list->tail = node;
     }
     list->n++;
 }
 
-static int
-thread_unsafe_dl_list_delete_element (dl_list_t *list,
-        dl_list_element_t *elem)
+static inline int 
+thread_unsafe_dl_list_prepend_data (dl_list_t *list, void *data)
 {
-    if (list->should_not_be_modified)
-        return EBUSY;
+    dl_list_node_t *node;
+    
+    node = dl_list_new_node(list, data);
+    if (node) {
+        thread_unsafe_dl_list_prepend_node(list, node);
+        return 0;
+    }
+    return ENOMEM;
+}
 
-    if (elem->next == 0) {
-        if (elem->prev == 0) {
-            list->head = list->tail = 0;
+static inline int
+thread_unsafe_dl_list_append_data (dl_list_t *list, void *data)
+{
+    dl_list_node_t *node;
+    
+    node = dl_list_new_node(list, data);
+    if (node) {
+        thread_unsafe_dl_list_append_node(list, node);
+        return 0;
+    }
+    return ENOMEM;
+}
+
+static inline dl_list_node_t *
+thread_unsafe_dl_list_find_data_node (dl_list_t *list,
+    void *data)
+{
+    dl_list_node_t *node;
+
+    node = list->head;
+    while (node) {
+        if (list->cmp) {
+            if ((list->cmp)(data, node->data) == 0) return node;
         } else {
-            elem->prev->next = 0;
-            list->tail = elem->prev;
+            if (data == node->data) return node;
+        }
+        node = node->next;
+    }
+    return null;
+}
+
+static inline void
+thread_unsafe_dl_list_delete_node (dl_list_t *list,
+    dl_list_node_t *node)
+{
+    if (node->next == null) {
+        if (node->prev == null) {
+            list->head = list->tail = null;
+        } else {
+            node->prev->next = null;
+            list->tail = node->prev;
         }
     } else {
-        if (elem->prev == 0) {
-            list->head = elem->next;
-            elem->next->prev = 0;
+        if (node->prev == null) {
+            list->head = node->next;
+            node->next->prev = null;
         } else {
-            elem->prev->next = elem->next;
-            elem->next->prev = elem->prev;
+            node->prev->next = node->next;
+            node->next->prev = node->prev;
         }
     }
-    MEM_MONITOR_FREE(elem);
+    MEM_MONITOR_FREE(node);
     list->n--;
-    return 0;
-}
-
-static int 
-thread_unsafe_dl_list_prepend_object (dl_list_t *list, void *object)
-{
-    dl_list_element_t *elem;
-    
-    if (list->should_not_be_modified)
-        return EBUSY;
-
-    elem = dl_list_new_element(list, object);
-    if (elem) {
-        thread_unsafe_dl_list_prepend_element(list, elem);
-        return 0;
-    }
-    return ENOMEM;
-}
-
-static int
-thread_unsafe_dl_list_append_object (dl_list_t *list, void *object)
-{
-    dl_list_element_t *elem;
-    
-    if (list->should_not_be_modified)
-        return EBUSY;
-
-    elem = dl_list_new_element(list, object);
-    if (elem) {
-        thread_unsafe_dl_list_append_element(list, elem);
-        return 0;
-    }
-    return ENOMEM;
 }
 
 /************************** Public functions **************************/
 
-int
+PUBLIC int
 dl_list_init (dl_list_t *list,
-        boolean make_it_thread_safe,
-        boolean statistics_wanted,
-        mem_monitor_t *parent_mem_monitor)
+    boolean make_it_thread_safe,
+    object_comparer cmp,
+    mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
-    STATISTICS_SETUP(list);
-
-    list->head = list->tail = 0;
+    list->head = list->tail = null;
     list->n = 0;
+    list->cmp = cmp;
     OBJ_WRITE_UNLOCK(list);
+
     return 0;
 }
 
-int
-dl_list_prepend_object (dl_list_t *list, void *object)
+PUBLIC int
+dl_list_prepend_data (dl_list_t *list, void *data)
 {
     int failed;
 
     OBJ_WRITE_LOCK(list);
-    failed = thread_unsafe_dl_list_prepend_object(list, object);
+    failed = thread_unsafe_dl_list_prepend_data(list, data);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
 
-int
-dl_list_append_object (dl_list_t *list, void *object)
+PUBLIC int
+dl_list_append_data (dl_list_t *list, void *data)
 {
     int failed;
 
     OBJ_WRITE_LOCK(list);
-    failed = thread_unsafe_dl_list_append_object(list, object);
+    failed = thread_unsafe_dl_list_append_data(list, data);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
 
-int
-dl_list_delete_element (dl_list_t *list, dl_list_element_t *elem)
+PUBLIC dl_list_node_t *
+dl_list_find_data_node (dl_list_t *list, void *data)
 {
-    int failed;
-
-    OBJ_WRITE_LOCK(list);
-    failed = thread_unsafe_dl_list_delete_element(list, elem);
-    OBJ_WRITE_UNLOCK(list);
-    return failed;
-}
-
-/*
- * Note that by incrementing & decrementing 'should_not_be_modified' we
- * allow traversing to be done within traversing.  As long as the list
- * is not modified (which 'should_not_be_modified' ensures), it IS
- * possible for multiple threads to traverse and even recursive traversals
- * within the same thread is possible.
- */
-void
-dl_list_traverse (dl_list_t *list,
-    traverse_function_pointer tfn,
-    void *p0, void *p1, void *p2, void *p3)
-{
-    dl_list_element_t *iterator;
+    dl_list_node_t *node;
 
     OBJ_READ_LOCK(list);
-    list->should_not_be_modified++;
-    iterator = list->head;
-    while (iterator) {
-        if (tfn(list, iterator, iterator->object, p0, p1, p2, p3)) {
-            break;
-        }
-        iterator = iterator->next;
-    }
-    list->should_not_be_modified--;
+    node = thread_unsafe_dl_list_find_data_node(list, data);
     OBJ_READ_UNLOCK(list);
+
+    return node;
+}
+
+PUBLIC void
+dl_list_delete_node (dl_list_t *list, dl_list_node_t *node)
+{
+    OBJ_WRITE_LOCK(list);
+    thread_unsafe_dl_list_delete_node(list, node);
+    OBJ_WRITE_UNLOCK(list);
+}
+
+PUBLIC int
+dl_list_delete_data (dl_list_t *list, void *data)
+{
+    dl_list_node_t *node;
+    int failed;
+
+    OBJ_WRITE_LOCK(list);
+    node = thread_unsafe_dl_list_find_data_node(list, data);
+    if (node) {
+        dl_list_delete_node(list, node);
+        failed = 0;
+    } else {
+        failed = ENODATA;
+    }
+    OBJ_WRITE_UNLOCK(list);
+
+    return failed;
 }
 
 void
 dl_list_destroy (dl_list_t *list)
 {
+    dl_list_node_t *node, *next_node;
+
     OBJ_WRITE_LOCK(list);
-    while (list->head)
-        thread_unsafe_dl_list_delete_element(list, list->head);
-    assert(list->n == 0);
-    assert(list->head == NULL);
-    assert(list->tail == NULL);
+    node = list->head;
+    while (node) {
+        next_node = node->next;
+        MEM_MONITOR_FREE(node);
+        node = next_node;
+    }
     OBJ_WRITE_UNLOCK(list);
+    memset(list, 0, sizeof(dl_list_t));
     lock_obj_destroy(list->lock);
 }
 
