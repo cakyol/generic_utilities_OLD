@@ -35,6 +35,7 @@ LIB_OBJS =	debug_framework.o \
 		object_manager.o \
 		tlv_manager.o \
 		buffer_manager.o \
+		list.o \
 		### test_data_generator.o \
 		### utils_common.o \
 		# event_manager.o \
@@ -48,6 +49,10 @@ LIB_OBJS =	debug_framework.o \
 utils_lib.a:	$(LIB_OBJS)
 		ar -r $(LIBNAME) $(LIB_OBJS)
 		ranlib $(LIBNAME)
+
+test_list:	test_list.c $(LIBNAME)
+			$(CC) $(CFLAGS) $(INCLUDES) test_list.c \
+				-o test_list $(LIBNAME) $(STATIC_LIBS)
 
 test_debug:	test_debug.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_debug.c \
