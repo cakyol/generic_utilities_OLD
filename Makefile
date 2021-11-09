@@ -157,6 +157,7 @@ TESTS =		test_lock_object \
 		test_om \
 		test_delay \
 		test_tlvm \
+		test_list \
 		# test_om_load \
 		# test_om_speed \
 		# test_scheduler \

@@ -61,6 +61,18 @@ int main (int argc, char *argv[])
         j += 2;
         node = node->next;
     }
+
+    /* now delete all even nodes and ensure nothing is left */
+    fprintf(stderr, "deleting all even nodes\n");
+    node = list.head;
+    while (node) {
+        nextnode = node->next;
+        if ((pointer2integer(node->data) & 1) == 0) {
+            list_remove_node(&list, node);
+        }
+        node = nextnode;
+    }
+    assert(list.n == 0);
     return 0;
 }
 
