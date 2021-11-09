@@ -92,7 +92,12 @@ static inline int
 thread_unsafe_list_prepend_data (list_t *list, void *data)
 {
     list_node_t *node;
-    
+
+    /* check limit */
+    if ((list->n_max > 0) && (list->n >= list->n_max)) {
+        return ENOSPC;
+    }
+
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_prepend_node(list, node);
@@ -105,7 +110,13 @@ static inline int
 thread_unsafe_list_append_data (list_t *list, void *data)
 {
     list_node_t *node;
-    
+
+    /* check limit */
+    if ((list->n_max > 0) && (list->n >= list->n_max)) {
+        return ENOSPC;
+    }
+
+    node = list_new_node(list, data);
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_append_node(list, node);
@@ -161,6 +172,7 @@ thread_unsafe_list_remove_node (list_t *list,
 PUBLIC int
 list_init (list_t *list,
     boolean make_it_thread_safe,
+    int n_max,
     object_comparer cmp,
     mem_monitor_t *parent_mem_monitor)
 {
@@ -169,6 +181,7 @@ list_init (list_t *list,
     list->head = list->tail = null;
     list->n = 0;
     list->cmp = cmp;
+    list->n_max = (n_max > 0) ? n_max : 0;
     OBJ_WRITE_UNLOCK(list);
 
     return 0;

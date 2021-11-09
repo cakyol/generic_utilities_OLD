@@ -33,7 +33,12 @@
 *******************************************************************************
 *******************************************************************************
 **
-** Doubly linked list container object
+** Doubly linked list container object.
+**
+** This can be used as a lifo, fifo, queue, stack... basically
+** any data structure which needs some kind of linked list.
+** Since it is doubly linked, it is extremely fast to delete a
+** node from it.
 **
 *******************************************************************************
 *******************************************************************************
@@ -71,18 +76,27 @@ struct list_s {
     /*
      * used to order the list and/or search the list
      * for a specific data which matches.  Supplied
-     * by the user at init time.  Can be null.
+     * by the user at init time.  CAN be null.
      */
     object_comparer cmp;
 
     /* how many nodes are in the list currently */
     int n;
 
+    /* if > 0, specifies the max number of allowed nodes */
+    int n_max;
+
 };
 
 /******************************************************************************
  * Initialize the list.  Return value is 0 for success
- * or a non zero errno.  The object comparer is a function
+ * or a non zero errno.  
+ *
+ * If 'n_max' > 0, then the number of nodes in the list is limited
+ * to that number.  Further insertions will not be allowed.  If
+ * 'n_max' <= 0, there is no limit except the memory for insertions.
+ *
+ * The object comparer pointer is a function
  * pointer used for comparing two 'data' objects to determine
  * their equality.  It should return if two user specified
  * data values are the same.  It CAN be specified as null
@@ -91,6 +105,7 @@ struct list_s {
 extern int
 list_init (list_t *list,
     boolean make_it_thread_safe,
+    int n_max,
     object_comparer cmp,
     mem_monitor_t *parent_mem_monitor);
 

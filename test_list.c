@@ -1,7 +1,7 @@
 
 #include "list.h"
 
-#define MAX_VALUE   0xFFFF
+#define MAX_VALUE   0xFFFFFF
 
 int main (int argc, char *argv[])
 {
@@ -10,7 +10,7 @@ int main (int argc, char *argv[])
     void *ptr;
     list_node_t *node, *nextnode;
 
-    if (list_init(&list, false, null, null)) {
+    if (list_init(&list, false, 0, null, null)) {
         fprintf(stderr, "list_init failed\n");
         return -1;
     }
@@ -72,6 +72,7 @@ int main (int argc, char *argv[])
         }
         node = nextnode;
     }
+    fprintf(stderr, "verifying\n");
     assert(list.n == 0);
     return 0;
 }
