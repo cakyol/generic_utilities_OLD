@@ -74,6 +74,9 @@ int main (int argc, char *argv[])
     }
     fprintf(stderr, "verifying\n");
     assert(list.n == 0);
+    assert(list.head == null);
+    assert(list.tail == null);
+    list_destroy(&list);
     return 0;
 }
 
