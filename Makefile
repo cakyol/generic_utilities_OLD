@@ -22,9 +22,6 @@ LIB_OBJS =	debug_framework.o \
 		mem_monitor_object.o \
 		lock_object.o \
 		bitlist_object.o \
-		qobject.o \
-		list_object.o \
-		dl_list_object.o \
 		ez_sprintf.o \
 		line_counters.o \
 		chunk_manager.o \
@@ -36,12 +33,8 @@ LIB_OBJS =	debug_framework.o \
 		tlv_manager.o \
 		buffer_manager.o \
 		list.o \
-		### test_data_generator.o \
-		### utils_common.o \
-		# event_manager.o \
-		# scheduler.o \
-		# ordered_list.o \
-		# stack_object.o \
+		### event_manager.o \
+		### ordered_list.o \
 
 %.o:		%.c %.h common.h
 		$(CC) -c $(CFLAGS) $<
@@ -70,17 +63,9 @@ test_bitlist:		test_bitlist.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_bitlist.c \
 				-o test_bitlist $(LIBNAME) $(STATIC_LIBS)
 
-test_stack_object:	test_stack_object.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_stack_object.c \
-				-o test_stack_object $(LIBNAME) $(STATIC_LIBS)
-
 test_ordered_list:	test_ordered_list.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_ordered_list.c \
 				-o test_ordered_list $(LIBNAME) $(STATIC_LIBS)
-
-test_qobject:	test_qobject.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_qobject.c \
-				-o test_qobject $(LIBNAME) $(STATIC_LIBS)
 
 test_chunk_manager: test_chunk_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_chunk_manager.c \
@@ -131,10 +116,6 @@ test_delay:		test_delay.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_delay.c -o test_delay \
 					$(LIBNAME) $(STATIC_LIBS)
 
-test_scheduler:		test_scheduler.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_scheduler.c \
-				-o test_scheduler $(LIBNAME) $(STATIC_LIBS)
-
 test_event_manager:	test_event_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_event_manager.c \
 				-o test_event_manager $(LIBNAME) $(STATIC_LIBS)
@@ -161,9 +142,7 @@ TESTS =		test_lock_object \
 		# test_om_load \
 		# test_om_speed \
 		# test_scheduler \
-		# test_qobject \
 		# test_ordered_list \
-		# test_stack_object \
 		\
 
 tests:		$(TESTS)
