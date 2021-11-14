@@ -126,6 +126,24 @@ extern int
 list_append_data (list_t *list, void *data);
 
 /******************************************************************************
+ * Add user data after the node specified.  If the node specified
+ * is not in the list specified, results will not be good.  The
+ * function does NOT check this, it assumes it is called correctly.
+ */
+extern int
+list_insert_data_after_node (list_t *list,
+    list_node_t *node, void *data);
+
+/******************************************************************************
+ * Add user data before the node specified.  If the node specified
+ * is not in the list specified, results will not be good.  The
+ * function does NOT check this, it assumes it is called correctly.
+ */
+extern int
+list_insert_data_before_node (list_t *list,
+    list_node_t *node, void *data);
+
+/******************************************************************************
  * Finds the data stored in the list and if found, returns
  * the node in which it is srtored.  If not found, it returns
  * null.
@@ -146,8 +164,7 @@ list_remove_node (list_t *list, list_node_t *node);
  * list, then that is used to find the node/data which is then
  * removed.  If the function was not specified at the initialization
  * time, then just a simple pointer comparison is done.
- * Return value is 0 for success or a non zero
- * errno value.
+ * Return value is 0 for success or a non zero errno value.
  */
 extern int
 list_remove_data (list_t *list, void *data);

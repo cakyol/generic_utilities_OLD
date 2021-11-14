@@ -88,16 +88,15 @@ thread_unsafe_list_append_node (list_t *list,
     list->n++;
 }
 
+#define RETURN_IF_LIST_IS_FULL(list) \
+    if ((list->n_max > 0) && (list->n >= list->n_max)) return ENOSPC
+
 static inline int 
 thread_unsafe_list_prepend_data (list_t *list, void *data)
 {
     list_node_t *node;
 
-    /* check limit */
-    if ((list->n_max > 0) && (list->n >= list->n_max)) {
-        return ENOSPC;
-    }
-
+    RETURN_IF_LIST_IS_FULL(list);
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_prepend_node(list, node);
@@ -111,18 +110,39 @@ thread_unsafe_list_append_data (list_t *list, void *data)
 {
     list_node_t *node;
 
-    /* check limit */
-    if ((list->n_max > 0) && (list->n >= list->n_max)) {
-        return ENOSPC;
-    }
-
-    node = list_new_node(list, data);
+    RETURN_IF_LIST_IS_FULL(list);
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_append_node(list, node);
         return 0;
     }
     return ENOMEM;
+}
+
+static inline int
+thread_unsafe_list_insert_data_after_node (list_t *list,
+    list_node_t *node, void *data)
+{
+    list_node_t *nd;
+
+    RETURN_IF_LIST_IS_FULL(list);
+    nd = list_new_node(list, data);
+    if (null == nd) return ENOMEM;
+
+    return 0;
+}
+
+static inline int
+thread_unsafe_list_insert_data_before_node (list_t *list,
+    list_node_t *node, void *data)
+{
+    list_node_t *nd;
+
+    RETURN_IF_LIST_IS_FULL(list);
+    nd = list_new_node(list, data);
+    if (null == nd) return ENOMEM;
+
+    return 0;
 }
 
 static inline list_node_t *
@@ -205,6 +225,30 @@ list_append_data (list_t *list, void *data)
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_append_data(list, data);
+    OBJ_WRITE_UNLOCK(list);
+    return failed;
+}
+
+PUBLIC int
+list_insert_data_after_node (list_t *list,
+    list_node_t *node, void *data)
+{
+    int failed;
+
+    OBJ_WRITE_LOCK(list);
+    failed = thread_unsafe_list_insert_data_after_node(list, node, data);
+    OBJ_WRITE_UNLOCK(list);
+    return failed;
+}
+
+PUBLIC int
+list_insert_data_before_node (list_t *list,
+    list_node_t *node, void *data)
+{
+    int failed;
+
+    OBJ_WRITE_LOCK(list);
+    failed = thread_unsafe_list_insert_data_before_node(list, node, data);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
