@@ -88,7 +88,7 @@ thread_unsafe_list_append_node (list_t *list,
     list->n++;
 }
 
-#define RETURN_IF_LIST_IS_FULL(list) \
+#define RETURN_ERROR_IF_LIST_IS_FULL(list) \
     if ((list->n_max > 0) && (list->n >= list->n_max)) return ENOSPC
 
 static inline int 
@@ -96,7 +96,7 @@ thread_unsafe_list_prepend_data (list_t *list, void *data)
 {
     list_node_t *node;
 
-    RETURN_IF_LIST_IS_FULL(list);
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_prepend_node(list, node);
@@ -110,7 +110,7 @@ thread_unsafe_list_append_data (list_t *list, void *data)
 {
     list_node_t *node;
 
-    RETURN_IF_LIST_IS_FULL(list);
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_append_node(list, node);
@@ -123,11 +123,24 @@ static inline int
 thread_unsafe_list_insert_data_after_node (list_t *list,
     list_node_t *node, void *data)
 {
-    list_node_t *nd;
+    list_node_t *new_node;
 
-    RETURN_IF_LIST_IS_FULL(list);
-    nd = list_new_node(list, data);
-    if (null == nd) return ENOMEM;
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
+    if (null == node) return EINVAL;
+    new_node = list_new_node(list, data);
+    if (null == new_node) return ENOMEM;
+
+    /* append to the end of the list */
+    if (null == node->next) {
+        thread_unsafe_list_append_node(list, new_node);
+        return 0;
+    }
+
+    node->next->prev = new_node;
+    new_node->next = node->next;
+    new_node->prev = node;
+    node->next = new_node;
+    list->n++;
 
     return 0;
 }
@@ -136,12 +149,25 @@ static inline int
 thread_unsafe_list_insert_data_before_node (list_t *list,
     list_node_t *node, void *data)
 {
-    list_node_t *nd;
+    list_node_t *new_node;
 
-    RETURN_IF_LIST_IS_FULL(list);
-    nd = list_new_node(list, data);
-    if (null == nd) return ENOMEM;
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
+    if (null == node) return EINVAL;
+    new_node = list_new_node(list, data);
+    if (null == new_node) return ENOMEM;
 
+    /* append to the head of the list */
+    if (node->prev == null) {
+        thread_unsafe_list_prepend_node(list, new_node);
+        return 0;
+    }
+
+    new_node->next = node;
+    node->prev->next = new_node;
+    new_node->prev = node->prev;
+    node->prev = new_node;
+
+    list->n++;
     return 0;
 }
 
