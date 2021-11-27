@@ -195,6 +195,7 @@ fifo_init (fifo_t *fifo,
 static inline int
 fifo_queue (fifo_t *fifo, void *data)
 {
+    /* add to END of list */
     return list_append_data((list_t*) fifo, data);
 }
 
@@ -238,6 +239,7 @@ stk_init (stk_t *stk,
 static inline int
 stk_insert (stk_t *stk, void *data)
 {
+    /* add to HEAD of list */
     return list_prepend_data((list_t*) stk, data);
 }
 
