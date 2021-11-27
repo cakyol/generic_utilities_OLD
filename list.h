@@ -35,7 +35,7 @@
 **
 ** Doubly linked list container object.
 **
-** This can be used as a lifo, fifo, queue, stack... basically
+** This can be used as a lifo, fifo, queue, stk... basically
 ** any data structure which needs some kind of linked list.
 ** Since it is doubly linked, it is extremely fast to delete a
 ** node from it.
@@ -175,6 +175,92 @@ list_remove_data (list_t *list, void *data);
  */
 extern void
 list_destroy (list_t *list);
+
+/******************************************************************************
+ * fifo implementation using the list
+ */
+
+typedef list_t fifo_t;
+
+static inline int
+fifo_init (fifo_t *fifo,
+    bool make_it_thread_safe,
+    int n_max,
+    mem_monitor_t *memp)
+{
+    return list_init((list_t*) fifo,
+                make_it_thread_safe, n_max, NULL, memp);
+}
+
+static inline int
+fifo_queue (fifo_t *fifo, void *data)
+{
+    return list_append_data((list_t*) fifo, data);
+}
+
+static inline void *
+fifo_peek (fifo_t *fifo)
+{
+    return ((list_t*) fifo)->head;
+}
+
+static inline void *
+fifo_dequeue (fifo_t *fifo)
+{
+    void *data = ((list_t*) fifo)->head->data;
+
+    list_remove_node((list_t*) fifo, ((list_t*) fifo)->head);
+    return data;
+}
+
+static inline void
+fifo_destroy (fifo_t *fifo)
+{
+    list_destroy((list_t*) fifo);
+}
+    
+/******************************************************************************
+ * stack implementation using the list
+ */
+
+typedef list_t stk_t;
+
+static inline int
+stk_init (stk_t *stk,
+    bool make_it_thread_safe,
+    int n_max,
+    mem_monitor_t *memp)
+{
+    return list_init((list_t*) stk,
+                make_it_thread_safe, n_max, NULL, memp);
+}
+
+static inline int
+stk_insert (stk_t *stk, void *data)
+{
+    return list_prepend_data((list_t*) stk, data);
+}
+
+static inline void *
+stk_peek (stk_t *stk)
+{
+    return ((list_t*) stk)->head;
+}
+
+static inline void *
+stk_remove (stk_t *stk)
+{
+    void *data = ((list_t*) stk)->head->data;
+
+    list_remove_node((list_t*) stk, ((list_t*) stk)->head);
+    return data;
+}
+
+static inline void
+stk_destroy (stk_t *stk)
+{
+    list_destroy((list_t*) stk);
+}
 
 #ifdef __cplusplus
 } // extern C
