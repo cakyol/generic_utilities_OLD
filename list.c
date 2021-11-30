@@ -97,6 +97,7 @@ thread_unsafe_list_prepend_data (list_t *list, void *data)
     list_node_t *node;
 
     RETURN_ERROR_IF_LIST_IS_FULL(list);
+
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_prepend_node(list, node);
@@ -111,6 +112,7 @@ thread_unsafe_list_append_data (list_t *list, void *data)
     list_node_t *node;
 
     RETURN_ERROR_IF_LIST_IS_FULL(list);
+
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_append_node(list, node);
@@ -125,8 +127,8 @@ thread_unsafe_list_insert_data_after_node (list_t *list,
 {
     list_node_t *new_node;
 
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
     if (null == node) return EINVAL;
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
     new_node = list_new_node(list, data);
     if (null == new_node) return ENOMEM;
 
@@ -151,8 +153,8 @@ thread_unsafe_list_insert_data_before_node (list_t *list,
 {
     list_node_t *new_node;
 
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
     if (null == node) return EINVAL;
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
     new_node = list_new_node(list, data);
     if (null == new_node) return ENOMEM;
 
@@ -171,6 +173,12 @@ thread_unsafe_list_insert_data_before_node (list_t *list,
     return 0;
 }
 
+/*
+ * Note that object comparer function is always non null,
+ * guaranteed to be so from the list initialization function.
+ * Therefore we can safely access it without worrying it may
+ * be null.
+ */
 static inline list_node_t *
 thread_unsafe_list_find_data_node (list_t *list,
     void *data)
@@ -179,11 +187,7 @@ thread_unsafe_list_find_data_node (list_t *list,
 
     node = list->head;
     while (node) {
-        if (list->cmp) {
-            if ((list->cmp)(data, node->data) == 0) return node;
-        } else {
-            if (data == node->data) return node;
-        }
+        if ((list->cmp)(data, node->data) == 0) return node;
         node = node->next;
     }
     return null;
@@ -213,8 +217,21 @@ thread_unsafe_list_remove_node (list_t *list,
     list->n--;
 }
 
+/*
+ * return 0 if the same pointer
+ */
+static int
+default_comparer (void *obj1, void *obj2)
+{
+    return obj1 - obj2;
+}
+
 /************************** Public functions **************************/
 
+/*
+ * If a comparer function is not specified, install a default
+ * one which simply compares the data pointers themselves.
+ */
 PUBLIC int
 list_init (list_t *list,
     boolean make_it_thread_safe,
@@ -226,7 +243,7 @@ list_init (list_t *list,
     LOCK_SETUP(list);
     list->head = list->tail = null;
     list->n = 0;
-    list->cmp = cmp;
+    list->cmp = cmp ? cmp : default_comparer;
     list->n_max = (n_max > 0) ? n_max : 0;
     OBJ_WRITE_UNLOCK(list);
 
