@@ -70,6 +70,7 @@ struct list_s {
 
     MEM_MON_VARIABLES;
     LOCK_VARIABLES;
+    STATISTICS_VARIABLES;
 
     list_node_t *head, *tail;
 
@@ -105,6 +106,7 @@ struct list_s {
 extern int
 list_init (list_t *list,
     boolean make_it_thread_safe,
+    boolean statistics_wanted,
     int n_max,
     object_comparer cmp,
     mem_monitor_t *parent_mem_monitor);
@@ -185,11 +187,13 @@ typedef list_t fifo_t;
 static inline int
 fifo_init (fifo_t *fifo,
     bool make_it_thread_safe,
+    bool statistics_wanted,
     int n_max,
     mem_monitor_t *memp)
 {
     return list_init((list_t*) fifo,
-                make_it_thread_safe, n_max, NULL, memp);
+                make_it_thread_safe, statistics_wanted,
+                n_max, NULL, memp);
 }
 
 static inline int
@@ -229,11 +233,13 @@ typedef list_t stk_t;
 static inline int
 stk_init (stk_t *stk,
     bool make_it_thread_safe,
+    bool statistics_wanted,
     int n_max,
     mem_monitor_t *memp)
 {
     return list_init((list_t*) stk,
-                make_it_thread_safe, n_max, NULL, memp);
+                make_it_thread_safe, statistics_wanted,
+                n_max, NULL, memp);
 }
 
 static inline int

@@ -89,7 +89,12 @@ thread_unsafe_list_append_node (list_t *list,
 }
 
 #define RETURN_ERROR_IF_LIST_IS_FULL(list) \
-    if ((list->n_max > 0) && (list->n >= list->n_max)) return ENOSPC
+    do { \
+        if ((list->n_max > 0) && (list->n >= list->n_max)) { \
+            insertion_failed(list); \
+            return ENOSPC; \
+        } \
+    } while (0)
 
 static inline int 
 thread_unsafe_list_prepend_data (list_t *list, void *data)
@@ -101,8 +106,10 @@ thread_unsafe_list_prepend_data (list_t *list, void *data)
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_prepend_node(list, node);
+        insertion_succeeded(list);
         return 0;
     }
+    insertion_failed(list);
     return ENOMEM;
 }
 
@@ -116,8 +123,10 @@ thread_unsafe_list_append_data (list_t *list, void *data)
     node = list_new_node(list, data);
     if (node) {
         thread_unsafe_list_append_node(list, node);
+        insertion_succeeded(list);
         return 0;
     }
+    insertion_failed(list);
     return ENOMEM;
 }
 
@@ -142,7 +151,9 @@ thread_unsafe_list_insert_data_after_node (list_t *list,
     new_node->next = node->next;
     new_node->prev = node;
     node->next = new_node;
+
     list->n++;
+    insertion_succeeded(list);
 
     return 0;
 }
@@ -170,6 +181,8 @@ thread_unsafe_list_insert_data_before_node (list_t *list,
     node->prev = new_node;
 
     list->n++;
+    insertion_succeeded(list);
+
     return 0;
 }
 
@@ -187,9 +200,13 @@ thread_unsafe_list_find_data_node (list_t *list,
 
     node = list->head;
     while (node) {
-        if ((list->cmp)(data, node->data) == 0) return node;
+        if ((list->cmp)(data, node->data) == 0) {
+            search_succeeded(list);
+            return node;
+        }
         node = node->next;
     }
+    search_failed(list);
     return null;
 }
 
@@ -215,6 +232,7 @@ thread_unsafe_list_remove_node (list_t *list,
     }
     MEM_MONITOR_FREE(node);
     list->n--;
+    deletion_succeeded(list);
 }
 
 /*
@@ -234,13 +252,16 @@ default_comparer (void *obj1, void *obj2)
  */
 PUBLIC int
 list_init (list_t *list,
-    boolean make_it_thread_safe,
+    bool make_it_thread_safe,
+    bool statistics_wanted,
     int n_max,
     object_comparer cmp,
     mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(list);
     LOCK_SETUP(list);
+    STATISTICS_SETUP(list);
+
     list->head = list->tail = null;
     list->n = 0;
     list->cmp = cmp ? cmp : default_comparer;
