@@ -39,6 +39,50 @@
 extern "C" {
 #endif
 
+/*
+ * Variable sized chunk header.
+ * Each chunk is added to a linked list (of free chunks) on the
+ * main structure.
+ */
+struct chunk_header_s {
+
+    /*
+     * The chunk group I belong to so that when I am freed up,
+     * I will return to the same group.
+     */
+    chunk_group_t *my_group;
+
+    /* next free chunk */
+    chunk_header_t *next_chunk_header;
+
+    /*
+     * this is what is returned back to the user and it must
+     * always be 8 bytes aligned, hence the use of long long int.
+     */
+    long long int data [0];
+};
+
+/*
+ * Each group has a big memory block which is divided into chunk size
+ * sections.  Each chunk is then added to a linked list (of free chunks)
+ * on the main structure.
+ */
+struct chunk_group_s {
+
+    /* The chunk manager I belong to */
+    chunk_manager_t *my_manager;
+
+    /* big bulk of the memory, all chunks adjacent in one big block */
+    void *chunks_block;
+
+    /* how many free chunks are in this group */
+    int n_grp_free;
+
+    /* next group in list */
+    chunk_group_t *next_chunk_group;
+
+};
+
 static int
 chunk_manager_add_group_failed (chunk_manager_t *cmgrp)
 {
