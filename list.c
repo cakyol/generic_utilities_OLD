@@ -47,18 +47,15 @@
 extern "C" {
 #endif
 
-static inline list_node_t *
-list_new_node (list_t *list, void *data)
-{
-    list_node_t *node;
 
-    node = MEM_MONITOR_ALLOC(list, sizeof(list_node_t));
-    if (node) {
-        node->next = node->prev = null;
-        node->data = data;
-    }
-    return node;
-}
+/******************************************************************************
+ *
+ * Node operations.
+ *
+ * These operations SHOULD NOT fail, so make sure you feed the
+ * correct params into them.  The params should be checked for
+ * validity BEFORE the node operations are called.
+ */
 
 static inline void
 thread_unsafe_list_prepend_node (list_t *list,
@@ -88,126 +85,38 @@ thread_unsafe_list_append_node (list_t *list,
     list->n++;
 }
 
-#define RETURN_ERROR_IF_LIST_IS_FULL(list) \
-    do { \
-        if ((list->n_max > 0) && (list->n >= list->n_max)) { \
-            insertion_failed(list); \
-            return ENOSPC; \
-        } \
-    } while (0)
-
-static inline int 
-thread_unsafe_list_prepend_data (list_t *list, void *data)
+static inline void
+thread_unsafe_list_insert_node_after_node (list_t *list,
+    list_node_t *node, list_node_t *new_node)
 {
-    list_node_t *node;
-
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
-
-    node = list_new_node(list, data);
-    if (node) {
-        thread_unsafe_list_prepend_node(list, node);
-        insertion_succeeded(list);
-        return 0;
-    }
-    insertion_failed(list);
-    return ENOMEM;
-}
-
-static inline int
-thread_unsafe_list_append_data (list_t *list, void *data)
-{
-    list_node_t *node;
-
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
-
-    node = list_new_node(list, data);
-    if (node) {
-        thread_unsafe_list_append_node(list, node);
-        insertion_succeeded(list);
-        return 0;
-    }
-    insertion_failed(list);
-    return ENOMEM;
-}
-
-static inline int
-thread_unsafe_list_insert_data_after_node (list_t *list,
-    list_node_t *node, void *data)
-{
-    list_node_t *new_node;
-
-    if (null == node) return EINVAL;
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
-    new_node = list_new_node(list, data);
-    if (null == new_node) return ENOMEM;
-
     /* append to the end of the list */
     if (null == node->next) {
         thread_unsafe_list_append_node(list, new_node);
-        return 0;
+        return;
     }
 
     node->next->prev = new_node;
     new_node->next = node->next;
     new_node->prev = node;
     node->next = new_node;
-
     list->n++;
-    insertion_succeeded(list);
-
-    return 0;
 }
 
-static inline int
-thread_unsafe_list_insert_data_before_node (list_t *list,
-    list_node_t *node, void *data)
+static inline void
+thread_unsafe_list_insert_node_before_node (list_t *list,
+    list_node_t *node, list_node_t *new_node)
 {
-    list_node_t *new_node;
-
-    if (null == node) return EINVAL;
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
-    new_node = list_new_node(list, data);
-    if (null == new_node) return ENOMEM;
-
     /* append to the head of the list */
     if (node->prev == null) {
         thread_unsafe_list_prepend_node(list, new_node);
-        return 0;
+        return;
     }
 
     new_node->next = node;
     node->prev->next = new_node;
     new_node->prev = node->prev;
     node->prev = new_node;
-
     list->n++;
-    insertion_succeeded(list);
-
-    return 0;
-}
-
-/*
- * Note that object comparer function is always non null,
- * guaranteed to be so from the list initialization function.
- * Therefore we can safely access it without worrying it may
- * be null.
- */
-static inline list_node_t *
-thread_unsafe_list_find_data_node (list_t *list,
-    void *data)
-{
-    list_node_t *node;
-
-    node = list->head;
-    while (node) {
-        if ((list->cmp)(data, node->data) == 0) {
-            search_succeeded(list);
-            return node;
-        }
-        node = node->next;
-    }
-    search_failed(list);
-    return null;
 }
 
 static inline void
@@ -232,7 +141,119 @@ thread_unsafe_list_remove_node (list_t *list,
     }
     MEM_MONITOR_FREE(node);
     list->n--;
-    deletion_succeeded(list);
+}
+
+/******************************************************************************
+ *
+ * Data operations.
+ *
+ * These MAY fail, so make sure all are checked BEFORE calling
+ * the node operations defined above this line.
+ */
+
+#define RETURN_ERROR_IF_LIST_IS_FULL(list) \
+    do { \
+        if ((list->n_max > 0) && (list->n >= list->n_max)) { \
+            return ENOSPC; \
+        } \
+    } while (0)
+
+static inline list_node_t *
+list_new_node (list_t *list, void *data)
+{
+    list_node_t *node;
+
+    node = MEM_MONITOR_ALLOC(list, sizeof(list_node_t));
+    if (node) {
+        node->next = node->prev = null;
+        node->data = data;
+    }
+    return node;
+}
+
+static inline int 
+thread_unsafe_list_prepend_data (list_t *list, void *data)
+{
+    list_node_t *node;
+
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
+
+    node = list_new_node(list, data);
+    if (node) {
+        thread_unsafe_list_prepend_node(list, node);
+        return 0;
+    }
+    return ENOMEM;
+}
+
+static inline int
+thread_unsafe_list_append_data (list_t *list, void *data)
+{
+    list_node_t *node;
+
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
+
+    node = list_new_node(list, data);
+    if (node) {
+        thread_unsafe_list_append_node(list, node);
+        return 0;
+    }
+    return ENOMEM;
+}
+
+static inline int
+thread_unsafe_list_insert_data_after_node (list_t *list,
+    list_node_t *node, void *data)
+{
+    list_node_t *new_node;
+
+    if (null == node) return EINVAL;
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
+    new_node = list_new_node(list, data);
+    if (null == new_node) return ENOMEM;
+    thread_unsafe_list_insert_node_after_node(list, node, new_node);
+    return 0;
+}
+
+static inline int
+thread_unsafe_list_insert_data_before_node (list_t *list,
+    list_node_t *node, void *data)
+{
+    list_node_t *new_node;
+
+    if (null == node) return EINVAL;
+    RETURN_ERROR_IF_LIST_IS_FULL(list);
+    new_node = list_new_node(list, data);
+    if (null == new_node) return ENOMEM;
+    thread_unsafe_list_insert_node_before_node(list, node, new_node);
+    return 0;
+}
+
+/******************************************************************************
+ *
+ * Other helper functions
+ */
+
+/*
+ * Note that object comparer function is always non null,
+ * guaranteed to be so from the list initialization function.
+ * Therefore we can safely access it without worrying it may
+ * be null.
+ */
+static inline list_node_t *
+thread_unsafe_list_find_data_node (list_t *list,
+    void *data)
+{
+    list_node_t *node;
+
+    node = list->head;
+    while (node) {
+        if ((list->cmp)(data, node->data) == 0) {
+            return node;
+        }
+        node = node->next;
+    }
+    return null;
 }
 
 /*
@@ -278,6 +299,7 @@ list_prepend_data (list_t *list, void *data)
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_prepend_data(list, data);
+    insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
@@ -289,6 +311,7 @@ list_append_data (list_t *list, void *data)
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_append_data(list, data);
+    insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
@@ -301,6 +324,7 @@ list_insert_data_after_node (list_t *list,
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_insert_data_after_node(list, node, data);
+    insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
@@ -313,6 +337,7 @@ list_insert_data_before_node (list_t *list,
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_insert_data_before_node(list, node, data);
+    insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
     return failed;
 }
@@ -324,17 +349,28 @@ list_find_data_node (list_t *list, void *data)
 
     OBJ_READ_LOCK(list);
     node = thread_unsafe_list_find_data_node(list, data);
+    search_stats_update(list, (null == node));
     OBJ_READ_UNLOCK(list);
 
     return node;
 }
 
-PUBLIC void
+PUBLIC int
 list_remove_node (list_t *list, list_node_t *node)
 {
+    int failed;
+
     OBJ_WRITE_LOCK(list);
-    thread_unsafe_list_remove_node(list, node);
+    if (node) {
+        thread_unsafe_list_remove_node(list, node);
+        failed = 0;
+    } else {
+        failed = EINVAL;
+    }
+    deletion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
+
+    return failed;
 }
 
 PUBLIC int
@@ -346,11 +382,12 @@ list_remove_data (list_t *list, void *data)
     OBJ_WRITE_LOCK(list);
     node = thread_unsafe_list_find_data_node(list, data);
     if (node) {
-        list_remove_node(list, node);
+        thread_unsafe_list_remove_node(list, node);
         failed = 0;
     } else {
         failed = ENODATA;
     }
+    deletion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
 
     return failed;

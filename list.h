@@ -157,7 +157,7 @@ list_find_data_node (list_t *list, void *data);
  * Delete a node in the list, used when you
  * already know the node to be removed.
  */
-extern void
+extern int
 list_remove_node (list_t *list, list_node_t *node);
 
 /******************************************************************************
