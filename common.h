@@ -241,6 +241,22 @@ copy_pointer_blocks (void **src, void **dst, int count)
         }
 
     /*
+     * read/get values
+     */
+    #define get_insertion_successes(objp) \
+        ((objp && objp->stats_p) ? objp->stats_p->insertion_successes : 0)
+    #define get_insertion_failures(objp) \
+        ((objp && objp->stats_p) ? objp->stats_p->insertion_failures : 0)
+    #define get_search_successes(objp) \
+        ((objp && objp->stats_p) ? objp->stats_p->search_successes : 0)
+    #define get_search_failures(objp) \
+        ((objp && objp->stats_p) ? objp->stats_p->search_failures : 0)
+    #define get_deletion_successes(objp) \
+        ((objp && objp->stats_p) ? objp->stats_p->deletion_successes : 0)
+    #define get_deletion_failures(objp) \
+        ((objp && objp->stats_p) ? objp->stats_p->deletion_failures : 0)
+
+    /*
      * reset all stats counters
      */
     #define reset_stats(objp) \
