@@ -215,7 +215,7 @@ thread_unsafe_index_obj_remove (index_obj_t *idx,
 PUBLIC int
 index_obj_init (index_obj_t *idx,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         object_comparer cmpf,
         int maximum_size,
         int expansion_size,

@@ -142,7 +142,7 @@ not_endof_ordered_list (ordered_list_node_t *olnp)
 extern int
 ordered_list_init (ordered_list_t *listp,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor);
 

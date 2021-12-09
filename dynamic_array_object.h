@@ -82,7 +82,7 @@ typedef struct dynamic_array_s {
 extern int
 dynamic_array_init (dynamic_array_t *datp,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         int initial_size,
         mem_monitor_t *parent_mem_monitor);
 

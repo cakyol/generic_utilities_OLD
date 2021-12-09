@@ -265,7 +265,7 @@ thread_unsafe_ordered_list_delete (ordered_list_t *listp,
 PUBLIC int
 ordered_list_init (ordered_list_t *listp,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {

@@ -255,7 +255,7 @@ thread_unsafe_radix_tree_remove (radix_tree_t *rtp,
 PUBLIC int 
 radix_tree_init (radix_tree_t *rtp,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(rtp);

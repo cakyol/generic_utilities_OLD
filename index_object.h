@@ -88,7 +88,7 @@ typedef struct index_obj_s {
 extern int 
 index_obj_init (index_obj_t *idx,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         object_comparer cmpf,
         int maximum_size,
         int expansion_size,

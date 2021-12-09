@@ -106,7 +106,7 @@ struct list_s {
 extern int
 list_init (list_t *list,
     boolean make_it_thread_safe,
-    boolean statistics_wanted,
+    boolean enable_statistics,
     int n_max,
     object_comparer cmp,
     mem_monitor_t *parent_mem_monitor);
@@ -187,12 +187,12 @@ typedef list_t fifo_t;
 static inline int
 fifo_init (fifo_t *fifo,
     bool make_it_thread_safe,
-    bool statistics_wanted,
+    bool enable_statistics,
     int n_max,
     mem_monitor_t *memp)
 {
     return list_init((list_t*) fifo,
-                make_it_thread_safe, statistics_wanted,
+                make_it_thread_safe, enable_statistics,
                 n_max, NULL, memp);
 }
 
@@ -233,12 +233,12 @@ typedef list_t stk_t;
 static inline int
 stk_init (stk_t *stk,
     bool make_it_thread_safe,
-    bool statistics_wanted,
+    bool enable_statistics,
     int n_max,
     mem_monitor_t *memp)
 {
     return list_init((list_t*) stk,
-                make_it_thread_safe, statistics_wanted,
+                make_it_thread_safe, enable_statistics,
                 n_max, NULL, memp);
 }
 

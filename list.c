@@ -274,7 +274,7 @@ default_comparer (void *obj1, void *obj2)
 PUBLIC int
 list_init (list_t *list,
     bool make_it_thread_safe,
-    bool statistics_wanted,
+    bool enable_statistics,
     int n_max,
     object_comparer cmp,
     mem_monitor_t *parent_mem_monitor)
@@ -301,6 +301,7 @@ list_prepend_data (list_t *list, void *data)
     failed = thread_unsafe_list_prepend_data(list, data);
     insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
+
     return failed;
 }
 
@@ -313,6 +314,7 @@ list_append_data (list_t *list, void *data)
     failed = thread_unsafe_list_append_data(list, data);
     insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
+
     return failed;
 }
 
@@ -326,6 +328,7 @@ list_insert_data_after_node (list_t *list,
     failed = thread_unsafe_list_insert_data_after_node(list, node, data);
     insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
+
     return failed;
 }
 
@@ -339,6 +342,7 @@ list_insert_data_before_node (list_t *list,
     failed = thread_unsafe_list_insert_data_before_node(list, node, data);
     insertion_stats_update(list, failed);
     OBJ_WRITE_UNLOCK(list);
+
     return failed;
 }
 

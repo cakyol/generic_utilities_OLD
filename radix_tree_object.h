@@ -103,7 +103,7 @@ typedef struct radix_tree_s {
 extern int 
 radix_tree_init (radix_tree_t *ntp, 
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         mem_monitor_t *parent_mem_monitor);
 
 extern int 

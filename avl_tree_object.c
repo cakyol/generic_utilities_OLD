@@ -647,7 +647,7 @@ thread_unsafe_iterative_destroy (avl_tree_t *tree, avl_node_t *root,
 PUBLIC int
 avl_tree_init (avl_tree_t *tree,
         boolean make_it_thread_safe,
-        boolean statistics_wanted,
+        boolean enable_statistics,
         object_comparer cmpf,
         mem_monitor_t *parent_mem_monitor)
 {

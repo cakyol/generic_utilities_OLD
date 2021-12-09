@@ -190,7 +190,7 @@ typedef struct statistics_block_s {
     statistics_block_t stats, *stats_p
 
 #define STATISTICS_SETUP(objp) \
-    if (statistics_wanted) { \
+    if (enable_statistics) { \
         objp->stats_p = &(objp->stats); \
     } else { \
         objp->stats_p = NULL; \
