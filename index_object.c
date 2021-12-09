@@ -110,8 +110,6 @@ thread_unsafe_index_obj_insert (index_obj_t *idx,
         if (overwrite_if_present) {
             idx->elements[i] = data;
             insertion_succeeded(idx);
-        } else {
-            insertion_duplicated(idx);
         }
         return 0;
     }

@@ -97,6 +97,7 @@ typedef unsigned char byte;
 
 #ifndef TYPEDEF_BOOL
 typedef char tinybool;
+typedef short sbool;
 typedef int bool;
 typedef int boolean;
 #define TYPEDEF_BOOL
@@ -177,10 +178,11 @@ copy_pointer_blocks (void **src, void **dst, int count)
     typedef struct statistics_block_s {
 
         unsigned long long int insertion_successes;
-        unsigned long long int insertion_duplicates;
         unsigned long long int insertion_failures;
+
         unsigned long long int search_successes;
         unsigned long long int search_failures;
+
         unsigned long long int deletion_successes;
         unsigned long long int deletion_failures;
 
@@ -201,9 +203,6 @@ copy_pointer_blocks (void **src, void **dst, int count)
      */
     #define insertion_succeeded(objp) \
         if (objp->stats_p) objp->stats_p->insertion_successes++
-    
-    #define insertion_duplicated(objp) \
-        if (objp->stats_p) objp->stats_p->insertion_duplicates++
     #define insertion_failed(objp) \
         if (objp->stats_p) objp->stats_p->insertion_failures++
     #define insertion_stats_update(objp, failed) \
@@ -256,7 +255,6 @@ copy_pointer_blocks (void **src, void **dst, int count)
     #define STATISTICS_SETUP(objp)
     
     #define insertion_succeeded(objp)
-    #define insertion_duplicated(objp)
     #define insertion_failed(objp)
     #define insertion_stats_update(objp, failure)
     
@@ -272,12 +270,12 @@ copy_pointer_blocks (void **src, void **dst, int count)
      * read/get values
      */
     #define get_insertion_successes(objp)   0
-    #define get_insertion_duplicates(objp)  0
     #define get_insertion_failures(objp)    0
     #define get_search_successes(objp)      0
     #define get_search_failures(objp)       0
     #define get_deletion_successes(objp)    0
     #define get_deletion_failures(objp)     0
+
     #define reset_stats(objp)
     
 #endif /* INCLUDE_STATISTICS */

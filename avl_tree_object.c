@@ -220,8 +220,6 @@ thread_unsafe_avl_tree_insert (avl_tree_t *tree,
         if (overwrite_if_present) {
             found->user_data = data;
             insertion_succeeded(tree);
-        } else {
-            insertion_duplicated(tree);
         }
         return 0;
     }
