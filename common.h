@@ -167,118 +167,119 @@ copy_pointer_blocks (void **src, void **dst, int count)
 
 #ifdef INCLUDE_STATISTICS
 
-/*
- * Typical statistics used for most insert/search/delete
- * type of data structures.  Mostly usable for debugging.
- * Not every field is used in all objects.  For example,
- * in the queue object, "search*' counters are not used,
- * since they do not make sense.  They will stay as 0.
- */
-typedef struct statistics_block_s {
+    /*
+     * Typical statistics used for most insert/search/delete
+     * type of data structures.  Mostly usable for debugging.
+     * Not every field is used in all objects.  For example,
+     * in the queue object, "search*' counters are not used,
+     * since they do not make sense.  They will stay as 0.
+     */
+    typedef struct statistics_block_s {
 
-    unsigned long long int insertion_successes;
-    unsigned long long int insertion_duplicates;
-    unsigned long long int insertion_failures;
-    unsigned long long int search_successes;
-    unsigned long long int search_failures;
-    unsigned long long int deletion_successes;
-    unsigned long long int deletion_failures;
+        unsigned long long int insertion_successes;
+        unsigned long long int insertion_duplicates;
+        unsigned long long int insertion_failures;
+        unsigned long long int search_successes;
+        unsigned long long int search_failures;
+        unsigned long long int deletion_successes;
+        unsigned long long int deletion_failures;
 
-} statistics_block_t;
+    } statistics_block_t;
 
-#define STATISTICS_VARIABLES \
-    statistics_block_t stats, *stats_p
+    #define STATISTICS_VARIABLES \
+        statistics_block_t stats, *stats_p
 
-#define STATISTICS_SETUP(objp) \
-    if (enable_statistics) { \
-        objp->stats_p = &(objp->stats); \
-    } else { \
-        objp->stats_p = NULL; \
-    }
-
-/*
- * update/increment values
- */
-#define insertion_succeeded(objp) \
-    if (objp->stats_p) objp->stats_p->insertion_successes++
-#define insertion_duplicated(objp) \
-    if (objp->stats_p) objp->stats_p->insertion_duplicates++
-#define insertion_failed(objp) \
-    if (objp->stats_p) objp->stats_p->insertion_failures++
-#define insertion_stats_update(objp, failed) \
-    if (objp->stats_p) { \
-        if (failed) { \
-            objp->stats_p->insertion_failures++; \
+    #define STATISTICS_SETUP(objp) \
+        if (enable_statistics) { \
+            objp->stats_p = &(objp->stats); \
         } else { \
-            objp->stats_p->insertion_successes++; \
-        } \
-    }
+            objp->stats_p = NULL; \
+        }
 
-#define search_succeeded(objp) \
-    if (objp->stats_p) objp->stats_p->search_successes++
-#define search_failed(objp) \
-    if (objp->stats_p) objp->stats_p->search_failures++
-#define search_stats_update(objp, failed) \
-    if (objp->stats_p) { \
-        if (failed) { \
-            objp->stats_p->search_failures++; \
-        } else { \
-            objp->stats_p->search_successes++; \
-        } \
-    }
+    /*
+     * update/increment values
+     */
+    #define insertion_succeeded(objp) \
+        if (objp->stats_p) objp->stats_p->insertion_successes++
+    
+    #define insertion_duplicated(objp) \
+        if (objp->stats_p) objp->stats_p->insertion_duplicates++
+    #define insertion_failed(objp) \
+        if (objp->stats_p) objp->stats_p->insertion_failures++
+    #define insertion_stats_update(objp, failed) \
+        if (objp->stats_p) { \
+            if (failed) { \
+                objp->stats_p->insertion_failures++; \
+            } else { \
+                objp->stats_p->insertion_successes++; \
+            } \
+        }
 
-#define deletion_succeeded(objp) \
-    if (objp->stats_p) objp->stats_p->deletion_successes++
-#define deletion_failed(objp) \
-    if (objp->stats_p) objp->stats_p->deletion_failures++
-#define deletion_stats_update(objp, failed) \
-    if (objp->stats_p) { \
-        if (failed) { \
-            objp->stats_p->deletion_failures++; \
-        } else { \
-            objp->stats_p->deletion_successes++; \
-        } \
-    }
+    #define search_succeeded(objp) \
+        if (objp->stats_p) objp->stats_p->search_successes++
+    #define search_failed(objp) \
+        if (objp->stats_p) objp->stats_p->search_failures++
+    #define search_stats_update(objp, failed) \
+        if (objp->stats_p) { \
+            if (failed) { \
+                objp->stats_p->search_failures++; \
+            } else { \
+                objp->stats_p->search_successes++; \
+            } \
+        }
 
-/*
- * reset all stats counters
- */
-#define reset_stats(objp) \
-    memset(&(objp->stats), 0, sizeof(statistics_block_t))
+    #define deletion_succeeded(objp) \
+        if (objp->stats_p) objp->stats_p->deletion_successes++
+    #define deletion_failed(objp) \
+        if (objp->stats_p) objp->stats_p->deletion_failures++
+    #define deletion_stats_update(objp, failed) \
+        if (objp->stats_p) { \
+            if (failed) { \
+                objp->stats_p->deletion_failures++; \
+            } else { \
+                objp->stats_p->deletion_successes++; \
+            } \
+        }
+
+    /*
+     * reset all stats counters
+     */
+    #define reset_stats(objp) \
+        memset(&(objp->stats), 0, sizeof(statistics_block_t))
 
 #else /* !INCLUDE_STATISTICS */
 
-typedef struct statistics_block_s {
-} statistics_block_t;
+    typedef struct statistics_block_s {
+    } statistics_block_t;
 
-#define STATISTICS_VARIABLES
-#define STATISTICS_SETUP(objp)
+    #define STATISTICS_VARIABLES
+    #define STATISTICS_SETUP(objp)
+    
+    #define insertion_succeeded(objp)
+    #define insertion_duplicated(objp)
+    #define insertion_failed(objp)
+    #define insertion_stats_update(objp, failure)
+    
+    #define search_succeeded(objp)
+    #define search_failed(objp)
+    #define search_stats_update(objp, failure)
 
-#define insertion_succeeded(objp)
-#define insertion_duplicated(objp)
-#define insertion_failed(objp)
-#define insertion_stats_update(objp, failure)
-
-#define search_succeeded(objp)
-#define search_failed(objp)
-#define search_stats_update(objp, failure)
-
-#define deletion_succeeded(objp)
-#define deletion_failed(objp)
-#define deletion_stats_update(objp, failure)
-
-/*
- * read/get values
- */
-#define get_insertion_successes(objp)   0
-#define get_insertion_duplicates(objp)  0
-#define get_insertion_failures(objp)    0
-#define get_search_successes(objp)      0
-#define get_search_failures(objp)       0
-#define get_deletion_successes(objp)    0
-#define get_deletion_failures(objp)     0
-#define reset_stats(objp)
-
+    #define deletion_succeeded(objp)
+    #define deletion_failed(objp)
+    #define deletion_stats_update(objp, failure)
+    
+    /*
+     * read/get values
+     */
+    #define get_insertion_successes(objp)   0
+    #define get_insertion_duplicates(objp)  0
+    #define get_insertion_failures(objp)    0
+    #define get_search_successes(objp)      0
+    #define get_search_failures(objp)       0
+    #define get_deletion_successes(objp)    0
+    #define get_deletion_failures(objp)     0
+    #define reset_stats(objp)
+    
 #endif /* INCLUDE_STATISTICS */
 
 /*************************************************************************/
