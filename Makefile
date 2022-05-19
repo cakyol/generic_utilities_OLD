@@ -5,7 +5,7 @@ CC =		gcc
 CFLAGS = -g -std=gnu99 -Wall -Wextra -Wno-unused-parameter -Werror
 CFLAGS = -std=gnu99 -O3 -Wall -Wextra -Wno-unused-parameter -Werror
 # CFLAGS = -std=gnu99 -O3 -Wall -Wextra -Werror
-CFLAGS += -DINCLUDE_STATISTICS
+# CFLAGS += -DINCLUDE_STATISTICS
 
 ifeq ($(OS), APPLE)
 STATIC_LIBS =	-lpthread

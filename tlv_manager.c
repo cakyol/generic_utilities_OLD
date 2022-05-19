@@ -49,13 +49,13 @@
 /*
  * This function parses the existing tlvs in a list in the buffer
  * and creates an array structure of tlvs for easier access.
- * If 'store_the_tlvs' is 0, it will simply parse, update the n_tlvs,
+ * If 'store_the_tlvs' is false, it will simply parse, update the n_tlvs,
  * remaining_size etc, so that it reaches the end.  User can call
  * tlv_append to continue adding to the list of tlvs in this 
  * situation.
  */
 static int
-tlvm_parse_engine (tlvm_t *tlvmp, int store_the_tlvs)
+tlvm_parse_engine (tlvm_t *tlvmp, boolean store_the_tlvs)
 {
     byte *bptr, *past_the_end;
     one_tlv_t *tlvp, *new_tlvs;
@@ -209,13 +209,13 @@ tlvm_append (tlvm_t *tlvmp,
 PUBLIC int
 tlvm_parse (tlvm_t *tlvmp)
 {
-    return tlvm_parse_engine(tlvmp, 1);
+    return tlvm_parse_engine(tlvmp, true);
 }
 
 PUBLIC int
 tlvm_reset_to_append (tlvm_t *tlvmp)
 {
-    return tlvm_parse_engine(tlvmp, 0);
+    return tlvm_parse_engine(tlvmp, false);
 }
 
 PUBLIC int

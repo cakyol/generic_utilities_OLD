@@ -40,6 +40,29 @@
 ** Since it is doubly linked, it is extremely fast to delete a
 ** node from it.
 **
+** Note that this list can also be used as an ordered list, where the
+** ordering is maintained by the user specified function named 'cmp'
+** which is specified at the list initialization time.  By default,
+** if this function is NOT null, the list is considered ordered
+** and only the 'list_insert_ordered' function should be used to
+** insert into the list.  If any other insertions functions are used,
+** they will fail and return EPERM.  Conversely, if the list is un-ordered,
+** then all the ordered function calls will fail (also with EPERM).
+**
+** IMPORTANT 1:
+** The only criteria used to determine whether a list is ordered or not
+** is fixed at the initialization time by checking the value of
+** the 'cmp' function.  If specied as NULL, the list will be marked as
+** UN-ordered, otherwise ordered.
+**
+** IMPORTANT 2:
+** If the list is ordered, the ordering will always be
+** assumed to be in 'increasing' rank.  So, the user MUST ensure
+** to specify the 'cmp' function is coded that way.  The first
+** pointer param to the 'cmp' function is the new data to be compared,
+** and the second pointer param is what it is compared to (usually already
+** present in the list).
+**
 *******************************************************************************
 *******************************************************************************
 *******************************************************************************
@@ -112,9 +135,26 @@ list_init (list_t *list,
     mem_monitor_t *parent_mem_monitor);
 
 /******************************************************************************
+ * Add user data in an ordered fashion based on the ordering
+ * specified by the 'cmp' function supplied at the list initialization
+ * time.
+ * Return value is 0 for success or a non zero
+ * errno value.
+ *
+ * This function will fail if the list is not ordered, ie, the
+ * 'cmp' function supplied at init time was NULL.
+ *
+ */
+extern int
+list_insert_ordered (list_t *list, void *data);
+
+/******************************************************************************
  * Add user data to the beginning of the list.
  * Return value is 0 for success or a non zero
  * errno value.
+ *
+ * This function will fail if the list is ordered.
+ *
  */
 extern int 
 list_prepend_data (list_t *list, void *data);
@@ -123,6 +163,9 @@ list_prepend_data (list_t *list, void *data);
  * Add user data to the end of the list.
  * Return value is 0 for success or a non zero
  * errno value.
+ *
+ * This function will fail if the list is ordered.
+ *
  */
 extern int
 list_append_data (list_t *list, void *data);
@@ -131,6 +174,9 @@ list_append_data (list_t *list, void *data);
  * Add user data after the node specified.  If the node specified
  * is not in the list specified, results will not be good.  The
  * function does NOT check this, it assumes it is called correctly.
+ *
+ * This function will fail if the list is ordered.
+ *
  */
 extern int
 list_insert_data_after_node (list_t *list,
@@ -140,6 +186,9 @@ list_insert_data_after_node (list_t *list,
  * Add user data before the node specified.  If the node specified
  * is not in the list specified, results will not be good.  The
  * function does NOT check this, it assumes it is called correctly.
+ *
+ * This function will fail if the list is ordered.
+ *
  */
 extern int
 list_insert_data_before_node (list_t *list,
