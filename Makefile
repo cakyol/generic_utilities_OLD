@@ -32,7 +32,7 @@ LIB_OBJS =	debug_framework.o \
 		object_manager.o \
 		tlv_manager.o \
 		buffer_manager.o \
-		list.o \
+		### list.o \
 		### event_manager.o \
 		### ordered_list.o \
 
@@ -139,8 +139,8 @@ TESTS =		test_lock_object \
 		test_delay \
 		test_tlvm \
 		test_list \
-		# test_om_load \
-		# test_om_speed \
+		test_om_load \
+		test_om_speed \
 		# test_scheduler \
 		# test_ordered_list \
 		\

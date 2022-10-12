@@ -6,7 +6,7 @@
 
 #define MAX_TYPES               2000
 #define MAX_ATTRS               100
-#define ITER                    4
+#define ITER                    10
 #define MAX_AV_COUNT            10
 
 object_manager_t db;
@@ -22,7 +22,7 @@ int main (int argc, char *argv[])
     unsigned long long int bytes_used;
     double megabytes_used;
 
-    om_initialize(&db, 1, 1, NULL);
+    om_init(&db, 1, 1, NULL);
 
     /* create objects */
     count = 0;
@@ -84,7 +84,7 @@ int main (int argc, char *argv[])
     printf("deleting objects\n");
     for (type = MAX_TYPES; type > 0; type--) {
         for (instance = MAX_TYPES; instance > 0; instance--) {
-            if (om_object_destroy(&db, type, instance)) {
+            if (om_object_remove(&db, type, instance)) {
                 fprintf(stderr, "deleting (%d, %d) failed\n",
                         type, instance);
             }

@@ -43,11 +43,9 @@
 ** Note that this list can also be used as an ordered list, where the
 ** ordering is maintained by the user specified function named 'cmp'
 ** which is specified at the list initialization time.  By default,
-** if this function is NOT null, the list is considered ordered
-** and only the 'list_insert_ordered' function should be used to
-** insert into the list.  If any other insertions functions are used,
-** they will fail and return EPERM.  Conversely, if the list is un-ordered,
-** then all the ordered function calls will fail (also with EPERM).
+** if this function is NOT null, the list is considered ordered.  If
+** the list is ordered, ALL insert functions (regardless of the function
+** names) will follow the order.
 **
 ** IMPORTANT 1:
 ** The only criteria used to determine whether a list is ordered or not
@@ -56,12 +54,8 @@
 ** UN-ordered, otherwise ordered.
 **
 ** IMPORTANT 2:
-** If the list is ordered, the ordering will always be
-** assumed to be in 'increasing' rank.  So, the user MUST ensure
-** to specify the 'cmp' function is coded that way.  The first
-** pointer param to the 'cmp' function is the new data to be compared,
-** and the second pointer param is what it is compared to (usually already
-** present in the list).
+** The ordering can be head to tail (forward) or tail to head (backward).
+** This will be determined by the comparison function supplied by the user.
 **
 *******************************************************************************
 *******************************************************************************
@@ -122,9 +116,13 @@ struct list_s {
  *
  * The object comparer pointer is a function
  * pointer used for comparing two 'data' objects to determine
- * their equality.  It should return if two user specified
- * data values are the same.  It CAN be specified as null
- * if searching thru the list is not required.
+ * their equality.  It should return a value similar to the strcmp
+ * function, based on how you want to order your data.
+ * If 'cmp' is NOT NULL, then only ordered insertions will be
+ * performed, regardless of which insert function is called.
+ *
+ * The ordering (increasing in value or decreasing in value) can
+ * be controlled by how you specify the ordering function.
  */
 extern int
 list_init (list_t *list,
@@ -135,15 +133,15 @@ list_init (list_t *list,
     mem_monitor_t *parent_mem_monitor);
 
 /******************************************************************************
- * Add user data in an ordered fashion based on the ordering
- * specified by the 'cmp' function supplied at the list initialization
- * time.
- * Return value is 0 for success or a non zero
- * errno value.
+ * Adds user data based on the ordering of the list as specified by
+ * the comparison function specified at the initialization time.
  *
- * This function will fail if the list is not ordered, ie, the
- * 'cmp' function supplied at init time was NULL.
+ * If this function is called for a list in which the comparison
+ * function has not been specified (NULL), then a non zero error
+ * code (EPERM) will be returned and insertion will fail, list will
+ * not change.
  *
+ * Successful insertion return 0.
  */
 extern int
 list_insert_ordered (list_t *list, void *data);
@@ -153,7 +151,11 @@ list_insert_ordered (list_t *list, void *data);
  * Return value is 0 for success or a non zero
  * errno value.
  *
- * This function will fail if the list is ordered.
+ * *** IMPORTANT ***
+ * This function will insert differently if the list is ordered.
+ * It will NOT insert to head but into the position determined by
+ * how the 'cmp' function behaves.  It effecively executes a call to
+ * 'list_insert_ordered' shown above.
  *
  */
 extern int 
@@ -164,7 +166,8 @@ list_prepend_data (list_t *list, void *data);
  * Return value is 0 for success or a non zero
  * errno value.
  *
- * This function will fail if the list is ordered.
+ * *** IMPORTANT ***
+ * If the list is ordered, it will implicitly execute 'list_insert_ordered'.
  *
  */
 extern int
@@ -187,8 +190,7 @@ list_insert_data_after_node (list_t *list,
  * is not in the list specified, results will not be good.  The
  * function does NOT check this, it assumes it is called correctly.
  *
- * This function will fail if the list is ordered.
- *
+ * If the list is ordered, it will implicitly execute 'list_insert_ordered'.
  */
 extern int
 list_insert_data_before_node (list_t *list,
