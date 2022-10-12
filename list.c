@@ -47,14 +47,6 @@
 extern "C" {
 #endif
 
-static inline boolean
-ordered_list (list_t *list)
-{ return (list->cmp != NULL); }
-
-static inline boolean
-un_ordered_list (list_t *list)
-{ return (NULL == list->cmp); }
-
 /******************************************************************************
  *
  * Node operations.
@@ -236,99 +228,8 @@ thread_unsafe_list_insert_data_before_node (list_t *list,
     return 0;
 }
 
-static int
-thread_unsafe_list_insert_ordered (list_t *list, void *data,
-    boolean insert_even_if_in_list_already,
-    list_node_t **node_added)
-{
-    int result;
-    list_node_t *new_node, *current;
-
-    RETURN_ERROR_IF_LIST_IS_FULL(list);
-
-    new_node = list_new_node(list, data);
-    if (NULL == new_node) {
-        safe_pointer_set(node_added, NULL);
-        return ENOMEM;
-    }
-    cur = list->head;
-    while (cur) {
-        result = list->cmp(data, current->data);
-        if (result == 0) {
-            if (insert_even_if_in_list_already) {
-                break;
-            } else {
-                MEM_MONITOR_FREE(new_node);
-                safe_pointer_set(node_added, NULL);
-                return EEXIST;
-            }
-        } else if (result > 0) {
-            break;
-        }
-        current = current->next;
-    }
-    if (current) {
-        thread_unsafe_list_insert_node_before_node(list, current, new_node);
-    } else {
-        thread_unsafe_list_append_node(list, new_node);
-    }
-    safe_pointer_set(node_added, new_node);
-
-    return 0;
-}
-
-static int
-thread_unsafe_ordered_list_search (list_t *listp, void *searched_data,
-        void **present_data,
-        list_node_t **node_found,
-        list_node_t **node_before)
-{
-    int result;
-    list_node_t *cur, *prev;
-
-    prev = NULL;
-    cur = listp->head;
-    while (not_endof_ordered_list(cur)) {
-
-        result = listp->cmpf(cur->user_data, searched_data);
-
-        /* an exact match */
-        if (0 == result) {
-            safe_pointer_set(present_data, cur->user_data);
-            safe_pointer_set(node_found, cur);
-            safe_pointer_set(node_before, prev);
-            return 0;
-        }
-
-        /*
-         * all the nodes past here must have values greater so
-         * no point in continuing to search the rest of the list
-         */
-        if (result > 0) break;
-        prev = cur;
-        cur = cur->next;
-    }
-
-    /* not found */
-    safe_pointer_set(present_data, NULL);
-    safe_pointer_set(node_found, NULL);
-    safe_pointer_set(node_before, prev);
-    return ENODATA;
-}
-
-/******************************************************************************
- *
- * Other helper functions
- */
-
 static inline list_node_t *
-thread_unsafe_ordered_list_find_data_node (list_t *list,
-    void *data)
-{
-}
-
-static inline list_node_t *
-thread_unsafe_unordered_list_find_data_node (list_t *list,
+thread_unsafe_list_find_data_node (list_t *list,
     void *data)
 {
     list_node_t *node;
@@ -341,30 +242,13 @@ thread_unsafe_unordered_list_find_data_node (list_t *list,
     return null;
 }
 
-static inline list_node_t *
-thread_unsafe_list_find_data_node (list_t *list,
-    void *data)
-{
-    if (list->cmp) {
-        return
-            thread_unsafe_ordered_list_find_data_node(list, data);
-    }
-    return
-        thread_unsafe_unordered_list_find_data_node(list, data);
-}
-
 /************************** Public functions **************************/
 
-/*
- * If a comparer function is not specified, install a default
- * one which simply compares the data pointers themselves.
- */
 PUBLIC int
 list_init (list_t *list,
     bool make_it_thread_safe,
     bool enable_statistics,
     int n_max,
-    object_comparer cmp,
     mem_monitor_t *parent_mem_monitor)
 {
     MEM_MONITOR_SETUP(list);
@@ -373,7 +257,6 @@ list_init (list_t *list,
 
     list->head = list->tail = null;
     list->n = 0;
-    list->cmp = cmp;
     list->n_max = (n_max > 0) ? n_max : 0;
     OBJ_WRITE_UNLOCK(list);
 
@@ -381,28 +264,9 @@ list_init (list_t *list,
 }
 
 PUBLIC int
-list_insert_ordered (list_t *list, void *data)
-{
-    int failed;
-
-    /* This list is UN-ordered, this function cannot be used on it */
-    if (un_ordered_list(list)) return EPERM;
-
-    OBJ_WRITE_LOCK(list);
-    failed = thread_unsafe_list_insert_ordered(list, data);
-    insertion_stats_update(list, failed);
-    OBJ_WRITE_UNLOCK(list);
-
-    return failed;
-}
-
-PUBLIC int
 list_prepend_data (list_t *list, void *data)
 {
     int failed;
-
-    /* This list is ordered, this function cannot be used on it */
-    if (ordered_list(list)) return EPERM;
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_prepend_data(list, data);
@@ -416,9 +280,6 @@ PUBLIC int
 list_append_data (list_t *list, void *data)
 {
     int failed;
-
-    /* This list is ordered, this function cannot be used on it */
-    if (ordered_list(list)) return EPERM;
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_append_data(list, data);
@@ -434,9 +295,6 @@ list_insert_data_after_node (list_t *list,
 {
     int failed;
 
-    /* This list is ordered, this function cannot be used on it */
-    if (ordered_list(list)) return EPERM;
-
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_insert_data_after_node(list, node, data);
     insertion_stats_update(list, failed);
@@ -450,9 +308,6 @@ list_insert_data_before_node (list_t *list,
     list_node_t *node, void *data)
 {
     int failed;
-
-    /* This list is ordered, this function cannot be used on it */
-    if (ordered_list(list)) return EPERM;
 
     OBJ_WRITE_LOCK(list);
     failed = thread_unsafe_list_insert_data_before_node(list, node, data);

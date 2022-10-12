@@ -10,7 +10,7 @@ int main (int argc, char *argv[])
     void *ptr;
     list_node_t *node, *nextnode;
 
-    if (list_init(&list, false, true, 0, null, null)) {
+    if (list_init(&list, false, true, 0, null)) {
         fprintf(stderr, "list_init failed\n");
         return -1;
     }

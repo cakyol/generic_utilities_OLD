@@ -32,9 +32,8 @@ LIB_OBJS =	debug_framework.o \
 		object_manager.o \
 		tlv_manager.o \
 		buffer_manager.o \
-		### list.o \
+		list.o \
 		### event_manager.o \
-		### ordered_list.o \
 
 %.o:		%.c %.h common.h
 		$(CC) -c $(CFLAGS) $<
@@ -62,10 +61,6 @@ test_lock_speed:	test_lock_speed.c $(LIBNAME)
 test_bitlist:		test_bitlist.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_bitlist.c \
 				-o test_bitlist $(LIBNAME) $(STATIC_LIBS)
-
-test_ordered_list:	test_ordered_list.c $(LIBNAME)
-			$(CC) $(CFLAGS) $(INCLUDES) test_ordered_list.c \
-				-o test_ordered_list $(LIBNAME) $(STATIC_LIBS)
 
 test_chunk_manager: test_chunk_manager.c $(LIBNAME)
 			$(CC) $(CFLAGS) $(INCLUDES) test_chunk_manager.c \
